@@ -1,0 +1,185 @@
+<style>
+  @keyframes pulse-ring { 0%,100%{opacity:0.18} 50%{opacity:0.32} }
+  @keyframes orbit { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes orbit-rev { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
+  @keyframes breathe { 0%,100%{opacity:0.85} 50%{opacity:1} }
+  .ring-pulse { animation: pulse-ring 3s ease-in-out infinite; }
+  .orbit-dot { animation: orbit 6s linear infinite; transform-origin: 200px 200px; }
+  .orbit-dot-rev { animation: orbit-rev 9s linear infinite; transform-origin: 200px 200px; }
+  .breathe { animation: breathe 4s ease-in-out infinite; }
+</style>
+
+<div style="display:flex;flex-direction:column;align-items:center;gap:48px;padding:40px 0;">
+
+  <div style="display:flex;flex-direction:column;align-items:center;gap:32px;">
+
+    <svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="core-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#7B6CF6" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#7B6CF6" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="symbol-fill" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#A89AF8"/>
+          <stop offset="100%" stop-color="#5B4FD4"/>
+        </linearGradient>
+        <linearGradient id="arc-grad-1" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#7B6CF6" stop-opacity="0"/>
+          <stop offset="50%" stop-color="#7B6CF6"/>
+          <stop offset="100%" stop-color="#7B6CF6" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="arc-grad-2" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#5DCAA5" stop-opacity="0"/>
+          <stop offset="50%" stop-color="#5DCAA5"/>
+          <stop offset="100%" stop-color="#5DCAA5" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="clip-outer">
+          <circle cx="200" cy="200" r="180"/>
+        </clipPath>
+      </defs>
+
+      <circle cx="200" cy="200" r="170" fill="url(#core-glow)" class="ring-pulse"/>
+
+      <circle cx="200" cy="200" r="148" fill="none" stroke="#7B6CF6" stroke-width="0.6" opacity="0.2"/>
+      <circle cx="200" cy="200" r="118" fill="none" stroke="#7B6CF6" stroke-width="0.6" opacity="0.15"/>
+
+      <g class="orbit-dot">
+        <circle cx="200" cy="52" r="4" fill="#7B6CF6" opacity="0.9"/>
+      </g>
+      <g class="orbit-dot">
+        <circle cx="348" cy="200" r="2.5" fill="#7B6CF6" opacity="0.5"/>
+      </g>
+      <g class="orbit-dot">
+        <circle cx="200" cy="348" r="3" fill="#7B6CF6" opacity="0.7"/>
+      </g>
+      <g class="orbit-dot-rev">
+        <circle cx="200" cy="82" r="3" fill="#5DCAA5" opacity="0.8"/>
+      </g>
+      <g class="orbit-dot-rev">
+        <circle cx="318" cy="200" r="2" fill="#5DCAA5" opacity="0.5"/>
+      </g>
+
+      <circle cx="200" cy="200" r="88" fill="#0E0B1F"/>
+      <circle cx="200" cy="200" r="86" fill="none" stroke="#7B6CF6" stroke-width="1" opacity="0.4"/>
+
+      <g class="breathe">
+        <path d="
+          M 200 138
+          L 175 160
+          L 175 195
+          L 200 162
+          L 225 195
+          L 225 160
+          Z
+        " fill="url(#symbol-fill)" opacity="0.95"/>
+
+        <path d="
+          M 178 202
+          L 162 240
+          L 200 218
+          L 238 240
+          L 222 202
+          L 200 222
+          Z
+        " fill="url(#symbol-fill)" opacity="0.75"/>
+
+        <circle cx="200" cy="192" r="5" fill="#C4B8FC"/>
+      </g>
+
+      <path d="M 120 200 Q 160 155 200 200 Q 240 245 280 200" fill="none" stroke="#7B6CF6" stroke-width="1.5" opacity="0.3" stroke-linecap="round"/>
+    </svg>
+
+    <svg width="320" height="72" viewBox="0 0 320 72" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="text-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#A89AF8"/>
+          <stop offset="60%" stop-color="#C4B8FC"/>
+          <stop offset="100%" stop-color="#5DCAA5"/>
+        </linearGradient>
+      </defs>
+      <text x="160" y="48" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-size="48" font-weight="700"
+        letter-spacing="14"
+        fill="url(#text-grad)">NOVA</text>
+      <text x="160" y="66" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, sans-serif"
+        font-size="11" font-weight="400"
+        letter-spacing="5"
+        fill="#7B6CF6" opacity="0.7">NEURAL ORCHESTRATED VOICE ASSISTANT</text>
+    </svg>
+  </div>
+
+  <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;justify-content:center;">
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="40" cy="40" r="36" fill="#0E0B1F"/>
+        <circle cx="40" cy="40" r="35" fill="none" stroke="#7B6CF6" stroke-width="0.8" opacity="0.5"/>
+        <path d="M40 20 L31 28 L31 38 L40 30 L49 38 L49 28 Z" fill="#A89AF8"/>
+        <path d="M33 44 L26 60 L40 52 L54 60 L47 44 L40 52 Z" fill="#A89AF8" opacity="0.7"/>
+        <circle cx="40" cy="38" r="2.5" fill="#C4B8FC"/>
+      </svg>
+      <span style="font-size:11px;color:#7B6CF6;letter-spacing:2px;font-family:system-ui;">MARK</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="4" width="72" height="72" rx="20" fill="#0E0B1F"/>
+        <rect x="4" y="4" width="72" height="72" rx="20" fill="none" stroke="#7B6CF6" stroke-width="0.8" opacity="0.5"/>
+        <path d="M40 20 L31 28 L31 38 L40 30 L49 38 L49 28 Z" fill="#A89AF8"/>
+        <path d="M33 44 L26 60 L40 52 L54 60 L47 44 L40 52 Z" fill="#A89AF8" opacity="0.7"/>
+        <circle cx="40" cy="38" r="2.5" fill="#C4B8FC"/>
+      </svg>
+      <span style="font-size:11px;color:#7B6CF6;letter-spacing:2px;font-family:system-ui;">APP ICON</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div style="background:#F4F3FF;border-radius:12px;padding:8px 16px;display:flex;align-items:center;gap:12px;">
+        <svg width="28" height="28" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+          <path d="M40 14 L27 24 L27 38 L40 28 L53 38 L53 24 Z" fill="#5B4FD4"/>
+          <path d="M30 46 L20 66 L40 55 L60 66 L50 46 L40 57 Z" fill="#5B4FD4" opacity="0.65"/>
+          <circle cx="40" cy="36" r="3" fill="#7B6CF6"/>
+        </svg>
+        <span style="font-family:system-ui;font-size:16px;font-weight:700;letter-spacing:3px;color:#3D35A8;">NOVA</span>
+      </div>
+      <span style="font-size:11px;color:#7B6CF6;letter-spacing:2px;font-family:system-ui;">LIGHT LOCKUP</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div style="background:#0E0B1F;border-radius:12px;padding:8px 16px;display:flex;align-items:center;gap:12px;">
+        <svg width="28" height="28" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+          <path d="M40 14 L27 24 L27 38 L40 28 L53 38 L53 24 Z" fill="#A89AF8"/>
+          <path d="M30 46 L20 66 L40 55 L60 66 L50 46 L40 57 Z" fill="#A89AF8" opacity="0.65"/>
+          <circle cx="40" cy="36" r="3" fill="#C4B8FC"/>
+        </svg>
+        <span style="font-family:system-ui;font-size:16px;font-weight:700;letter-spacing:3px;color:#C4B8FC;">NOVA</span>
+      </div>
+      <span style="font-size:11px;color:#7B6CF6;letter-spacing:2px;font-family:system-ui;">DARK LOCKUP</span>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:#0E0B1F;border:1px solid rgba(123,108,246,0.4);"></div>
+      <span style="font-size:10px;color:#7B6CF6;letter-spacing:1px;font-family:system-ui;">#0E0B1F</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:#7B6CF6;"></div>
+      <span style="font-size:10px;color:#7B6CF6;letter-spacing:1px;font-family:system-ui;">#7B6CF6</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:#A89AF8;"></div>
+      <span style="font-size:10px;color:#7B6CF6;letter-spacing:1px;font-family:system-ui;">#A89AF8</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:#C4B8FC;"></div>
+      <span style="font-size:10px;color:#7B6CF6;letter-spacing:1px;font-family:system-ui;">#C4B8FC</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div style="width:44px;height:44px;border-radius:50%;background:#5DCAA5;"></div>
+      <span style="font-size:10px;color:#5DCAA5;letter-spacing:1px;font-family:system-ui;">#5DCAA5</span>
+    </div>
+  </div>
+
+</div>

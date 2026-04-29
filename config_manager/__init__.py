@@ -1,0 +1,2 @@
+# Config manager package
+

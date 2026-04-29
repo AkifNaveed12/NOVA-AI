@@ -1,0 +1,2 @@
+# Gesture -> OS action mapping
+
