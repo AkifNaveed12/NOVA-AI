@@ -50,3 +50,14 @@
 - Content: Full 28-day development plan — all 25 modules, task-by-task breakdown
 - Structure: Each day has T0 (prereqs) -> T1...Tn (implementation) -> TEST -> PUSH
 - Appendix: Master module index, git commit convention, 24 test case summary table
+
+---
+
+## Day 2 — wake_word.py + stt.py
+**Date:** 2026-05-03
+**Status:** Complete
+
+### What was done:
+- `wake_word.py`: Implemented `WakeWordDetector` class running as a daemon thread using `speech_recognition`'s energy-threshold loop (fallback since Porcupine is skipped). Uses `threading.Event` to trigger the main loop.
+- `stt.py`: Implemented `SpeechToText` class with `listen()` and `transcribe()` methods. Primary uses Google Web Speech API; fallback uses local `openai-whisper` (base model) with numpy float32 conversion to avoid `soundfile` dependency.
+- `main.py`: Wired wake word and STT modules. Set up the core passive-listening loop `wake_event.wait()` -> `stt.listen()` -> `stt.transcribe()` -> `print()`.

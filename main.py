@@ -21,7 +21,15 @@ def main() -> None:
     """Entry point — initialises all threads and launches HUD."""
     print("NOVA AI — Initializing...")
 
-    # TODO: Week 1 Day 1 — scaffold only. Real implementation added daily.
+    import json
+    
+    # Load config
+    try:
+        with open("config.json", "r", encoding="utf-8") as f:
+            config = json.load(f)
+    except Exception as e:
+        print(f"Error loading config.json: {e}")
+        return
 
     # ── Shared state ─────────────────────────────────────────────────
     # wake_event: set() by wake_word_thread → main pipeline waits on it
@@ -33,9 +41,9 @@ def main() -> None:
     # reminder_queue: reminder_thread puts alert strings → main speaks them
     reminder_queue: queue.Queue = queue.Queue()
 
-    # ── Thread stubs (replaced as each module is implemented) ─────────
-    # TODO Day 2: from modules.wake_word import WakeWordDetector
-    # TODO Day 2: from modules.stt import SpeechToText
+    # ── Module Imports ────────────────────────────────────────────────
+    from modules.wake_word import WakeWordDetector
+    from modules.stt import SpeechToText
     # TODO Day 3: from modules.nlp_engine import process as nlp_process
     # TODO Day 4: from modules.groq_brain import GroqBrain
     # TODO Day 5: from modules.memory_system import DatabaseManager
@@ -43,13 +51,41 @@ def main() -> None:
     # TODO Day 15: from modules.notes_reminders import ReminderEngine
     # TODO Day 18: from modules.gesture_engine import GestureEngine
 
-    # ── Core start sequence ───────────────────────────────────────────
-    # TODO: Start daemon threads here (wake_word, gesture, reminder)
-    # TODO: Launch HUD in main thread (Tkinter must own the mainloop)
-    # TODO: Enter main voice pipeline loop
+    # ── Initialize Modules ────────────────────────────────────────────
+    wake_word = WakeWordDetector(wake_event, config)
+    stt = SpeechToText(config)
 
-    print("NOVA AI — Ready (scaffold mode — no modules active yet)")
-    print("Run 'python main.py' after each Day to verify the pipeline builds.")
+    # ── Core start sequence ───────────────────────────────────────────
+    # Start background threads
+    wake_word.start()
+    
+    # TODO: Launch HUD in main thread (Tkinter must own the mainloop)
+
+    print("\nNOVA AI — Ready (Listening for wake word...)")
+    
+    # Main voice pipeline loop
+    try:
+        while True:
+            # Block until WakeWordDetector sets the event
+            wake_event.wait()
+            
+            # Listen for user command
+            audio = stt.listen()
+            
+            if audio:
+                # Convert to text
+                text = stt.transcribe(audio)
+                if text:
+                    print(f"\n[USER] {text}")
+                    # TODO: pass text to NLP Engine
+                    
+            # Reset event to go back to passive listening
+            wake_event.clear()
+            print("\n[NOVA] Resuming background listening...")
+            
+    except KeyboardInterrupt:
+        print("\nNOVA AI — Shutting down gracefully...")
+        wake_word.stop()
 
 
 if __name__ == "__main__":
