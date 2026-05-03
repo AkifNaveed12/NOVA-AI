@@ -1,28 +1,57 @@
-# Python dependencies for NOVA AI
+# NOVA AI — Full Requirements
+# Python 3.11 | Windows 10/11 | All free tools
+# Install: pip install -r requirements.txt
 
-SpeechRecognition==3.10.1
-pyttsx3==2.90
-gTTS==2.5.1
+# ── Core / Voice Pipeline ─────────────────────────────────────────
+SpeechRecognition==3.10.4
+pyaudio==0.2.14
+pvporcupine==3.0.2
+openai-whisper==20231117
+
+# ── NLP & Intent Engine ───────────────────────────────────────────
 spacy==3.7.4
 nltk==3.8.1
 dateparser==1.2.0
-groq==0.9.0
-requests==2.32.3
+
+# ── LLM / Groq API ───────────────────────────────────────────────
+groq==0.8.0
+
+# ── TTS (Text-to-Speech) ─────────────────────────────────────────
+pyttsx3==2.90
+gTTS==2.5.1
+
+# ── Web & APIs ───────────────────────────────────────────────────
+requests==2.31.0
 wikipedia==1.4.0
-selenium==4.21.0
-webdriver-manager==4.0.1
-pyautogui==0.9.54
-pycaw==20240210
-psutil==5.9.8
-screen-brightness-control==0.16.1
-pyperclip==1.8.2
+selenium==4.18.1
 deep-translator==1.11.4
-PyWhatKit==5.4
+
+# ── OS Automation & System Control ───────────────────────────────
+pyautogui==0.9.54
+pycaw==20230625
+psutil==5.9.8
+screen-brightness-control==0.23.0
+pyperclip==1.8.2
+Pillow==10.2.0
+
+# ── Messaging & Media ─────────────────────────────────────────────
+pywhatkit==5.4
 pyjokes==0.6.0
-fuzzywuzzy==0.18.0
-python-Levenshtein==0.25.1
-Pillow==10.3.0
+
+# ── Computer Vision / Gesture ────────────────────────────────────
 opencv-python==4.9.0.80
-mediapipe==0.10.14
-matplotlib==3.9.0
+mediapipe==0.10.11
+
+# ── Fuzzy Matching ────────────────────────────────────────────────
+fuzzywuzzy==0.18.0
+rapidfuzz==3.6.2
+python-Levenshtein==0.25.1
+
+# ── UI / Visualization ────────────────────────────────────────────
+matplotlib==3.8.3
+
+# ── Config & Secrets ─────────────────────────────────────────────
 python-dotenv==1.0.1
+
+# ── Testing ──────────────────────────────────────────────────────
+pytest==8.1.1

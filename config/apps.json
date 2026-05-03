@@ -1,4 +1,94 @@
 {
-  "_comment": "App name -> executable path"
+  "apps": [
+    {
+      "name": "VS Code",
+      "aliases": ["visual studio code", "vscode", "vs code", "code editor"],
+      "path": "C:\\Users\\Akif\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe"
+    },
+    {
+      "name": "Chrome",
+      "aliases": ["google chrome", "chrome", "browser", "google"],
+      "path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    },
+    {
+      "name": "Firefox",
+      "aliases": ["firefox", "mozilla", "mozilla firefox"],
+      "path": "C:\\Program Files\\Mozilla Firefox\\firefox.exe"
+    },
+    {
+      "name": "Notepad",
+      "aliases": ["notepad", "text editor", "note pad"],
+      "path": "notepad.exe"
+    },
+    {
+      "name": "Calculator",
+      "aliases": ["calculator", "calc", "calculate"],
+      "path": "calc.exe"
+    },
+    {
+      "name": "Spotify",
+      "aliases": ["spotify", "music app", "music player"],
+      "path": "C:\\Users\\Akif\\AppData\\Roaming\\Spotify\\Spotify.exe"
+    },
+    {
+      "name": "VLC",
+      "aliases": ["vlc", "media player", "vlc player", "video player"],
+      "path": "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe"
+    },
+    {
+      "name": "File Explorer",
+      "aliases": ["explorer", "file manager", "files", "file explorer", "my computer"],
+      "path": "explorer.exe"
+    },
+    {
+      "name": "Task Manager",
+      "aliases": ["task manager", "processes", "tasks"],
+      "path": "taskmgr.exe"
+    },
+    {
+      "name": "Control Panel",
+      "aliases": ["control panel", "settings", "windows settings"],
+      "path": "control.exe"
+    },
+    {
+      "name": "Discord",
+      "aliases": ["discord", "disc"],
+      "path": "C:\\Users\\Akif\\AppData\\Local\\Discord\\Update.exe"
+    },
+    {
+      "name": "Telegram",
+      "aliases": ["telegram"],
+      "path": "C:\\Users\\Akif\\AppData\\Roaming\\Telegram Desktop\\Telegram.exe"
+    },
+    {
+      "name": "PowerPoint",
+      "aliases": ["powerpoint", "presentation", "slides", "ppt"],
+      "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\POWERPNT.EXE"
+    },
+    {
+      "name": "Word",
+      "aliases": ["word", "microsoft word", "document", "ms word"],
+      "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE"
+    },
+    {
+      "name": "Excel",
+      "aliases": ["excel", "spreadsheet", "ms excel", "microsoft excel"],
+      "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE"
+    },
+    {
+      "name": "GitHub Desktop",
+      "aliases": ["github desktop", "github", "git"],
+      "path": "C:\\Users\\Akif\\AppData\\Local\\GitHubDesktop\\GitHubDesktop.exe"
+    },
+    {
+      "name": "Postman",
+      "aliases": ["postman", "api client", "api tester"],
+      "path": "C:\\Users\\Akif\\AppData\\Local\\Postman\\Postman.exe"
+    },
+    {
+      "name": "WhatsApp",
+      "aliases": ["whatsapp", "whatsapp desktop"],
+      "path": "C:\\Users\\Akif\\AppData\\Local\\WhatsApp\\WhatsApp.exe"
+    }
+  ]
 }
-

@@ -1,4 +1,25 @@
 {
-  "_comment": "Contact name -> phone/email"
+  "contacts": [
+    {
+      "name": "Mama",
+      "aliases": ["mama", "mom", "mother", "ammi"],
+      "phone": "+92300XXXXXXX",
+      "email": "",
+      "platform": "whatsapp"
+    },
+    {
+      "name": "Baba",
+      "aliases": ["baba", "dad", "father", "abu"],
+      "phone": "+92300XXXXXXX",
+      "email": "",
+      "platform": "whatsapp"
+    },
+    {
+      "name": "Ali",
+      "aliases": ["ali"],
+      "phone": "+92300XXXXXXX",
+      "email": "ali@example.com",
+      "platform": "whatsapp"
+    }
+  ]
 }
-

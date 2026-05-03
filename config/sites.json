@@ -1,4 +1,59 @@
 {
-  "_comment": "Site name -> URL"
+  "sites": [
+    {
+      "name": "GitHub",
+      "aliases": ["github", "my github", "github profile"],
+      "url": "https://github.com/AkifNaveed12"
+    },
+    {
+      "name": "LinkedIn",
+      "aliases": ["linkedin", "my linkedin", "linked in"],
+      "url": "https://linkedin.com/in/akifnaveed"
+    },
+    {
+      "name": "YouTube",
+      "aliases": ["youtube", "yt", "you tube"],
+      "url": "https://youtube.com"
+    },
+    {
+      "name": "Google",
+      "aliases": ["google", "google search"],
+      "url": "https://google.com"
+    },
+    {
+      "name": "StackOverflow",
+      "aliases": ["stackoverflow", "stack overflow", "stack"],
+      "url": "https://stackoverflow.com"
+    },
+    {
+      "name": "ChatGPT",
+      "aliases": ["chatgpt", "gpt", "openai", "chat gpt"],
+      "url": "https://chat.openai.com"
+    },
+    {
+      "name": "Gmail",
+      "aliases": ["gmail", "email", "mail", "google mail"],
+      "url": "https://mail.google.com"
+    },
+    {
+      "name": "Google Drive",
+      "aliases": ["drive", "google drive", "my drive"],
+      "url": "https://drive.google.com"
+    },
+    {
+      "name": "WhatsApp Web",
+      "aliases": ["whatsapp web", "whatsapp", "wa web"],
+      "url": "https://web.whatsapp.com"
+    },
+    {
+      "name": "University Portal",
+      "aliases": ["university", "comsats portal", "student portal", "cu online", "cuonline"],
+      "url": "https://cuonline.edu.pk"
+    },
+    {
+      "name": "NOVA AI Repo",
+      "aliases": ["nova repo", "nova github", "project repo"],
+      "url": "https://github.com/AkifNaveed12/NOVA-AI"
+    }
+  ]
 }
-

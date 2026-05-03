@@ -1,0 +1,83 @@
+{
+  "nova": {
+    "name": "NOVA",
+    "wake_phrase": "Hey NOVA",
+    "user_name": "Akif",
+    "language": "en"
+  },
+  "stt": {
+    "engine": "google",
+    "fallback": "whisper",
+    "energy_threshold": 300,
+    "pause_threshold": 0.8,
+    "phrase_threshold": 0.3,
+    "timeout": 5
+  },
+  "tts": {
+    "engine": "pyttsx3",
+    "fallback": "gtts",
+    "rate": 175,
+    "volume": 0.9,
+    "voice_index": 0
+  },
+  "modules": {
+    "wake_word": true,
+    "stt": true,
+    "nlp": true,
+    "groq": true,
+    "weather": true,
+    "news": true,
+    "wikipedia": true,
+    "web_automation": true,
+    "app_launcher": true,
+    "email": true,
+    "whatsapp": true,
+    "music": true,
+    "notes": true,
+    "calendar": true,
+    "datetime_math": true,
+    "system_controls": true,
+    "screenshot": true,
+    "clipboard": true,
+    "translation": true,
+    "memory": true,
+    "personality": true,
+    "gesture_control": true,
+    "hud": true,
+    "activity_log": true,
+    "config_manager": true
+  },
+  "weather": {
+    "default_city": "Wah Cantt",
+    "units": "metric"
+  },
+  "hud": {
+    "width": 320,
+    "alpha": 0.92,
+    "dock": "right",
+    "gesture_cam_feed": true,
+    "waveform_bars": 64,
+    "waveform_fps": 20
+  },
+  "gesture": {
+    "camera_index": 0,
+    "fps_target": 20,
+    "debounce_seconds": 0.4,
+    "pinch_threshold_px": 30
+  },
+  "memory": {
+    "db_path": "data/memory.db",
+    "top_k_injection": 10,
+    "log_retention_days": 30
+  },
+  "groq": {
+    "model": "llama3-70b-8192",
+    "max_tokens": 1024,
+    "temperature": 0.7,
+    "conversation_window": 20
+  },
+  "user": {
+    "name": "Akif",
+    "default_city": "Wah Cantt"
+  }
+}
