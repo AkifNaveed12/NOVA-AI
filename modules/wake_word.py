@@ -43,33 +43,42 @@ class WakeWordDetector:
         import time
         
         while self.running:
-            if self.wake_event.is_set():
-                # Main pipeline is busy processing a command or speaking TTS.
-                # Pause wake word detection and release the mic.
+            # 1. Wait while the main pipeline is busy (TTS/STT running)
+            while self.wake_event.is_set() and self.running:
                 time.sleep(0.5)
-                continue
                 
+            if not self.running:
+                break
+                
+            # 2. Main pipeline is idle. Open a fresh microphone stream.
             try:
-                # Open mic just for this chunk so we don't lock it from STT
                 with sr.Microphone() as source:
-                    self.recognizer.adjust_for_ambient_noise(source, duration=0.2)
-                    audio = self.recognizer.listen(source, timeout=1, phrase_time_limit=3)
+                    # Calibrate once per session
+                    self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                     
-                # Process outside the mic context block
-                text = self.recognizer.recognize_google(audio).lower()
-                text = text.replace(",", "").replace(".", "").replace("!", "").replace("?", "")
-                
-                if self.wake_phrase in text:
-                    print(f"\n[WakeWord] Wake phrase '{self.wake_phrase}' detected!")
-                    self.wake_event.set()
-                    
-            except sr.WaitTimeoutError:
-                pass
-            except sr.UnknownValueError:
-                pass
-            except sr.RequestError as e:
-                print(f"[WakeWord] API Error: {e}")
+                    # 3. Fast continuous listening loop (no dropped frames)
+                    while self.running and not self.wake_event.is_set():
+                        try:
+                            audio = self.recognizer.listen(source, timeout=1, phrase_time_limit=3)
+                            
+                            text = self.recognizer.recognize_google(audio).lower()
+                            text = text.replace(",", "").replace(".", "").replace("!", "").replace("?", "")
+                            
+                            if self.wake_phrase in text:
+                                print(f"\n[WakeWord] Wake phrase '{self.wake_phrase}' detected!")
+                                self.wake_event.set()
+                                # BREAK out of the inner loop to EXIT the 'with' block!
+                                # This completely closes our microphone stream so STT can use it!
+                                break 
+                                
+                        except sr.WaitTimeoutError:
+                            pass
+                        except sr.UnknownValueError:
+                            pass
+                        except sr.RequestError as e:
+                            print(f"[WakeWord] API Error: {e}")
+                            
             except Exception as e:
-                # Ignore random audio device errors when looping
-                pass
+                # Ignore random audio device errors and retry
+                time.sleep(1)
 
