@@ -61,3 +61,16 @@
 - `wake_word.py`: Implemented `WakeWordDetector` class running as a daemon thread using `speech_recognition`'s energy-threshold loop (fallback since Porcupine is skipped). Uses `threading.Event` to trigger the main loop.
 - `stt.py`: Implemented `SpeechToText` class with `listen()` and `transcribe()` methods. Primary uses Google Web Speech API; fallback uses local `openai-whisper` (base model) with numpy float32 conversion to avoid `soundfile` dependency.
 - `main.py`: Wired wake word and STT modules. Set up the core passive-listening loop `wake_event.wait()` -> `stt.listen()` -> `stt.transcribe()` -> `print()`.
+
+---
+
+## Day 3 — nlp_engine.py + TTS Integration
+**Date:** 2026-05-03
+**Status:** Complete
+
+### What was done:
+- `nlp_engine.py`: Implemented intent classification (`classify_intent`) using NLTK stopword removal and tokenization against 21 predefined `INTENT_PATTERNS`.
+- `nlp_engine.py`: Implemented entity extraction (`extract_entities`) using spaCy (`en_core_web_sm`) for NER (GPE, PERSON, TIME, ORG) and regex fallbacks.
+- `main.py`: Integrated `pyttsx3` for offline TTS and added `speak()` and `speak_online()` (gTTS fallback) functions.
+- `main.py`: Wired the `nlp_engine` into the core pipeline. NOVA now listens, transcribes, classifies the intent, and speaks a confirmation.
+- `tests/test_all.py`: Added Day 3 unit tests for `classify_intent` and `extract_entities` to ensure proper routing logic.

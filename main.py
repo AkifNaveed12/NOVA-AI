@@ -44,7 +44,7 @@ def main() -> None:
     # ── Module Imports ────────────────────────────────────────────────
     from modules.wake_word import WakeWordDetector
     from modules.stt import SpeechToText
-    # TODO Day 3: from modules.nlp_engine import process as nlp_process
+    from modules.nlp_engine import process as nlp_process
     # TODO Day 4: from modules.groq_brain import GroqBrain
     # TODO Day 5: from modules.memory_system import DatabaseManager
     # TODO Day 6: from modules.hud_interface import NOVAHud
@@ -54,6 +54,36 @@ def main() -> None:
     # ── Initialize Modules ────────────────────────────────────────────
     wake_word = WakeWordDetector(wake_event, config)
     stt = SpeechToText(config)
+
+    import pyttsx3
+    import tempfile
+    from gtts import gTTS
+    import playsound # Make sure this is installed for gTTS if used, but we'll try pyttsx3 mainly
+
+    # Initialize pyttsx3 TTS
+    tts_engine = pyttsx3.init()
+    tts_cfg = config.get("tts", {})
+    tts_engine.setProperty('rate', tts_cfg.get("rate", 175))
+    tts_engine.setProperty('volume', tts_cfg.get("volume", 0.9))
+
+    def speak(text: str):
+        """Speaks the text aloud using pyttsx3."""
+        print(f"[NOVA] {text}")
+        tts_engine.say(text)
+        tts_engine.runAndWait()
+
+    def speak_online(text: str):
+        """Fallback TTS using gTTS."""
+        print(f"[NOVA (gTTS)] {text}")
+        try:
+            tts = gTTS(text=text, lang='en')
+            # Using simple cross-platform way to play sound if needed
+            temp_path = os.path.join(tempfile.gettempdir(), "nova_tts.mp3")
+            tts.save(temp_path)
+            # In a full implementation, use pygame or playsound here to play it
+            # For now, pyttsx3 is our primary offline method.
+        except Exception as e:
+            print(f"[TTS Error] {e}")
 
     # ── Core start sequence ───────────────────────────────────────────
     # Start background threads
@@ -77,7 +107,14 @@ def main() -> None:
                 text = stt.transcribe(audio)
                 if text:
                     print(f"\n[USER] {text}")
-                    # TODO: pass text to NLP Engine
+                    
+                    # NLP Processing
+                    result = nlp_process(text)
+                    intent = result["intent"]
+                    entities = result["entities"]
+                    
+                    print(f"[NLP] Intent: {intent} | Entities: {entities}")
+                    speak(f"I understood your intent is {intent}.")
                     
             # Reset event to go back to passive listening
             wake_event.clear()

@@ -116,8 +116,22 @@ def test_data_directory_exists():
 # Test 2: STT transcribes "open chrome"       — added Day 2
 
 # ── Day 3: NLP Tests (added Day 3) ───────────────────────────────
-# Test 3: NLP classifies "open chrome" -> app  — added Day 3
-# Test 4: NLP extracts "Islamabad" from weather — added Day 3
+def test_nlp_engine_intent_classification():
+    from modules.nlp_engine import classify_intent
+    assert classify_intent("open chrome") == "app"
+    assert classify_intent("weather in islamabad") == "weather"
+    assert classify_intent("set a reminder at 5 PM") == "reminder"
+    assert classify_intent("tell me a joke") == "joke"
+    assert classify_intent("what is machine learning") == "wikipedia"
+    assert classify_intent("ajkdfhkjhdfg") == "conversation"
+
+def test_nlp_engine_entity_extraction():
+    from modules.nlp_engine import extract_entities
+    res1 = extract_entities("weather in islamabad")
+    assert "islamabad" in res1.get("city", "").lower()
+    
+    res2 = extract_entities('search for "machine learning"')
+    assert res2.get("query") == "machine learning"
 
 # ── Day 4: Groq Tests (added Day 4) ──────────────────────────────
 # Test 5: Groq responds to "what is AI"         — added Day 4
