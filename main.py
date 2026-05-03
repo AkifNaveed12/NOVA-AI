@@ -58,7 +58,7 @@ def main() -> None:
     import pyttsx3
     import tempfile
     from gtts import gTTS
-    import playsound # Make sure this is installed for gTTS if used, but we'll try pyttsx3 mainly
+    import os
 
     # Initialize pyttsx3 TTS
     tts_engine = pyttsx3.init()
@@ -77,11 +77,11 @@ def main() -> None:
         print(f"[NOVA (gTTS)] {text}")
         try:
             tts = gTTS(text=text, lang='en')
-            # Using simple cross-platform way to play sound if needed
             temp_path = os.path.join(tempfile.gettempdir(), "nova_tts.mp3")
             tts.save(temp_path)
-            # In a full implementation, use pygame or playsound here to play it
-            # For now, pyttsx3 is our primary offline method.
+            # Use built-in OS command to play audio on Windows
+            if os.name == 'nt':
+                os.system(f"start {temp_path}")
         except Exception as e:
             print(f"[TTS Error] {e}")
 
