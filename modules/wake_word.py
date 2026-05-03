@@ -40,34 +40,36 @@ class WakeWordDetector:
         self.running = False
         
     def _listen_loop(self):
-        """Continuous audio loop looking for the wake phrase."""
-        with sr.Microphone() as source:
-            # Calibrate to ambient noise once at startup
-            self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
-            
-            while self.running:
-                try:
-                    # phrase_time_limit ensures we don't block forever on continuous background noise
+        import time
+        
+        while self.running:
+            if self.wake_event.is_set():
+                # Main pipeline is busy processing a command or speaking TTS.
+                # Pause wake word detection and release the mic.
+                time.sleep(0.5)
+                continue
+                
+            try:
+                # Open mic just for this chunk so we don't lock it from STT
+                with sr.Microphone() as source:
+                    self.recognizer.adjust_for_ambient_noise(source, duration=0.2)
                     audio = self.recognizer.listen(source, timeout=1, phrase_time_limit=3)
                     
-                    # Try to recognize text using Google
-                    text = self.recognizer.recognize_google(audio).lower()
+                # Process outside the mic context block
+                text = self.recognizer.recognize_google(audio).lower()
+                text = text.replace(",", "").replace(".", "").replace("!", "").replace("?", "")
+                
+                if self.wake_phrase in text:
+                    print(f"\n[WakeWord] Wake phrase '{self.wake_phrase}' detected!")
+                    self.wake_event.set()
                     
-                    # Remove punctuation for matching
-                    text = text.replace(",", "").replace(".", "").replace("!", "").replace("?", "")
-                    
-                    if self.wake_phrase in text:
-                        print(f"\n[WakeWord] Wake phrase '{self.wake_phrase}' detected!")
-                        self.wake_event.set()
-                        
-                except sr.WaitTimeoutError:
-                    # Timeout reached, loop again
-                    pass
-                except sr.UnknownValueError:
-                    # Could not understand audio, loop again
-                    pass
-                except sr.RequestError as e:
-                    print(f"[WakeWord] API Error: {e}")
-                except Exception as e:
-                    print(f"[WakeWord] Unexpected error: {e}")
+            except sr.WaitTimeoutError:
+                pass
+            except sr.UnknownValueError:
+                pass
+            except sr.RequestError as e:
+                print(f"[WakeWord] API Error: {e}")
+            except Exception as e:
+                # Ignore random audio device errors when looping
+                pass
 
