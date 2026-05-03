@@ -45,13 +45,17 @@ def main() -> None:
     from modules.wake_word import WakeWordDetector
     from modules.stt import SpeechToText
     from modules.nlp_engine import process as nlp_process
-    # TODO Day 4: from modules.groq_brain import GroqBrain
-    # TODO Day 5: from modules.memory_system import DatabaseManager
+    from modules.memory_system import DatabaseManager
     # TODO Day 6: from modules.hud_interface import NOVAHud
-    # TODO Day 15: from modules.notes_reminders import ReminderEngine
-    # TODO Day 18: from modules.gesture_engine import GestureEngine
 
     # ── Initialize Modules ────────────────────────────────────────────
+    db_manager = DatabaseManager()
+    
+    # Inject memory facts into GroqBrain (which is globally imported in nova_core)
+    import nova_core
+    facts = db_manager.get_facts(limit=10)
+    nova_core.groq_brain.inject_memory(facts)
+
     wake_word = WakeWordDetector(wake_event, config)
     stt = SpeechToText(config)
 
@@ -117,6 +121,19 @@ def main() -> None:
                     # Core Routing
                     import nova_core
                     response = nova_core.route(result)
+                    
+                    # Log activity to SQLite
+                    activity_id = db_manager.log_activity(
+                        command=text,
+                        module=intent,
+                        response=response,
+                        success=True
+                    )
+                    
+                    # If this was a conversation, log the back-and-forth
+                    if intent == "conversation" or intent in nova_core.GROQ_INTENTS:
+                        db_manager.log_conversation("user", text, activity_id=activity_id)
+                        db_manager.log_conversation("assistant", response, activity_id=activity_id)
                     
                     # Speak response
                     speak(response)

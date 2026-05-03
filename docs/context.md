@@ -87,3 +87,16 @@
 - `nova_core.py`: Wired `GroqBrain` globally to preserve history across commands. Updated `route()` to forward ambiguous requests (`conversation` intent) and Groq-specific intents directly to `groq_brain.chat()`.
 - `main.py`: Updated the core voice pipeline to pass the NLP output dictionary to `nova_core.route()` and speak the generated LLM response aloud using `pyttsx3`.
 - `tests/test_all.py`: Updated `check_groq.py` and the main test suite to validate the new Groq model and ensure API connectivity.
+
+---
+
+## Day 5 — memory_system.py (SQLite DB Integration)
+**Date:** 2026-05-03
+**Status:** Complete
+
+### What was done:
+- `memory_system.py`: Implemented `DatabaseManager` using Python's built-in `sqlite3`.
+- **Database Schema**: Created `data/memory.db` and defined 9 tables (`Users`, `UserFacts`, `Notes`, `Tasks`, `Events`, `Reminders`, `Contacts`, `ActivityLog`, `ConversationLog`) representing the core schema from the ERD.
+- **Memory Injection**: Implemented `store_fact` and `get_facts`. Wired `main.py` to retrieve facts and inject them into `nova_core.groq_brain` at startup so NOVA natively remembers user details.
+- **Activity Logging**: Added `log_activity` and `log_conversation`. Updated `main.py` to log every command, the module triggered, and the response summary into the `ActivityLog` and `ConversationLog` tables automatically.
+- `tests/test_all.py`: Added Test 6 to verify SQLite connection, table creation, insertion, and retrieval of facts in an in-memory test database.

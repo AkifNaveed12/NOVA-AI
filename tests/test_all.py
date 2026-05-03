@@ -147,7 +147,31 @@ def test_groq_brain_response():
         assert True # Skip if no key
 
 # ── Day 5: Memory Tests (added Day 5) ────────────────────────────
-# Test 6: DB stores and retrieves a fact         — added Day 5
+def test_database_manager():
+    from modules.memory_system import DatabaseManager
+    # Use in-memory db for testing to avoid polluting real db
+    db = DatabaseManager(":memory:")
+    
+    # Test user creation
+    cursor = db.conn.cursor()
+    cursor.execute("SELECT name FROM Users WHERE id = 1")
+    assert cursor.fetchone()["name"] == "Akif"
+    
+    # Test store and retrieve fact
+    db.store_fact("favorite_color", "blue", "preferences")
+    facts = db.get_facts()
+    assert len(facts) == 1
+    assert facts[0][0] == "favorite_color"
+    assert facts[0][1] == "blue"
+    
+    # Test activity logging
+    act_id = db.log_activity("open chrome", "app", "opening chrome", True)
+    assert act_id == 1
+    
+    # Test conversation logging
+    db.log_conversation("user", "hello", activity_id=act_id)
+    cursor.execute("SELECT role FROM ConversationLog WHERE activity_id = 1")
+    assert cursor.fetchone()["role"] == "user"
 
 # ── Day 6: HUD Tests (added Day 6) ───────────────────────────────
 # Test 7: HUD status update without Tkinter error — added Day 6
