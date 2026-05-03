@@ -112,9 +112,14 @@ def main() -> None:
                     result = nlp_process(text)
                     intent = result["intent"]
                     entities = result["entities"]
-                    
                     print(f"[NLP] Intent: {intent} | Entities: {entities}")
-                    speak(f"I understood your intent is {intent}.")
+                    
+                    # Core Routing
+                    import nova_core
+                    response = nova_core.route(result)
+                    
+                    # Speak response
+                    speak(response)
                     
             # Reset event to go back to passive listening
             wake_event.clear()

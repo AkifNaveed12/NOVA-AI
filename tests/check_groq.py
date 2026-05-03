@@ -33,7 +33,7 @@ except ImportError:
     print("  MISSING - run: pip install groq")
     sys.exit(1)
 
-print("\n  Making live API call to Groq (llama3-70b-8192)...")
+print("\n  Making live API call to Groq (llama-3.3-70b-versatile)...")
 print("  Prompt: 'Reply with exactly: NOVA ONLINE'")
 print("  Waiting...", end="", flush=True)
 
@@ -41,7 +41,7 @@ try:
     start = time.time()
     client = groq.Groq(api_key=api_key)
     completion = client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": "You are a test assistant. Follow instructions exactly."},
             {"role": "user",   "content": "Reply with exactly this text and nothing else: NOVA ONLINE"}

@@ -23,6 +23,11 @@ def load_config() -> dict:
     with open(config_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+# Initialize GroqBrain globally so history is maintained across routes
+from modules.groq_brain import GroqBrain
+_config = load_config()
+groq_brain = GroqBrain(_config)
+
 
 # ── Intent routing tables ─────────────────────────────────────────
 
@@ -50,15 +55,22 @@ def route(nlp_result: dict) -> str:
     Returns:
         Response string to be spoken by TTS engine
     """
-    # TODO: implement full routing logic
-    # Stub for Day 1 — returns placeholder
     intent = nlp_result.get("intent", "conversation")
     original = nlp_result.get("original", "")
+    entities = nlp_result.get("entities", {})
 
     if intent in LOCAL_INTENTS:
-        return f"[LOCAL] Intent '{intent}' recognised. Module not yet implemented."
+        # Dispatch to local module
+        local_response = dispatch_local(intent, entities)
+        if local_response:
+            return local_response
+        else:
+            return f"The local module for {intent} is not yet implemented."
+            
     else:
-        return f"[GROQ] Routing to Groq for: '{original[:60]}'"
+        # Route to Groq Brain for conversation, emails, jokes, etc.
+        print(f"[Core] Routing to GroqBrain: '{original}'")
+        return groq_brain.chat(original)
 
 
 def dispatch_local(intent: str, entities: dict) -> Optional[str]:

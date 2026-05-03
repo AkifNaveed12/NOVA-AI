@@ -74,3 +74,16 @@
 - `main.py`: Integrated `pyttsx3` for offline TTS and added `speak()` and `speak_online()` (gTTS fallback) functions.
 - `main.py`: Wired the `nlp_engine` into the core pipeline. NOVA now listens, transcribes, classifies the intent, and speaks a confirmation.
 - `tests/test_all.py`: Added Day 3 unit tests for `classify_intent` and `extract_entities` to ensure proper routing logic.
+
+---
+
+## Day 4 — groq_brain.py (LLM Integration)
+**Date:** 2026-05-03
+**Status:** Complete
+
+### What was done:
+- `groq_brain.py`: Implemented `GroqBrain` class using the official Groq Python SDK and the `llama-3.3-70b-versatile` model (replaced decommissioned model).
+- `groq_brain.py`: Built the system prompt setting NOVA's professional/friendly personality and implemented `chat()` with a rolling 10-message history to maintain conversation context. Added stub for `inject_memory()` (for Day 5).
+- `nova_core.py`: Wired `GroqBrain` globally to preserve history across commands. Updated `route()` to forward ambiguous requests (`conversation` intent) and Groq-specific intents directly to `groq_brain.chat()`.
+- `main.py`: Updated the core voice pipeline to pass the NLP output dictionary to `nova_core.route()` and speak the generated LLM response aloud using `pyttsx3`.
+- `tests/test_all.py`: Updated `check_groq.py` and the main test suite to validate the new Groq model and ensure API connectivity.

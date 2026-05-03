@@ -134,7 +134,17 @@ def test_nlp_engine_entity_extraction():
     assert res2.get("query") == "machine learning"
 
 # ── Day 4: Groq Tests (added Day 4) ──────────────────────────────
-# Test 5: Groq responds to "what is AI"         — added Day 4
+def test_groq_brain_response():
+    # Only test if api key is valid to prevent test failure on CI without key
+    import os
+    key = os.getenv("GROQ_API_KEY", "")
+    if key and "your_key" not in key:
+        from modules.groq_brain import GroqBrain
+        brain = GroqBrain({})
+        res = brain.chat("Reply with exactly the word OK")
+        assert "OK" in res.upper()
+    else:
+        assert True # Skip if no key
 
 # ── Day 5: Memory Tests (added Day 5) ────────────────────────────
 # Test 6: DB stores and retrieves a fact         — added Day 5
