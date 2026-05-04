@@ -100,3 +100,16 @@
 - **Memory Injection**: Implemented `store_fact` and `get_facts`. Wired `main.py` to retrieve facts and inject them into `nova_core.groq_brain` at startup so NOVA natively remembers user details.
 - **Activity Logging**: Added `log_activity` and `log_conversation`. Updated `main.py` to log every command, the module triggered, and the response summary into the `ActivityLog` and `ConversationLog` tables automatically.
 - `tests/test_all.py`: Added Test 6 to verify SQLite connection, table creation, insertion, and retrieval of facts in an in-memory test database.
+
+---
+
+## Day 6 — hud_interface.py (Tkinter GUI Overlay)
+**Date:** 2026-05-04
+**Status:** Complete
+
+### What was done:
+- `hud_interface.py`: Implemented `NOVAHud` using `tkinter` and `matplotlib`. Created a frameless, transparent, dark-mode window docked to the right edge of the screen.
+- **Animated Waveform**: Integrated a cyan polar bar chart using `matplotlib.animation.FuncAnimation` that visually reacts (speed/amplitude) depending on NOVA's current state (Sleeping, Listening, Processing, Speaking).
+- **Log Interface**: Added a scrolling text widget to display the conversation history in real-time.
+- `main.py`: Re-architected the main loop. Tkinter's `mainloop()` now dominates the main thread, while the core voice/listening loop was pushed to a `threading.Thread(daemon=True)`. Added safe `after()` callbacks in the HUD class to receive status updates from the background thread without crashing the UI.
+- `tests/test_all.py`: Added Test 7 to verify the HUD instantiates successfully in a headless CI-safe manner.

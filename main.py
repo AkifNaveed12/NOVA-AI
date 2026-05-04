@@ -46,7 +46,7 @@ def main() -> None:
     from modules.stt import SpeechToText
     from modules.nlp_engine import process as nlp_process
     from modules.memory_system import DatabaseManager
-    # TODO Day 6: from modules.hud_interface import NOVAHud
+    from modules.hud_interface import NOVAHud
 
     # ── Initialize Modules ────────────────────────────────────────────
     db_manager = DatabaseManager()
@@ -55,6 +55,9 @@ def main() -> None:
     import nova_core
     facts = db_manager.get_facts(limit=10)
     nova_core.groq_brain.inject_memory(facts)
+
+    # Initialize HUD (must be in main thread)
+    hud = NOVAHud()
 
     wake_word = WakeWordDetector(wake_event, config)
     stt = SpeechToText(config)
@@ -71,10 +74,13 @@ def main() -> None:
     tts_engine.setProperty('volume', tts_cfg.get("volume", 0.9))
 
     def speak(text: str):
-        """Speaks the text aloud using pyttsx3."""
+        """Speaks the text aloud using pyttsx3 and updates HUD."""
+        hud.update_status("speaking")
+        hud.log_message("nova", text)
         print(f"[NOVA] {text}")
         tts_engine.say(text)
         tts_engine.runAndWait()
+        hud.update_status("sleeping")
 
     def speak_online(text: str):
         """Fallback TTS using gTTS."""
@@ -89,62 +95,75 @@ def main() -> None:
         except Exception as e:
             print(f"[TTS Error] {e}")
 
+    def voice_pipeline():
+        """Background thread running the core voice loop."""
+        print("\nNOVA AI — Ready (Listening for wake word...)")
+        try:
+            while True:
+                hud.update_status("sleeping")
+                # Block until WakeWordDetector sets the event
+                wake_event.wait()
+                
+                hud.update_status("listening")
+                # Listen for user command
+                audio = stt.listen()
+                
+                if audio:
+                    hud.update_status("processing")
+                    # Convert to text
+                    text = stt.transcribe(audio)
+                    if text:
+                        print(f"\n[USER] {text}")
+                        hud.log_message("user", text)
+                        
+                        # NLP Processing
+                        result = nlp_process(text)
+                        intent = result["intent"]
+                        entities = result["entities"]
+                        print(f"[NLP] Intent: {intent} | Entities: {entities}")
+                        
+                        # Core Routing
+                        import nova_core
+                        response = nova_core.route(result)
+                        
+                        # Log activity to SQLite
+                        activity_id = db_manager.log_activity(
+                            command=text,
+                            module=intent,
+                            response=response,
+                            success=True
+                        )
+                        
+                        # If this was a conversation, log the back-and-forth
+                        if intent == "conversation" or intent in nova_core.GROQ_INTENTS:
+                            db_manager.log_conversation("user", text, activity_id=activity_id)
+                            db_manager.log_conversation("assistant", response, activity_id=activity_id)
+                        
+                        # Speak response
+                        speak(response)
+                        
+                # Reset event to go back to passive listening
+                wake_event.clear()
+                print("\n[NOVA] Resuming background listening...")
+                hud.update_status("sleeping")
+                
+        except Exception as e:
+            print(f"\nNOVA AI — Pipeline Error: {e}")
+            wake_word.stop()
+
     # ── Core start sequence ───────────────────────────────────────────
     # Start background threads
     wake_word.start()
     
-    # TODO: Launch HUD in main thread (Tkinter must own the mainloop)
+    pipeline_thread = threading.Thread(target=voice_pipeline, daemon=True)
+    pipeline_thread.start()
 
-    print("\nNOVA AI — Ready (Listening for wake word...)")
+    # Launch HUD in main thread (Tkinter must own the mainloop)
+    # This call blocks until the HUD is closed
+    hud.start()
     
-    # Main voice pipeline loop
-    try:
-        while True:
-            # Block until WakeWordDetector sets the event
-            wake_event.wait()
-            
-            # Listen for user command
-            audio = stt.listen()
-            
-            if audio:
-                # Convert to text
-                text = stt.transcribe(audio)
-                if text:
-                    print(f"\n[USER] {text}")
-                    
-                    # NLP Processing
-                    result = nlp_process(text)
-                    intent = result["intent"]
-                    entities = result["entities"]
-                    print(f"[NLP] Intent: {intent} | Entities: {entities}")
-                    
-                    # Core Routing
-                    import nova_core
-                    response = nova_core.route(result)
-                    
-                    # Log activity to SQLite
-                    activity_id = db_manager.log_activity(
-                        command=text,
-                        module=intent,
-                        response=response,
-                        success=True
-                    )
-                    
-                    # If this was a conversation, log the back-and-forth
-                    if intent == "conversation" or intent in nova_core.GROQ_INTENTS:
-                        db_manager.log_conversation("user", text, activity_id=activity_id)
-                        db_manager.log_conversation("assistant", response, activity_id=activity_id)
-                    
-                    # Speak response
-                    speak(response)
-                    
-            # Reset event to go back to passive listening
-            wake_event.clear()
-            print("\n[NOVA] Resuming background listening...")
-            
-    except KeyboardInterrupt:
-        print("\nNOVA AI — Shutting down gracefully...")
-        wake_word.stop()
+    print("\nNOVA AI — Shutting down gracefully...")
+    wake_word.stop()
 
 
 if __name__ == "__main__":

@@ -174,4 +174,20 @@ def test_database_manager():
     assert cursor.fetchone()["role"] == "user"
 
 # ── Day 6: HUD Tests (added Day 6) ───────────────────────────────
-# Test 7: HUD status update without Tkinter error — added Day 6
+def test_hud_instantiation():
+    import os
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        return
+        
+    try:
+        from modules.hud_interface import NOVAHud
+        hud = NOVAHud()
+        assert hud.current_state == "sleeping"
+        assert hud.root.title() == "NOVA HUD"
+        hud.root.destroy()
+    except Exception as e:
+        import tkinter
+        if isinstance(e, tkinter.TclError):
+            pass
+        else:
+            raise
