@@ -104,8 +104,9 @@ class NOVAHud:
         self.log_text.pack(fill=tk.BOTH, expand=True)
         self.log_text.config(state=tk.DISABLED)
         
-        # Bind double-click to exit (emergency close)
+        # Bind double-click and Escape to exit (emergency close)
         self.root.bind("<Double-Button-1>", lambda e: self.root.destroy())
+        self.root.bind("<Escape>", lambda e: self.root.destroy())
 
     def _animate_waveform(self, frame):
         """Animates the matplotlib bars based on NOVA's state."""

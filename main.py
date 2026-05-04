@@ -65,12 +65,6 @@ def main() -> None:
     import speech_recognition as sr
     shared_mic = sr.Microphone()
     shared_mic.__enter__() # Open the PyAudio stream permanently
-    
-    # Do a single, robust ambient noise calibration at startup
-    print("\nNOVA AI — Calibrating microphone (please be quiet)...")
-    recognizer = sr.Recognizer()
-    recognizer.adjust_for_ambient_noise(shared_mic, duration=1.0)
-    print("NOVA AI — Calibration complete.")
 
     wake_word = WakeWordDetector(wake_event, config, shared_mic=shared_mic)
     stt = SpeechToText(config, shared_mic=shared_mic)

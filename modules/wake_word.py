@@ -34,7 +34,7 @@ class WakeWordDetector:
         
         self.recognizer = sr.Recognizer()
         self.recognizer.energy_threshold = self.energy_threshold
-        self.recognizer.dynamic_energy_threshold = False # Disable dynamic thresholding to prevent spikes
+        self.recognizer.dynamic_energy_threshold = True # Crucial for noisy environments!
         
         self.shared_mic = shared_mic
         self.thread = None

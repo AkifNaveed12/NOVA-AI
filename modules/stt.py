@@ -23,7 +23,7 @@ class SpeechToText:
         
         self.recognizer = sr.Recognizer()
         self.recognizer.energy_threshold = self.config.get("energy_threshold", 4000)
-        self.recognizer.dynamic_energy_threshold = False
+        self.recognizer.dynamic_energy_threshold = True
         
         self.shared_mic = shared_mic
         self.whisper_model = None
