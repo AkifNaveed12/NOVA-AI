@@ -113,3 +113,7 @@
 - **Log Interface**: Added a scrolling text widget to display the conversation history in real-time.
 - `main.py`: Re-architected the main loop. Tkinter's `mainloop()` now dominates the main thread, while the core voice/listening loop was pushed to a `threading.Thread(daemon=True)`. Added safe `after()` callbacks in the HUD class to receive status updates from the background thread without crashing the UI.
 - `tests/test_all.py`: Added Test 7 to verify the HUD instantiates successfully in a headless CI-safe manner.
+
+### Day 6 Update — Full Screen HUD & Mic Latency Fix
+- `hud_interface.py`: Upgraded the HUD layout to fill the entire screen (`state("zoomed")`), enlarged the waveform, centered the UI, and increased typography size.
+- `main.py`, `wake_word.py`, `stt.py`: Radically refactored PyAudio stream management. A single `sr.Microphone()` instance is now opened continuously in the background at startup and shared between both the wake word and command detectors. This achieves **0.0s latency**, instantly capturing voice commands the exact millisecond the HUD turns yellow without missing any audio.

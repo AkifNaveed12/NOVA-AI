@@ -17,68 +17,73 @@ import speech_recognition as sr
 
 
 class WakeWordDetector:
-    def __init__(self, wake_event: threading.Event, config: dict):
+    def __init__(self, wake_event: threading.Event, config: dict, shared_mic=None):
+        """
+        Initializes the wake word detector.
+        Args:
+            wake_event: Event to trigger when wake word is detected.
+            config: Full config dictionary.
+            shared_mic: Pre-opened sr.Microphone instance to avoid latency.
+        """
         self.wake_event = wake_event
-        self.config = config
-        self.running = False
-        self.recognizer = sr.Recognizer()
+        self.config = config.get("wake_word", {})
         
-        # Load config
-        self.wake_phrase = self.config.get("nova", {}).get("wake_phrase", "Hey NOVA").lower()
-        self.energy_threshold = self.config.get("stt", {}).get("energy_threshold", 300)
+        self.engine = self.config.get("engine", "google")
+        self.wake_phrase = self.config.get("phrase", "hey nova").lower()
+        self.energy_threshold = self.config.get("energy_threshold", 4000)
+        
+        self.recognizer = sr.Recognizer()
         self.recognizer.energy_threshold = self.energy_threshold
+        self.recognizer.dynamic_energy_threshold = False # Disable dynamic thresholding to prevent spikes
+        
+        self.shared_mic = shared_mic
+        self.thread = None
+        self.running = False
         
     def start(self):
-        """Starts the wake word detector in a daemon thread."""
-        self.running = True
-        thread = threading.Thread(target=self._listen_loop, daemon=True, name="WakeWordThread")
-        thread.start()
-        print("[WakeWord] Detector started in background. Listening for:", self.wake_phrase)
-        
+        """Starts the background listening thread."""
+        if not self.running:
+            self.running = True
+            self.thread = threading.Thread(target=self._listen_loop, daemon=True)
+            self.thread.start()
+            print(f"[WakeWord] Detector started in background. Listening for: {self.wake_phrase}")
+            
     def stop(self):
-        """Stops the wake word detector."""
+        """Stops the background listening thread."""
         self.running = False
         
     def _listen_loop(self):
         import time
         
         while self.running:
-            # 1. Wait while the main pipeline is busy (TTS/STT running)
+            # 1. Wait while the main pipeline is busy
             while self.wake_event.is_set() and self.running:
-                time.sleep(0.5)
+                time.sleep(0.1)
                 
             if not self.running:
                 break
                 
-            # 2. Main pipeline is idle. Open a fresh microphone stream.
+            # 2. Main pipeline is idle. Use the pre-opened global microphone.
             try:
-                with sr.Microphone() as source:
-                    # Calibrate once per session
-                    self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
-                    
-                    # 3. Fast continuous listening loop (no dropped frames)
-                    while self.running and not self.wake_event.is_set():
-                        try:
-                            audio = self.recognizer.listen(source, timeout=1, phrase_time_limit=3)
+                # 3. Fast continuous listening loop
+                while self.running and not self.wake_event.is_set():
+                    try:
+                        audio = self.recognizer.listen(self.shared_mic, timeout=1, phrase_time_limit=3)
+                        
+                        text = self.recognizer.recognize_google(audio).lower()
+                        text = text.replace(",", "").replace(".", "").replace("!", "").replace("?", "")
+                        
+                        if self.wake_phrase in text:
+                            print(f"\n[WakeWord] Wake phrase '{self.wake_phrase}' detected!")
+                            self.wake_event.set()
+                            break # Break to yield the microphone to STT
                             
-                            text = self.recognizer.recognize_google(audio).lower()
-                            text = text.replace(",", "").replace(".", "").replace("!", "").replace("?", "")
-                            
-                            if self.wake_phrase in text:
-                                print(f"\n[WakeWord] Wake phrase '{self.wake_phrase}' detected!")
-                                self.wake_event.set()
-                                # BREAK out of the inner loop to EXIT the 'with' block!
-                                # This completely closes our microphone stream so STT can use it!
-                                break 
-                                
-                        except sr.WaitTimeoutError:
-                            pass
-                        except sr.UnknownValueError:
-                            pass
-                        except sr.RequestError as e:
-                            print(f"[WakeWord] API Error: {e}")
-                            
+                    except sr.WaitTimeoutError:
+                        pass
+                    except sr.UnknownValueError:
+                        pass
+                    except sr.RequestError as e:
+                        print(f"[WakeWord] API Error: {e}")
+                        
             except Exception as e:
-                # Ignore random audio device errors and retry
                 time.sleep(1)
-

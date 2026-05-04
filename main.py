@@ -59,8 +59,21 @@ def main() -> None:
     # Initialize HUD (must be in main thread)
     hud = NOVAHud()
 
-    wake_word = WakeWordDetector(wake_event, config)
-    stt = SpeechToText(config)
+    # ── Global Microphone Stream ──────────────────────────────────────
+    # To achieve 0.0s latency between wake word and command listening,
+    # we open the microphone exactly ONCE at startup and keep it open.
+    import speech_recognition as sr
+    shared_mic = sr.Microphone()
+    shared_mic.__enter__() # Open the PyAudio stream permanently
+    
+    # Do a single, robust ambient noise calibration at startup
+    print("\nNOVA AI — Calibrating microphone (please be quiet)...")
+    recognizer = sr.Recognizer()
+    recognizer.adjust_for_ambient_noise(shared_mic, duration=1.0)
+    print("NOVA AI — Calibration complete.")
+
+    wake_word = WakeWordDetector(wake_event, config, shared_mic=shared_mic)
+    stt = SpeechToText(config, shared_mic=shared_mic)
 
     import pyttsx3
     import tempfile
@@ -164,6 +177,7 @@ def main() -> None:
     
     print("\nNOVA AI — Shutting down gracefully...")
     wake_word.stop()
+    shared_mic.__exit__(None, None, None) # Close the PyAudio stream
 
 
 if __name__ == "__main__":

@@ -16,28 +16,25 @@ import numpy as np
 
 
 class SpeechToText:
-    def __init__(self, config: dict):
-        self.config = config
+    def __init__(self, config: dict, shared_mic=None):
+        self.config = config.get("stt", {})
+        self.engine = self.config.get("engine", "google")
+        self.timeout = self.config.get("timeout", 5)
+        
         self.recognizer = sr.Recognizer()
+        self.recognizer.energy_threshold = self.config.get("energy_threshold", 4000)
+        self.recognizer.dynamic_energy_threshold = False
         
-        # Load config
-        stt_config = self.config.get("stt", {})
-        self.recognizer.energy_threshold = stt_config.get("energy_threshold", 300)
-        self.recognizer.pause_threshold = stt_config.get("pause_threshold", 0.8)
-        self.timeout = stt_config.get("timeout", 5)
-        
+        self.shared_mic = shared_mic
         self.whisper_model = None
 
     def listen(self) -> sr.AudioData | None:
-        """Captures audio from the microphone after the wake word is triggered."""
+        """Listens to the microphone and returns AudioData."""
         print("[STT] Listening for your command...")
         try:
-            with sr.Microphone() as source:
-                # Brief calibration
-                self.recognizer.adjust_for_ambient_noise(source, duration=0.2)
-                # Listen with configured limits
-                audio = self.recognizer.listen(source, timeout=self.timeout, phrase_time_limit=15)
-                return audio
+            # We assume shared_mic is already open and calibrated by main.py
+            audio = self.recognizer.listen(self.shared_mic, timeout=self.timeout, phrase_time_limit=15)
+            return audio
         except sr.WaitTimeoutError:
             print("[STT] Timeout: No speech detected.")
             return None

@@ -42,14 +42,11 @@ class NOVAHud:
         # Frameless, topmost, transparent
         self.root.overrideredirect(True)
         self.root.wm_attributes("-topmost", True)
-        self.root.wm_attributes("-alpha", 0.92)
+        # Full screen, topmost
+        self.root.state("zoomed")  # Maximizes the window on Windows
+        self.root.wm_attributes("-topmost", True)
+        # Remove alpha to make it fully opaque since it's full screen
         self.root.configure(bg=BG_COLOR)
-        
-        # Dimensions and placement (320px wide, full height, right docked)
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        width = 320
-        self.root.geometry(f"{width}x{screen_height}+{screen_width - width}+0")
         
         # Internal state
         self.current_state = "sleeping" # sleeping, listening, processing, speaking
@@ -60,19 +57,23 @@ class NOVAHud:
     def _build_ui(self):
         # 1. Header Frame (Clock & Status)
         header_frame = tk.Frame(self.root, bg=BG_COLOR)
-        header_frame.pack(fill=tk.X, pady=20, padx=10)
+        header_frame.pack(fill=tk.X, pady=40, padx=40)
         
-        self.clock_label = tk.Label(header_frame, text="00:00:00", font=("Courier New", 18, "bold"), bg=BG_COLOR, fg=TEXT_COLOR)
-        self.clock_label.pack(anchor="e")
+        self.clock_label = tk.Label(header_frame, text="00:00:00", font=("Courier New", 36, "bold"), bg=BG_COLOR, fg=TEXT_COLOR)
+        self.clock_label.pack(side=tk.RIGHT)
         
-        self.status_label = tk.Label(header_frame, text="🔴 Sleeping", font=("Courier New", 12), bg=BG_COLOR, fg="#ff4444")
-        self.status_label.pack(anchor="e", pady=5)
+        self.status_label = tk.Label(header_frame, text="🔴 Sleeping", font=("Courier New", 24), bg=BG_COLOR, fg="#ff4444")
+        self.status_label.pack(side=tk.LEFT)
         
-        # 2. Waveform Frame
-        wave_frame = tk.Frame(self.root, bg=BG_COLOR, height=300)
-        wave_frame.pack(fill=tk.X, pady=10)
+        # 2. Main Body (Waveform & Logs side-by-side)
+        body_frame = tk.Frame(self.root, bg=BG_COLOR)
+        body_frame.pack(fill=tk.BOTH, expand=True, padx=40, pady=20)
         
-        self.fig = Figure(figsize=(3, 3), dpi=100, facecolor=BG_COLOR)
+        # 2a. Waveform Frame (Left)
+        wave_frame = tk.Frame(body_frame, bg=BG_COLOR)
+        wave_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        self.fig = Figure(figsize=(8, 8), dpi=100, facecolor=BG_COLOR)
         self.ax = self.fig.add_subplot(111, projection='polar')
         self.ax.set_facecolor(BG_COLOR)
         self.ax.axis('off')
@@ -82,24 +83,25 @@ class NOVAHud:
         self.theta = np.linspace(0.0, 2 * np.pi, self.N, endpoint=False)
         self.radii = np.ones(self.N) * 2
         self.width = (2 * np.pi) / self.N
-        self.bars = self.ax.bar(self.theta, self.radii, width=self.width, bottom=1.0, color=CYAN, alpha=0.8)
-        self.ax.set_ylim(0, 10)
+        self.bars = self.ax.bar(self.theta, self.radii, width=self.width, bottom=2.0, color=CYAN, alpha=0.8)
+        self.ax.set_ylim(0, 15)
         
         self.canvas = FigureCanvasTkAgg(self.fig, master=wave_frame)
-        self.canvas.get_tk_widget().pack()
+        self.canvas.get_tk_widget().pack(expand=True)
         
         self.ani = animation.FuncAnimation(self.fig, self._animate_waveform, interval=50, blit=True, cache_frame_data=False)
         
-        # 3. Log Frame
-        log_frame = tk.Frame(self.root, bg=BG_COLOR)
-        log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # 3. Log Frame (Right)
+        log_frame = tk.Frame(body_frame, bg=BG_COLOR, width=500)
+        log_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=20)
+        log_frame.pack_propagate(False) # Keep width fixed
         
-        log_label = tk.Label(log_frame, text="ACTIVITY LOG", font=("Courier New", 10, "bold"), bg=BG_COLOR, fg=TEXT_COLOR)
-        log_label.pack(anchor="w")
+        log_label = tk.Label(log_frame, text="ACTIVITY LOG", font=("Courier New", 16, "bold"), bg=BG_COLOR, fg=TEXT_COLOR)
+        log_label.pack(anchor="w", pady=(0, 10))
         
-        self.log_text = scrolledtext.ScrolledText(log_frame, font=("Courier New", 9), bg="#1A1A1A", fg=TEXT_COLOR, 
+        self.log_text = scrolledtext.ScrolledText(log_frame, font=("Courier New", 12), bg="#1A1A1A", fg=TEXT_COLOR, 
                                                 insertbackground=TEXT_COLOR, relief=tk.FLAT, borderwidth=0, wrap=tk.WORD)
-        self.log_text.pack(fill=tk.BOTH, expand=True, pady=5)
+        self.log_text.pack(fill=tk.BOTH, expand=True)
         self.log_text.config(state=tk.DISABLED)
         
         # Bind double-click to exit (emergency close)
