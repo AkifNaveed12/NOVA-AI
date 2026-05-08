@@ -103,59 +103,69 @@ def main() -> None:
             print(f"[TTS Error] {e}")
 
     def voice_pipeline():
-        """Background thread running the core voice loop."""
+        """Background thread: wakes on event, listens, routes, speaks, loops."""
+        import time
         print("\nNOVA AI — Ready (Listening for wake word...)")
         try:
             while True:
                 hud.update_status("sleeping")
-                # Block until WakeWordDetector sets the event
+
+                # Block here until wake word thread fires the event
                 wake_event.wait()
-                
+                # At this point, wake_word.pause() has already been called inside
+                # WakeWordDetector — the mic stream is exclusively ours.
+
                 hud.update_status("listening")
-                # Listen for user command
                 audio = stt.listen()
-                
+
                 if audio:
                     hud.update_status("processing")
-                    # Convert to text
                     text = stt.transcribe(audio)
+
                     if text:
                         print(f"\n[USER] {text}")
                         hud.log_message("user", text)
-                        
+
                         # NLP Processing
                         result = nlp_process(text)
                         intent = result["intent"]
                         entities = result["entities"]
                         print(f"[NLP] Intent: {intent} | Entities: {entities}")
-                        
+
                         # Core Routing
                         import nova_core
                         response = nova_core.route(result)
-                        
-                        # Log activity to SQLite
+
+                        # Log to SQLite
                         activity_id = db_manager.log_activity(
                             command=text,
                             module=intent,
                             response=response,
                             success=True
                         )
-                        
-                        # If this was a conversation, log the back-and-forth
+
                         if intent == "conversation" or intent in nova_core.GROQ_INTENTS:
                             db_manager.log_conversation("user", text, activity_id=activity_id)
                             db_manager.log_conversation("assistant", response, activity_id=activity_id)
-                        
-                        # Speak response
+
+                        # Speak the response
                         speak(response)
-                        
-                # Reset event to go back to passive listening
+
+                # --- Reset pipeline ---
+                # Small sleep to let PyAudio drain any audio accumulated during TTS
+                # This prevents NOVA from "hearing" her own speech or stale mic buffer
+                time.sleep(0.3)
+
+                # Reset wake event and resume wake word listener
                 wake_event.clear()
+                wake_word.resume()
                 print("\n[NOVA] Resuming background listening...")
                 hud.update_status("sleeping")
-                
+
         except Exception as e:
+            import traceback
             print(f"\nNOVA AI — Pipeline Error: {e}")
+            traceback.print_exc()
             wake_word.stop()
 
     # ── Core start sequence ───────────────────────────────────────────

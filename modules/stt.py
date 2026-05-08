@@ -4,10 +4,12 @@ MODULE 2 — Speech-to-Text (STT)
 Converts spoken voice commands to text after the wake word fires.
 Primary engine: Google Web Speech API (free, no key for basic use).
 Offline fallback: openai-whisper running locally (base model).
-Configurable energy_threshold and pause_threshold from config.json.
+
+Key design: Uses the shared microphone stream opened by main.py.
+The recognizer is configured from config.json stt section.
 
 Tech: SpeechRecognition, openai-whisper
-Config: energy_threshold, pause_threshold
+Config: energy_threshold, pause_threshold, phrase_time_limit, timeout
 Output: Plain text string → passed to NLP Engine (Module 3)
 """
 
@@ -17,70 +19,77 @@ import numpy as np
 
 class SpeechToText:
     def __init__(self, config: dict, shared_mic=None):
-        self.config = config.get("stt", {})
-        self.engine = self.config.get("engine", "google")
-        self.timeout = self.config.get("timeout", 5)
-        
+        # Read from the correct config section
+        stt_cfg = config.get("stt", {})
+        self.engine = stt_cfg.get("engine", "google")
+        self.timeout = stt_cfg.get("timeout", 7)
+        self.phrase_time_limit = stt_cfg.get("phrase_time_limit", 12)
+
         self.recognizer = sr.Recognizer()
-        self.recognizer.energy_threshold = self.config.get("energy_threshold", 4000)
+        # Set ALL relevant thresholds from config
+        self.recognizer.energy_threshold = stt_cfg.get("energy_threshold", 400)
         self.recognizer.dynamic_energy_threshold = True
-        
+        self.recognizer.dynamic_energy_adjustment_damping = 0.15
+        self.recognizer.pause_threshold = stt_cfg.get("pause_threshold", 0.6)
+        self.recognizer.phrase_threshold = stt_cfg.get("phrase_threshold", 0.3)
+        self.recognizer.non_speaking_duration = 0.3
+
         self.shared_mic = shared_mic
         self.whisper_model = None
 
     def listen(self) -> sr.AudioData | None:
-        """Listens to the microphone and returns AudioData."""
+        """
+        Listens on the shared mic stream and returns captured AudioData.
+        The wake word detector must be paused before calling this.
+        """
         print("[STT] Listening for your command...")
         try:
-            # We assume shared_mic is already open and calibrated by main.py
-            audio = self.recognizer.listen(self.shared_mic, timeout=self.timeout, phrase_time_limit=15)
+            audio = self.recognizer.listen(
+                self.shared_mic,
+                timeout=self.timeout,
+                phrase_time_limit=self.phrase_time_limit
+            )
             return audio
         except sr.WaitTimeoutError:
-            print("[STT] Timeout: No speech detected.")
+            print("[STT] Timeout — no speech detected.")
             return None
         except Exception as e:
             print(f"[STT] Error capturing audio: {e}")
             return None
 
     def transcribe(self, audio: sr.AudioData) -> str | None:
-        """Transcribes the captured AudioData to text."""
+        """Transcribes the captured AudioData to text using Google, falls back to Whisper."""
         if not audio:
             return None
-            
+
         print("[STT] Transcribing...")
         try:
-            # Primary: Google Web Speech API
             text = self.recognizer.recognize_google(audio)
             return text.strip()
-            
+
         except sr.UnknownValueError:
-            print("[STT] Could not understand the audio.")
+            print("[STT] Could not understand audio.")
             return None
         except sr.RequestError as e:
-            print(f"[STT] Google API unreachable: {e}. Falling back to Whisper...")
+            print(f"[STT] Google API unreachable: {e}. Trying Whisper fallback...")
             return self._transcribe_whisper(audio)
-            
+
     def _transcribe_whisper(self, audio: sr.AudioData) -> str | None:
-        """Offline fallback using OpenAI Whisper."""
+        """Offline fallback using OpenAI Whisper (base model)."""
         try:
             import whisper
-            
+
             if self.whisper_model is None:
-                print("[STT] Loading Whisper base model (one-time load)...")
-                # Load base model, suppress fp16 warning if running on CPU
+                print("[STT] Loading Whisper base model (one-time)...")
                 self.whisper_model = whisper.load_model("base")
-                
-            # Convert sr.AudioData to numpy array for Whisper
+
             audio_data = np.frombuffer(audio.get_raw_data(), np.int16).flatten().astype(np.float32) / 32768.0
-            
-            # Transcribe
             result = self.whisper_model.transcribe(audio_data, fp16=False)
             return result["text"].strip()
-            
+
         except ImportError:
-            print("[STT] openai-whisper not installed. Cannot use offline fallback.")
+            print("[STT] openai-whisper not installed.")
             return None
         except Exception as e:
             print(f"[STT] Whisper fallback failed: {e}")
             return None
-
