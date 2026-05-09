@@ -3,7 +3,8 @@
 # Python 3.11 | Windows 10/11 | All free tools
 #
 # Thread architecture:
-#   main thread         — Primary pipeline + HUD (Tkinter mainloop)
+#   main thread         — pywebview event loop (webview.start())
+#   voice_pipeline_thread — Daemon: STT → NLP → route → TTS → HUD updates
 #   wake_word_thread    — Daemon: "Hey NOVA" detection (threading.Event)
 #   gesture_thread      — Daemon: Camera + MediaPipe (queue.Queue)
 #   reminder_thread     — Daemon: Reminder checker every 30s (queue.Queue)
@@ -171,8 +172,8 @@ def main() -> None:
     pipeline_thread = threading.Thread(target=voice_pipeline, daemon=True)
     pipeline_thread.start()
 
-    # Launch HUD in main thread (Tkinter must own the mainloop)
-    # This call blocks until the HUD is closed
+    # Launch HUD in main thread (pywebview.start() MUST run on main thread)
+    # This call blocks until the HUD window is closed by the user
     hud.start()
     
     print("\nNOVA AI — Shutting down gracefully...")

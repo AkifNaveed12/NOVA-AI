@@ -1,13 +1,16 @@
 ## NOVA AI — Development Changelog
+
 > All changes documented in chronological order per planning.md
 
 ---
 
 ## Day 1 — Project Scaffold (Week 1 Setup)
+
 **Date:** 2026-05-03
 **Status:** Complete
 
 ### What was done:
+
 - Created full folder structure (25 module stubs + config/ + data/ + assets/logo/ + tests/)
 - All 25 module stubs created in modules/ with proper docstrings and # TODO markers:
   - M1: wake_word.py, M2: stt.py, M3: nlp_engine.py, M4: groq_brain.py
@@ -30,6 +33,7 @@
 - data/ directory created for SQLite databases (memory.db created at runtime)
 
 ### Tests passed (Day 1):
+
 - python main.py runs without error
 - All 25 module files exist
 - config.json, apps.json, sites.json, contacts.json all load correctly
@@ -40,12 +44,14 @@
 ---
 
 ## architecture.md
+
 - File: architecture.md (new file)
 - Added: System Architecture flowchart in Mermaid (flowchart TD)
 - Added: ERD in Mermaid (erDiagram) — all 9 tables and relationships
 - Reason: Mermaid-renderable version of architecture diagrams for docs
 
 ## planning.md
+
 - File: planning.md (new file, docs/)
 - Content: Full 28-day development plan — all 25 modules, task-by-task breakdown
 - Structure: Each day has T0 (prereqs) -> T1...Tn (implementation) -> TEST -> PUSH
@@ -54,10 +60,12 @@
 ---
 
 ## Day 2 — wake_word.py + stt.py
+
 **Date:** 2026-05-03
 **Status:** Complete
 
 ### What was done:
+
 - `wake_word.py`: Implemented `WakeWordDetector` class running as a daemon thread using `speech_recognition`'s energy-threshold loop (fallback since Porcupine is skipped). Uses `threading.Event` to trigger the main loop.
 - `stt.py`: Implemented `SpeechToText` class with `listen()` and `transcribe()` methods. Primary uses Google Web Speech API; fallback uses local `openai-whisper` (base model) with numpy float32 conversion to avoid `soundfile` dependency.
 - `main.py`: Wired wake word and STT modules. Set up the core passive-listening loop `wake_event.wait()` -> `stt.listen()` -> `stt.transcribe()` -> `print()`.
@@ -65,10 +73,12 @@
 ---
 
 ## Day 3 — nlp_engine.py + TTS Integration
+
 **Date:** 2026-05-03
 **Status:** Complete
 
 ### What was done:
+
 - `nlp_engine.py`: Implemented intent classification (`classify_intent`) using NLTK stopword removal and tokenization against 21 predefined `INTENT_PATTERNS`.
 - `nlp_engine.py`: Implemented entity extraction (`extract_entities`) using spaCy (`en_core_web_sm`) for NER (GPE, PERSON, TIME, ORG) and regex fallbacks.
 - `main.py`: Integrated `pyttsx3` for offline TTS and added `speak()` and `speak_online()` (gTTS fallback) functions.
@@ -78,10 +88,12 @@
 ---
 
 ## Day 4 — groq_brain.py (LLM Integration)
+
 **Date:** 2026-05-03
 **Status:** Complete
 
 ### What was done:
+
 - `groq_brain.py`: Implemented `GroqBrain` class using the official Groq Python SDK and the `llama-3.3-70b-versatile` model (replaced decommissioned model).
 - `groq_brain.py`: Built the system prompt setting NOVA's professional/friendly personality and implemented `chat()` with a rolling 10-message history to maintain conversation context. Added stub for `inject_memory()` (for Day 5).
 - `nova_core.py`: Wired `GroqBrain` globally to preserve history across commands. Updated `route()` to forward ambiguous requests (`conversation` intent) and Groq-specific intents directly to `groq_brain.chat()`.
@@ -91,10 +103,12 @@
 ---
 
 ## Day 5 — memory_system.py (SQLite DB Integration)
+
 **Date:** 2026-05-03
 **Status:** Complete
 
 ### What was done:
+
 - `memory_system.py`: Implemented `DatabaseManager` using Python's built-in `sqlite3`.
 - **Database Schema**: Created `data/memory.db` and defined 9 tables (`Users`, `UserFacts`, `Notes`, `Tasks`, `Events`, `Reminders`, `Contacts`, `ActivityLog`, `ConversationLog`) representing the core schema from the ERD.
 - **Memory Injection**: Implemented `store_fact` and `get_facts`. Wired `main.py` to retrieve facts and inject them into `nova_core.groq_brain` at startup so NOVA natively remembers user details.
@@ -104,10 +118,12 @@
 ---
 
 ## Day 6 — hud_interface.py (Tkinter GUI Overlay)
+
 **Date:** 2026-05-04
 **Status:** Complete
 
 ### What was done:
+
 - `hud_interface.py`: Implemented `NOVAHud` using `tkinter` and `matplotlib`. Created a frameless, transparent, dark-mode window docked to the right edge of the screen.
 - **Animated Waveform**: Integrated a cyan polar bar chart using `matplotlib.animation.FuncAnimation` that visually reacts (speed/amplitude) depending on NOVA's current state (Sleeping, Listening, Processing, Speaking).
 - **Log Interface**: Added a scrolling text widget to display the conversation history in real-time.
@@ -115,16 +131,19 @@
 - `tests/test_all.py`: Added Test 7 to verify the HUD instantiates successfully in a headless CI-safe manner.
 
 ### Day 6 Update — Full Screen HUD & Mic Latency Fix
+
 - `hud_interface.py`: Upgraded the HUD layout to fill the entire screen (`state("zoomed")`), enlarged the waveform, centered the UI, and increased typography size.
 - `main.py`, `wake_word.py`, `stt.py`: Radically refactored PyAudio stream management. A single `sr.Microphone()` instance is now opened continuously in the background at startup and shared between both the wake word and command detectors. This achieves **0.0s latency**, instantly capturing voice commands the exact millisecond the HUD turns yellow without missing any audio.
 
 ---
 
 ## Day 7 — Week 1 Integration Test + README Update
+
 **Date:** 2026-05-09
 **Status:** Complete
 
 ### What was done:
+
 - **Full Pipeline Verified E2E**: Confirmed the complete voice pipeline works — Wake Word → STT → NLP → Groq/local stub → TTS → HUD → SQLite log → reset → loop.
 - **Groq Exponential Backoff**: Rewrote `groq_brain.chat()` with 3-attempt exponential backoff (1s, 2s, 4s delays) to gracefully handle rate limits (HTTP 429). Conversation history is not corrupted on failed attempts.
 - **Dynamic System Prompt**: `chat()` now rebuilds the system prompt on every call with a fresh timestamp, keeping NOVA's time-awareness accurate across long sessions.
@@ -142,10 +161,12 @@
 ---
 
 ## Day 8 — weather.py + news.py (Week 2 begins)
+
 **Date:** 2026-05-09
 **Status:** Complete
 
 ### What was done:
+
 - `modules/weather.py`: Implemented `WeatherModule` using OpenWeatherMap free API. `get_weather(city)` falls back to default city (`Wah Cantt`) when no city is given. Handles 404 (city not found), 401 (bad key), connection errors, and timeouts gracefully. Returns a natural-language TTS-ready string.
 - `modules/news.py`: Implemented `NewsModule` with `get_nasa_apod()` fetching NASA Astronomy Picture of the Day (title + first 3 sentences of explanation). Added `get_science_fact()` with a 20-item offline list as fallback. Caches last successful APOD response for use when offline.
 - `nova_core.py`: Wired `weather` and `news` intents into `dispatch_local()` using lazy imports.
@@ -160,10 +181,12 @@
 ---
 
 ## Day 9 — wikipedia_module.py + translation_module.py
+
 **Date:** 2026-05-09
 **Status:** Complete
 
 ### What was done:
+
 - `modules/wikipedia_module.py`: Implemented `WikipediaModule` with `search(query)` returning 3-sentence summaries. Handles `DisambiguationError` (offers top 3 options), `PageError`, and empty queries gracefully. Cleans `[1]`-style references from output.
 - `modules/translation_module.py`: Implemented `TranslationModule` with `translate(text, target_language)` using `deep-translator` GoogleTranslator backend. Includes a 50-language name→ISO code map covering South Asian, Middle Eastern, European, and East Asian languages. Added `detect_language()` and `get_supported_languages()` helpers.
 - `modules/nlp_engine.py`: Enhanced entity extraction with 3 new regex patterns for translation (`translate X to Y`, `what does X mean in Y`, `how do you say X in Y`) and 1 for Wikipedia (`tell me about X`, `what is X`, `who is X`, `explain X`). Expanded translate intent trigger words to cover 16+ language prepositions.
@@ -182,10 +205,12 @@
 ---
 
 ## Day 10 — web_automation.py + NLP intent priority fix
+
 **Date:** 2026-05-09
 **Status:** Complete
 
 ### What was done:
+
 - `modules/web_automation.py`: Implemented `WebAutomation` with `open_site(name)` using rapidfuzz fuzzy matching against `sites.json` aliases (score threshold 65). YouTube search via `search_youtube(query)`, Google search via `search_google(query)`. Selenium lazy-init with `scroll_down()` / `scroll_up()`. Falls back to `webbrowser.open()` for speed on simple opens.
 - `nova_core.py`: Wired `web` intent with regex parsing for YouTube/Google search, scroll commands, and default site opening. Updated `dispatch_local()` signature to pass `original` text for full-command parsing.
 - `modules/nlp_engine.py` (**critical fix**): Reordered `INTENT_PATTERNS` — weather/news/wikipedia/translate now checked **before** datetime. Removed the generic word `"today"` from datetime triggers. Fixed "what's the weather today" being misclassified as `datetime`.
@@ -198,10 +223,12 @@
 ---
 
 ## Day 11 — app_launcher.py + clipboard_manager.py
+
 **Date:** 2026-05-09
 **Status:** Complete
 
 ### What was done:
+
 - `modules/app_launcher.py`: Implemented `AppLauncher` with `launch(app_name)` using rapidfuzz fuzzy matching against `apps.json` aliases (score threshold 65). Uses `subprocess.Popen` for non-blocking app launch.
 - `modules/clipboard_manager.py`: Implemented `ClipboardManager` with `read()` (truncates to 200 chars for TTS) and `write(text)` using `pyperclip`.
 - `config/sites.json`: Added `Portfolio` entry mapped to the user's personal website.
@@ -212,3 +239,63 @@
   - `test_clipboard_manager_write_and_read` — successfully writes and reads using pyperclip
   - `test_nova_core_app_route` — end-to-end app route via nova_core
   - `test_nova_core_clipboard_route` — end-to-end clipboard read/write route via nova_core
+
+## Day 11 (B) — HUD Architecture Modernization
+
+**Date:** 2026-05-09
+**Status:** Complete
+
+### Decision
+
+The Tkinter fullscreen HUD (Day 6) blocked the entire desktop, preventing users from seeing apps and browser windows open in real time. The matplotlib waveform was CPU-heavy. A pywebview-based approach was selected: it embeds a native OS webview window, renders standard HTML/CSS/JS, and communicates back to Python via `evaluate_js()`. This required zero changes to `main.py` — the public API of `NOVAHud` is identical.
+
+### Files changed
+
+**`modules/hud_interface.py`** — Full replacement
+
+- BEFORE: `NOVAHud` built on `tk.Tk()`, `overrideredirect(True)`, `state("zoomed")` fullscreen, `matplotlib.animation.FuncAnimation` waveform, `scrolledtext.ScrolledText` log, `root.after(0, fn)` for thread safety.
+- AFTER: `NOVAHud` built on `webview.create_window()` (frameless, always-on-top, 380×900, `#0D0D0D` background). `update_status(state)`, `log_message(role, text)`, `update_ticker(text)` push state by calling `window.evaluate_js(js_string)`. `start()` calls `webview.start()` — blocks on main thread exactly as before.
+- REASON: pywebview gives a native frameless window with full HTML/CSS/JS rendering, enabling the cinematic UI without touching the voice pipeline.
+  **`modules/nova_hud.html`** — New file
+- Self-contained single HTML file (no external CDN, works fully offline).
+- Animated NOVA SVG logo: radial glow pulse, 5 orbiting dots (3 violet CW, 2 teal CCW), neural convergence symbol with breathe animation.
+- Canvas 2D waveform: 64 radial bars, `requestAnimationFrame` loop at ~60fps. State-driven colour and amplitude: sleeping (violet, 6px), listening (gold, 28px + random), processing (green, 18px rotating), speaking (cyan, 38px + random).
+- Status bar: dot + text label with CSS class-driven colour transitions; listening dot blinks at 1Hz via CSS animation.
+- Live clock via JS `setInterval`.
+- Scrolling command log: last 6 user/nova pairs, auto-scroll to bottom.
+- Reminders ticker: CSS marquee animation, updated via `novaSetTicker()`.
+- Exposes three global functions called by Python: `window.novaSetStatus(state)`, `window.novaAppendLog(role, text)`, `window.novaSetTicker(text)`.
+- REASON: All UI logic lives in HTML/CSS/JS — zero Python rendering code needed.
+  **`main.py`** — No changes required.
+- The `hud.update_status()`, `hud.log_message()`, and `hud.start()` calls in `main.py` are identical to the old Tkinter API.
+
+### Dependency changes
+
+- ADDED: `pywebview` (`pip install pywebview`)
+- REMOVED from active HUD: `matplotlib`, `tkinter` (still available in Python stdlib but no longer imported by the HUD module)
+- Add to `requirements.txt`: `pywebview==5.1`
+- Remove from `requirements.txt` HUD section: `matplotlib==3.8.3` (may still be needed for gesture cam — leave in requirements but note it is no longer a HUD dependency)
+
+### Test update
+
+- Test 7 (`test_hud_status_update_without_tkinter_error`) should be updated: instead of importing `NOVAHud` and calling `update_status()`, mock `webview.create_window` and verify `evaluate_js` is called with the correct JS string.
+- Updated test name: `test_hud_evaluate_js_called_on_status_update`
+
+### How future modules integrate with the HUD
+
+All modules communicate with the HUD exclusively through `main.py`'s `hud` reference. The pattern is:
+
+```python
+# In main.py voice_pipeline() — called after any module execution:
+hud.update_status("processing")
+# ... module executes ...
+hud.log_message("user", command_text)
+hud.log_message("nova", response_text)
+hud.update_status("speaking")
+```
+
+No module (weather.py, email_module.py, etc.) should import or call `hud` directly. The HUD is updated only from `main.py`'s pipeline loop. This keeps modules fully decoupled from the frontend.
+
+For reminders (Module 13) and calendar (Module 14), the reminder engine thread should place ticker strings into the `reminder_queue` already defined in `main.py`, and `main.py` should drain the queue and call `hud.update_ticker(text)`. This preserves thread safety.
+
+---

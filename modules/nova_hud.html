@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NOVA AI</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0D0D0D;
+    --bg-logo:   #0E0B1F;
+    --violet:    #7B6CF6;
+    --lavender:  #A89AF8;
+    --pale:      #C4B8FC;
+    --teal:      #5DCAA5;
+    --cyan:      #00D4FF;
+    --red:       #FF4444;
+    --gold:      #FFD700;
+    --green:     #00FF88;
+    --panel:     rgba(255,255,255,0.03);
+    --border:    rgba(255,255,255,0.08);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--pale);
+    font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── Ambient background ───────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%,   rgba(123,108,246,.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 80% 80%,  rgba(0,212,255,.06)   0%, transparent 60%),
+      radial-gradient(ellipse 30% 30% at 20% 70%,  rgba(93,202,165,.05)  0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* ── Layout ───────────────────────────────────────────── */
+  #app {
+    position: relative; z-index: 1;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    padding: 20px 18px 16px;
+    gap: 0;
+  }
+
+  /* ── Header ───────────────────────────────────────────── */
+  #header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  #wordmark {
+    display: flex; align-items: center; gap: 10px;
+  }
+  #wordmark-text {
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 6px;
+    background: linear-gradient(90deg, var(--lavender), var(--pale), var(--teal));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  #wordmark-sub {
+    font-size: 7px; letter-spacing: 2.5px;
+    color: var(--violet); opacity: .65;
+    margin-top: 2px;
+  }
+  #clock {
+    font-size: 22px; letter-spacing: 3px;
+    color: var(--cyan);
+    text-shadow: 0 0 12px rgba(0,212,255,.5);
+  }
+
+  /* ── Status bar ───────────────────────────────────────── */
+  #status-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 0 10px;
+    flex-shrink: 0;
+  }
+  #status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+    transition: background .3s, box-shadow .3s;
+    flex-shrink: 0;
+  }
+  #status-dot.listening  { background: var(--gold);  box-shadow: 0 0 10px var(--gold);  animation: blink 1s step-end infinite; }
+  #status-dot.processing { background: var(--green); box-shadow: 0 0 10px var(--green); }
+  #status-dot.speaking   { background: var(--cyan);  box-shadow: 0 0 12px var(--cyan);  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+  #status-text {
+    font-size: 11px; letter-spacing: 3.5px; text-transform: uppercase;
+    color: var(--violet);
+    transition: color .3s;
+  }
+  #status-text.listening  { color: var(--gold);  }
+  #status-text.processing { color: var(--green); }
+  #status-text.speaking   { color: var(--cyan);  }
+
+  /* ── Logo + Waveform zone ─────────────────────────────── */
+  #nucleus-zone {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    height: 220px;
+  }
+
+  #logo-svg {
+    position: absolute;
+    width: 200px; height: 200px;
+  }
+
+  /* Canvas sits on top of SVG, same centre */
+  #waveform-canvas {
+    position: absolute;
+    width: 220px; height: 220px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  /* ── Logo animations ──────────────────────────────────── */
+  @keyframes pulse-ring  { 0%,100%{opacity:.18} 50%{opacity:.32} }
+  @keyframes orbit       { from{transform:rotate(0deg)}  to{transform:rotate(360deg)}  }
+  @keyframes orbit-rev   { from{transform:rotate(0deg)}  to{transform:rotate(-360deg)} }
+  @keyframes breathe     { 0%,100%{opacity:.85} 50%{opacity:1} }
+
+  .ring-pulse  { animation: pulse-ring 3s ease-in-out infinite; }
+  .breathe     { animation: breathe   4s ease-in-out infinite; }
+  .orbit-dot   { animation: orbit     6s linear infinite; transform-origin: 100px 100px; }
+  .orbit-dot-r { animation: orbit-rev 9s linear infinite; transform-origin: 100px 100px; }
+
+  /* ── Divider ──────────────────────────────────────────── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--violet), transparent);
+    opacity: .2;
+    flex-shrink: 0;
+    margin: 4px 0;
+  }
+
+  /* ── Section label ────────────────────────────────────── */
+  .section-label {
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--violet); opacity: .6;
+    padding: 8px 0 5px;
+    flex-shrink: 0;
+  }
+
+  /* ── Conversation log ─────────────────────────────────── */
+  #log-zone {
+    flex: 1;
+    overflow-y: auto;
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 4px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--violet) transparent;
+    min-height: 0;
+  }
+  #log-zone::-webkit-scrollbar { width: 3px; }
+  #log-zone::-webkit-scrollbar-track { background: transparent; }
+  #log-zone::-webkit-scrollbar-thumb { background: var(--violet); border-radius: 2px; }
+
+  .log-entry { display: flex; flex-direction: column; gap: 3px; }
+
+  .log-command {
+    font-size: 11px; letter-spacing: .5px;
+    color: var(--lavender); opacity: .85;
+  }
+  .log-command::before { content: '> '; color: var(--violet); opacity: .7; }
+
+  .log-response {
+    font-size: 11px; letter-spacing: .3px; line-height: 1.5;
+    color: var(--cyan);
+    padding-left: 10px;
+    border-left: 2px solid rgba(0,212,255,.2);
+  }
+
+  .log-sep {
+    height: 1px;
+    background: rgba(123,108,246,.12);
+    margin: 2px 0;
+  }
+
+  /* ── Reminders ticker ─────────────────────────────────── */
+  #ticker-zone {
+    flex-shrink: 0;
+    overflow: hidden;
+    height: 22px;
+    position: relative;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  #ticker-inner {
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 10px; letter-spacing: 1.5px;
+    color: var(--teal);
+    position: absolute;
+    top: 4px; left: 0;
+    animation: ticker-scroll 30s linear infinite;
+  }
+  @keyframes ticker-scroll {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(-200%); }
+  }
+  #ticker-inner.paused { animation-play-state: paused; }
+
+  /* ── Empty log state ──────────────────────────────────── */
+  #log-empty {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--violet); opacity: .3;
+    text-align: center; padding: 20px 0;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <div id="header">
+    <div id="wordmark">
+      <svg width="22" height="22" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 14 L27 24 L27 38 L40 28 L53 38 L53 24 Z" fill="#A89AF8"/>
+        <path d="M30 46 L20 66 L40 55 L60 66 L50 46 L40 57 Z" fill="#A89AF8" opacity=".65"/>
+        <circle cx="40" cy="36" r="3" fill="#C4B8FC"/>
+      </svg>
+      <div>
+        <div id="wordmark-text">NOVA</div>
+        <div id="wordmark-sub">NEURAL ORCHESTRATED VOICE ASSISTANT</div>
+      </div>
+    </div>
+    <div id="clock">00:00:00</div>
+  </div>
+
+  <!-- Status -->
+  <div id="status-bar">
+    <div id="status-dot"></div>
+    <div id="status-text">SLEEPING</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Nucleus: Logo + Waveform -->
+  <div id="nucleus-zone">
+
+    <!-- Animated SVG logo scaled to 200×200 (viewBox 400×400) -->
+    <svg id="logo-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="cg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#7B6CF6" stop-opacity=".25"/>
+          <stop offset="100%" stop-color="#7B6CF6" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="sf" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%"   stop-color="#A89AF8"/>
+          <stop offset="100%" stop-color="#5B4FD4"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Aura glow -->
+      <circle class="ring-pulse" cx="200" cy="200" r="170" fill="url(#cg)"/>
+
+      <!-- Guide rings -->
+      <circle cx="200" cy="200" r="148" fill="none" stroke="#7B6CF6" stroke-width=".6" opacity=".2"/>
+      <circle cx="200" cy="200" r="118" fill="none" stroke="#7B6CF6" stroke-width=".6" opacity=".15"/>
+
+      <!-- Orbit dots – violet (CW) -->
+      <g class="orbit-dot">  <circle cx="200" cy="52"  r="4"   fill="#7B6CF6" opacity=".9"/> </g>
+      <g class="orbit-dot">  <circle cx="348" cy="200" r="2.5" fill="#7B6CF6" opacity=".5"/> </g>
+      <g class="orbit-dot">  <circle cx="200" cy="348" r="3"   fill="#7B6CF6" opacity=".7"/> </g>
+      <!-- Orbit dots – teal (CCW) -->
+      <g class="orbit-dot-r"><circle cx="200" cy="82"  r="3"   fill="#5DCAA5" opacity=".8"/> </g>
+      <g class="orbit-dot-r"><circle cx="318" cy="200" r="2"   fill="#5DCAA5" opacity=".5"/> </g>
+
+      <!-- Inner disc -->
+      <circle cx="200" cy="200" r="88" fill="#0E0B1F"/>
+      <circle cx="200" cy="200" r="86" fill="none" stroke="#7B6CF6" stroke-width="1" opacity=".4"/>
+
+      <!-- Neural convergence symbol -->
+      <g class="breathe">
+        <path d="M 200 138 L 175 160 L 175 195 L 200 162 L 225 195 L 225 160 Z"
+              fill="url(#sf)" opacity=".95"/>
+        <path d="M 178 202 L 162 240 L 200 218 L 238 240 L 222 202 L 200 222 Z"
+              fill="url(#sf)" opacity=".75"/>
+        <circle cx="200" cy="192" r="5" fill="#C4B8FC"/>
+      </g>
+
+      <!-- Signal arc -->
+      <path d="M 120 200 Q 160 155 200 200 Q 240 245 280 200"
+            fill="none" stroke="#7B6CF6" stroke-width="1.5" opacity=".3" stroke-linecap="round"/>
+    </svg>
+
+    <!-- Waveform canvas overlaid on top -->
+    <canvas id="waveform-canvas" width="220" height="220"></canvas>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Conversation log -->
+  <div class="section-label">— COMMAND LOG —</div>
+  <div id="log-zone">
+    <div id="log-empty">Awaiting activation...</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Reminders ticker -->
+  <div id="ticker-zone">
+    <div id="ticker-inner">── NO PENDING REMINDERS ──</div>
+  </div>
+
+</div>
+
+<script>
+// ── Clock ─────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ── Waveform ──────────────────────────────────────────────────────
+const canvas = document.getElementById('waveform-canvas');
+const ctx    = canvas.getContext('2d');
+const CX = canvas.width  / 2;
+const CY = canvas.height / 2;
+const N  = 64;
+const BASE_R = 82;  // ring radius matching SVG outer ring scaled to 220px
+
+let novaState = 'sleeping';
+let tick = 0;
+
+const STATE_CFG = {
+  sleeping:   { color: 'rgba(123,108,246,',  maxH: 6,  speed: 0.015, random: 0   },
+  listening:  { color: 'rgba(255,215,0,',    maxH: 28, speed: 0.08,  random: .5  },
+  processing: { color: 'rgba(0,255,136,',    maxH: 18, speed: 0.12,  random: 0   },
+  speaking:   { color: 'rgba(0,212,255,',    maxH: 38, speed: 0.06,  random: .7  },
+};
+
+function drawWaveform() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const cfg = STATE_CFG[novaState] || STATE_CFG.sleeping;
+  tick += cfg.speed;
+
+  for (let i = 0; i < N; i++) {
+    const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+
+    // Bar height
+    let h = Math.abs(Math.sin(tick + i * 0.25)) * cfg.maxH;
+    if (cfg.random > 0) h += Math.random() * cfg.maxH * cfg.random;
+    h = Math.max(2, h);
+
+    const x1 = CX + Math.cos(angle) * BASE_R;
+    const y1 = CY + Math.sin(angle) * BASE_R;
+    const x2 = CX + Math.cos(angle) * (BASE_R + h);
+    const y2 = CY + Math.sin(angle) * (BASE_R + h);
+
+    // Opacity: brighter at peaks
+    const alpha = 0.25 + (h / cfg.maxH) * 0.65;
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = cfg.color + alpha + ')';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  requestAnimationFrame(drawWaveform);
+}
+drawWaveform();
+
+// ── Status update ─────────────────────────────────────────────────
+const STATES = {
+  sleeping:   { label: 'SLEEPING',   cls: ''           },
+  listening:  { label: 'LISTENING',  cls: 'listening'  },
+  processing: { label: 'PROCESSING', cls: 'processing' },
+  speaking:   { label: 'SPEAKING',   cls: 'speaking'   },
+};
+
+function setStatus(state) {
+  novaState = state;
+  const cfg = STATES[state] || STATES.sleeping;
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  dot.className  = cfg.cls;
+  text.className = cfg.cls;
+  text.textContent = cfg.label;
+}
+
+// ── Log message ───────────────────────────────────────────────────
+const logZone  = document.getElementById('log-zone');
+const logEmpty = document.getElementById('log-empty');
+const MAX_LOG  = 6;
+
+function appendLog(role, text) {
+  if (logEmpty) logEmpty.remove();
+
+  // Keep only last MAX_LOG pairs
+  while (logZone.querySelectorAll('.log-entry').length >= MAX_LOG) {
+    const first = logZone.querySelector('.log-entry');
+    const sep   = first?.nextElementSibling;
+    if (first) first.remove();
+    if (sep && sep.classList.contains('log-sep')) sep.remove();
+  }
+
+  if (logZone.children.length > 0) {
+    const sep = document.createElement('div');
+    sep.className = 'log-sep';
+    logZone.appendChild(sep);
+  }
+
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+
+  if (role === 'user') {
+    const cmd = document.createElement('div');
+    cmd.className = 'log-command';
+    cmd.textContent = text;
+    entry.appendChild(cmd);
+  } else {
+    const res = document.createElement('div');
+    res.className = 'log-response';
+    res.textContent = text;
+    entry.appendChild(res);
+  }
+
+  logZone.appendChild(entry);
+  logZone.scrollTop = logZone.scrollHeight;
+}
+
+// ── Ticker ────────────────────────────────────────────────────────
+function setTicker(text) {
+  document.getElementById('ticker-inner').textContent = text || '── NO PENDING REMINDERS ──';
+}
+
+// ── pywebview JS API (called from Python via window.pywebview.api) ─
+// We expose these as GLOBAL functions so Python can call them via
+// webview.evaluate_js('setStatus("listening")') — no bridge object needed.
+
+window.novaSetStatus  = setStatus;
+window.novaAppendLog  = appendLog;
+window.novaSetTicker  = setTicker;
+
+// Quick self-test on load
+console.log('[NOVA HUD] HTML loaded and JS API ready.');
+</script>
+</body>
+</html>

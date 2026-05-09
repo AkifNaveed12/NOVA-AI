@@ -55,7 +55,7 @@ def test_contacts_json_loads():
 
 
 def test_modules_directory_exists():
-    """All 25 module stub files must exist in modules/."""
+    """All 25 module files + nova_hud.html must exist in modules/."""
     required_modules = [
         "wake_word.py", "stt.py", "nlp_engine.py", "groq_brain.py",
         "weather.py", "news.py", "wikipedia_module.py", "web_automation.py",
@@ -65,10 +65,12 @@ def test_modules_directory_exists():
         "clipboard_manager.py", "translation_module.py", "memory_system.py",
         "personality.py", "gesture_engine.py", "hud_interface.py",
         "activity_log.py", "config_manager.py",
+        "nova_hud.html",  # Day 11(B) — pywebview cinematic HUD frontend
     ]
     for module_file in required_modules:
         path = os.path.join("modules", module_file)
-        assert os.path.exists(path), f"Missing module: {path}"
+        assert os.path.exists(path), f"Missing file: {path}"
+
 
 
 def test_main_py_importable():
@@ -173,24 +175,53 @@ def test_database_manager():
     cursor.execute("SELECT role FROM ConversationLog WHERE activity_id = 1")
     assert cursor.fetchone()["role"] == "user"
 
-# ── Day 6: HUD Tests (added Day 6) ───────────────────────────────
+# ── Day 6 → 11(B): HUD Tests (updated for pywebview) ────────────
 def test_hud_instantiation():
-    import os
-    if os.environ.get("GITHUB_ACTIONS") == "true":
-        return
-        
-    try:
-        from modules.hud_interface import NOVAHud
-        hud = NOVAHud()
-        assert hud.current_state == "sleeping"
-        assert hud.root.title() == "NOVA HUD"
-        hud.root.destroy()
-    except Exception as e:
-        import tkinter
-        if isinstance(e, tkinter.TclError):
-            pass
-        else:
-            raise
+    """
+    NOVAHud must initialise without error and expose the correct public API.
+    Uses unittest.mock to stub out webview so no real window is opened in CI.
+    """
+    import importlib
+    from unittest.mock import MagicMock, patch
+
+    # Stub the webview module so create_window/start don't open a real OS window
+    mock_window = MagicMock()
+    mock_window.events.loaded = MagicMock()
+
+    with patch.dict("sys.modules", {"webview": MagicMock(
+        create_window=MagicMock(return_value=mock_window),
+        start=MagicMock(),
+    )}):
+        # Force re-import with the patched webview
+        import modules.hud_interface as hud_mod
+        importlib.reload(hud_mod)
+
+        hud = hud_mod.NOVAHud()
+
+        # Public API must exist
+        assert hasattr(hud, "update_status")
+        assert hasattr(hud, "log_message")
+        assert hasattr(hud, "update_ticker")
+        assert hasattr(hud, "start")
+
+        # Initial state
+        assert hud._state == "sleeping"
+
+        # Simulate DOM ready so _js() calls go straight to evaluate_js
+        hud._ready = True
+        hud._window = mock_window
+
+        # update_status must call evaluate_js with the correct JS string
+        hud.update_status("listening")
+        mock_window.evaluate_js.assert_called_with("window.novaSetStatus('listening')")
+
+        # log_message must use novaAppendLog
+        hud.log_message("user", "open chrome")
+        called_js = mock_window.evaluate_js.call_args[0][0]
+        assert "novaAppendLog" in called_js
+        assert "user" in called_js
+        assert "open chrome" in called_js
+
 
 
 # ── Day 7: Week 1 Full Integration Tests ─────────────────────────

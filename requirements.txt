@@ -49,6 +49,7 @@ python-Levenshtein==0.25.1
 
 # ── UI / Visualization ────────────────────────────────────────────
 matplotlib==3.8.3
+pywebview==6.2.1
 
 # ── Config & Secrets ─────────────────────────────────────────────
 python-dotenv==1.0.1

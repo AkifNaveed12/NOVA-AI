@@ -1,180 +1,187 @@
 """
-MODULE 23 — HUD Interface
-===========================
-NOVA's visual face — a frameless, always-on-top, semi-transparent
-dark overlay docked to the right side of the screen (320px wide,
-full screen height). Displays animated waveform, status indicator,
-live clock, last 5 command/response pairs, reminders ticker, and
-optional gesture camera feed.
+MODULE 23 — HUD Interface (pywebview edition)
+=============================================
+Replaces the Tkinter + matplotlib implementation with a pywebview
+window that renders nova_hud.html — a fully self-contained cinematic
+dark UI with animated SVG logo, canvas waveform, live clock, command
+log, and reminders ticker.
 
-Window: Tkinter, overrideredirect(True), -topmost, alpha=0.92
-Background: #0D0D0D | Width: 320px | Docked: right
-Colors: #7B6CF6 violet, #00D4FF cyan, #5DCAA5 teal, #C4B8FC lavender
-Waveform: matplotlib FuncAnimation, 64 bars, polar/circular, 20fps
-Font: Courier New (monospace) throughout — no proportional fonts
+Public API is IDENTICAL to the old Tkinter version so main.py
+requires zero changes:
+    hud = NOVAHud()
+    hud.update_status("listening")
+    hud.log_message("user", "open chrome")
+    hud.log_message("nova", "Opening Chrome.")
+    hud.start()          # blocks — call in main thread
 
-Tech: Tkinter (built-in), matplotlib FuncAnimation
-IMPORTANT: Tkinter mainloop MUST run on main thread
+Architecture:
+    - pywebview opens a native OS window (frameless, always-on-top)
+    - Python calls webview.evaluate_js() to push state updates to JS
+    - JS functions novaSetStatus() / novaAppendLog() / novaSetTicker()
+      are defined in nova_hud.html and respond immediately
+    - Thread-safety: evaluate_js() is thread-safe in pywebview 4.x;
+      we additionally queue calls and flush after DOM-ready to be safe
+
+Dependencies:
+    pip install pywebview
+
+nova_hud.html must be in the same directory as this file (modules/).
+If running from project root, the path is resolved automatically.
 """
 
-import tkinter as tk
-from tkinter import scrolledtext
-import datetime
-import math
-import numpy as np
+import queue
+import threading
+import time
+from pathlib import Path
+import webview  # pip install pywebview
 
-import matplotlib
-matplotlib.use("TkAgg")
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.animation as animation
 
-# Colors
-BG_COLOR = "#0D0D0D"
-TEXT_COLOR = "#C4B8FC"
-CYAN = "#00D4FF"
+# ── Resolve path to the HTML file ─────────────────────────────────
+_HERE = Path(__file__).parent          # …/modules/
+_ROOT = _HERE.parent                   # project root
+_HTML = _HERE / "nova_hud.html"
+
+# Fallback: check project root too
+if not _HTML.exists():
+    _HTML = _ROOT / "nova_hud.html"
+
+if not _HTML.exists():
+    raise FileNotFoundError(
+        f"nova_hud.html not found. Expected at: {_HERE / 'nova_hud.html'}"
+    )
+
+# pywebview on Windows requires file:// URI for local HTML files
+# Path.as_uri() gives the correct 'file:///D:/...' form on all platforms
+HTML_PATH = _HTML.as_uri()
+
 
 class NOVAHud:
+    """
+    Cinematic HUD window for NOVA AI using pywebview.
+
+    Drop-in replacement for the old Tkinter NOVAHud.
+    Thread-safe: update_status() and log_message() can be called
+    from any background thread.
+    """
+
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("NOVA HUD")
-        
-        # Frameless, topmost, transparent
-        self.root.overrideredirect(True)
-        self.root.wm_attributes("-topmost", True)
-        # Full screen, topmost
-        self.root.state("zoomed")  # Maximizes the window on Windows
-        self.root.wm_attributes("-topmost", True)
-        # Remove alpha to make it fully opaque since it's full screen
-        self.root.configure(bg=BG_COLOR)
-        
-        # Internal state
-        self.current_state = "sleeping" # sleeping, listening, processing, speaking
-        
-        self._build_ui()
-        self._update_clock()
-        
-    def _build_ui(self):
-        # 1. Header Frame (Clock & Status)
-        header_frame = tk.Frame(self.root, bg=BG_COLOR)
-        header_frame.pack(fill=tk.X, pady=40, padx=40)
-        
-        self.clock_label = tk.Label(header_frame, text="00:00:00", font=("Courier New", 36, "bold"), bg=BG_COLOR, fg=TEXT_COLOR)
-        self.clock_label.pack(side=tk.RIGHT)
-        
-        self.status_label = tk.Label(header_frame, text="🔴 Sleeping", font=("Courier New", 24), bg=BG_COLOR, fg="#ff4444")
-        self.status_label.pack(side=tk.LEFT)
-        
-        # 2. Main Body (Waveform & Logs side-by-side)
-        body_frame = tk.Frame(self.root, bg=BG_COLOR)
-        body_frame.pack(fill=tk.BOTH, expand=True, padx=40, pady=20)
-        
-        # 2a. Waveform Frame (Left)
-        wave_frame = tk.Frame(body_frame, bg=BG_COLOR)
-        wave_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        
-        self.fig = Figure(figsize=(8, 8), dpi=100, facecolor=BG_COLOR)
-        self.ax = self.fig.add_subplot(111, projection='polar')
-        self.ax.set_facecolor(BG_COLOR)
-        self.ax.axis('off')
-        
-        # Setup data for a circle of 64 bars
-        self.N = 64
-        self.theta = np.linspace(0.0, 2 * np.pi, self.N, endpoint=False)
-        self.radii = np.ones(self.N) * 2
-        self.width = (2 * np.pi) / self.N
-        self.bars = self.ax.bar(self.theta, self.radii, width=self.width, bottom=2.0, color=CYAN, alpha=0.8)
-        self.ax.set_ylim(0, 15)
-        
-        self.canvas = FigureCanvasTkAgg(self.fig, master=wave_frame)
-        self.canvas.get_tk_widget().pack(expand=True)
-        
-        self.ani = animation.FuncAnimation(self.fig, self._animate_waveform, interval=50, blit=True, cache_frame_data=False)
-        
-        # 3. Log Frame (Right)
-        log_frame = tk.Frame(body_frame, bg=BG_COLOR, width=500)
-        log_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=20)
-        log_frame.pack_propagate(False) # Keep width fixed
-        
-        log_label = tk.Label(log_frame, text="ACTIVITY LOG", font=("Courier New", 16, "bold"), bg=BG_COLOR, fg=TEXT_COLOR)
-        log_label.pack(anchor="w", pady=(0, 10))
-        
-        self.log_text = scrolledtext.ScrolledText(log_frame, font=("Courier New", 12), bg="#1A1A1A", fg=TEXT_COLOR, 
-                                                insertbackground=TEXT_COLOR, relief=tk.FLAT, borderwidth=0, wrap=tk.WORD)
-        self.log_text.pack(fill=tk.BOTH, expand=True)
-        self.log_text.config(state=tk.DISABLED)
-        
-        # Bind double-click and Escape to exit (emergency close)
-        self.root.bind("<Double-Button-1>", lambda e: self.root.destroy())
-        self.root.bind("<Escape>", lambda e: self.root.destroy())
+        self._window   = None          # set after start()
+        self._ready    = False         # True once DOM is fully loaded
+        self._queue    = queue.Queue() # buffered JS calls before ready
+        self._state    = "sleeping"
 
-    def _animate_waveform(self, frame):
-        """Animates the matplotlib bars based on NOVA's state."""
-        base_amplitude = 1.0
-        wave_speed = frame * 0.1
-        
-        if self.current_state == "sleeping":
-            base_amplitude = 0.5
-            color = "#ff4444"
-            wave_speed = frame * 0.05
-        elif self.current_state == "listening":
-            base_amplitude = 3.0
-            color = "#ffd700"
-            wave_speed = frame * 0.2
-        elif self.current_state == "processing":
-            base_amplitude = 1.5
-            color = "#00ff00"
-            wave_speed = frame * 0.4
-        elif self.current_state == "speaking":
-            base_amplitude = 4.0
-            color = CYAN
-            wave_speed = frame * 0.3
-            
-        for i, bar in enumerate(self.bars):
-            # Generate a wave pattern
-            noise = np.sin(wave_speed + i * 0.5) * base_amplitude
-            # Add some randomness if speaking/listening
-            if self.current_state in ["speaking", "listening"]:
-                noise += np.random.rand() * base_amplitude * 0.5
-            
-            bar.set_height(max(0.5, 1.0 + noise))
-            bar.set_color(color)
-            
-        return self.bars
+        # Create the pywebview window immediately (not shown until start())
+        self._window = webview.create_window(
+            title       = "NOVA AI",
+            url         = HTML_PATH,
+            width       = 380,
+            height      = 900,
+            x           = None,        # pywebview will centre or use OS default
+            y           = None,
+            resizable   = False,
+            frameless   = True,        # no title bar — matches original design
+            on_top      = True,        # always-on-top
+            background_color = "#0D0D0D",
+            transparent = True,        # allow semi-transparency on supported platforms
+            min_size    = (320, 600),
+        )
 
-    def _update_clock(self):
-        now = datetime.datetime.now().strftime("%H:%M:%S")
-        self.clock_label.config(text=now)
-        self.root.after(1000, self._update_clock)
+        # Register the loaded callback
+        self._window.events.loaded += self._on_loaded
+
+    # ── DOM-ready callback ─────────────────────────────────────────
+    def _on_loaded(self):
+        """Called by pywebview once the HTML/JS is fully loaded."""
+        self._ready = True
+        # Drain any calls that came in before the DOM was ready
+        while not self._queue.empty():
+            try:
+                js = self._queue.get_nowait()
+                self._window.evaluate_js(js)
+            except queue.Empty:
+                break
+
+    # ── Internal JS dispatcher ─────────────────────────────────────
+    def _js(self, code: str):
+        """
+        Safely evaluate JS in the webview window.
+        Buffers calls if the DOM isn't ready yet.
+        """
+        if self._window is None:
+            return
+        if self._ready:
+            self._window.evaluate_js(code)
+        else:
+            self._queue.put(code)
+
+    # ── Public API (identical to old Tkinter NOVAHud) ──────────────
 
     def update_status(self, state: str):
-        """Thread-safe state update: 'sleeping', 'listening', 'processing', 'speaking'."""
-        def _update():
-            self.current_state = state
-            if state == "sleeping":
-                self.status_label.config(text="🔴 Sleeping", fg="#ff4444")
-            elif state == "listening":
-                self.status_label.config(text="🟡 Listening", fg="#ffd700")
-            elif state == "processing":
-                self.status_label.config(text="🟢 Processing", fg="#00ff00")
-            elif state == "speaking":
-                self.status_label.config(text="🔵 Speaking", fg=CYAN)
-        
-        # Schedule the update on the main thread
-        self.root.after(0, _update)
+        """
+        Update NOVA's status indicator and waveform colour.
+        state: 'sleeping' | 'listening' | 'processing' | 'speaking'
+        Thread-safe.
+        """
+        self._state = state
+        self._js(f"window.novaSetStatus('{state}')")
 
     def log_message(self, role: str, text: str):
-        """Thread-safe log append."""
-        def _log():
-            self.log_text.config(state=tk.NORMAL)
-            prefix = "[USER]" if role == "user" else "[NOVA]"
-            self.log_text.insert(tk.END, f"{prefix}\n{text}\n\n")
-            self.log_text.see(tk.END)
-            self.log_text.config(state=tk.DISABLED)
-            
-        # Schedule the update on the main thread
-        self.root.after(0, _log)
+        """
+        Append a command/response pair to the conversation log.
+        role: 'user' | 'nova'
+        Thread-safe.
+        """
+        # Escape backticks and backslashes for safe JS string injection
+        safe_text = text.replace("\\", "\\\\").replace("`", "\\`")
+        self._js(f"window.novaAppendLog('{role}', `{safe_text}`)")
+
+    def update_ticker(self, text: str):
+        """
+        Update the scrolling reminders ticker.
+        Thread-safe.
+        """
+        safe = text.replace("\\", "\\\\").replace("`", "\\`")
+        self._js(f"window.novaSetTicker(`{safe}`)")
 
     def start(self):
-        """Blocks and runs the Tkinter mainloop."""
-        self.root.mainloop()
+        """
+        Start the pywebview event loop. BLOCKS until the window is closed.
+        Must be called from the main thread (same requirement as Tkinter).
+        """
+        webview.start(
+            debug        = False,   # set True during development to open DevTools
+            private_mode = False,   # allow storage so page loads consistently
+            http_server  = False,   # not needed — file:// URI works directly
+        )
+
+
+# ── Standalone test ────────────────────────────────────────────────
+if __name__ == "__main__":
+    """Quick smoke-test: open HUD, cycle through all states."""
+    hud = NOVAHud()
+
+    def _demo():
+        time.sleep(1.5)
+        for state, cmd, resp in [
+            ("listening",  "Hey NOVA, what time is it?",       ""),
+            ("processing", "Hey NOVA, what time is it?",       ""),
+            ("speaking",   "Hey NOVA, what time is it?",       "It is 09:42 PM."),
+            ("sleeping",   "",                                  ""),
+            ("listening",  "Open Chrome",                       ""),
+            ("processing", "Open Chrome",                       ""),
+            ("speaking",   "Open Chrome",                       "Opening Chrome."),
+            ("sleeping",   "",                                  ""),
+        ]:
+            hud.update_status(state)
+            if cmd:
+                hud.log_message("user", cmd)
+            if resp:
+                hud.log_message("nova", resp)
+            time.sleep(1.2)
+
+        hud.update_ticker("⏰ 10:00 PM — Review NOVA modules   ⏰ 11:00 PM — Push to GitHub")
+
+    t = threading.Thread(target=_demo, daemon=True)
+    t.start()
+
+    hud.start()  # blocks
