@@ -177,7 +177,10 @@ def main() -> None:
     
     print("\nNOVA AI — Shutting down gracefully...")
     wake_word.stop()
-    shared_mic.__exit__(None, None, None) # Close the PyAudio stream
+    try:
+        shared_mic.__exit__(None, None, None) # Close the PyAudio stream
+    except OSError:
+        pass
 
 
 if __name__ == "__main__":

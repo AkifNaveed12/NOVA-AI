@@ -71,6 +71,19 @@ class AppLauncher:
             print(f"[AppLauncher] Error launching {entry['name']}: {e}")
             return f"I tried to open {entry['name']}, but encountered an error."
 
+    def is_app_known(self, app_name: str) -> bool:
+        """Helper to check if an app name matches known apps above the threshold."""
+        if not app_name or not app_name.strip():
+            return False
+        query = app_name.lower().strip()
+        if query in self._alias_map:
+            return True
+        all_aliases = list(self._alias_map.keys())
+        if not all_aliases:
+            return False
+        match = process.extractOne(query, all_aliases, scorer=fuzz.WRatio, score_cutoff=65)
+        return bool(match)
+
     def get_app_list(self) -> list:
         """Returns a list of all configured application names."""
         return [app["name"] for app in self.apps]

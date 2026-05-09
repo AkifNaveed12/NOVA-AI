@@ -122,63 +122,53 @@ def dispatch_local(intent: str, entities: dict, original: str = "") -> Optional[
             )
         return TranslationModule().translate(text_to_translate, target_lang)
 
-    # ── Day 10 ────────────────────────────────────────────────────────
-    if intent == "web":
+    # ── Day 10 & 11: Web and App (Unified) ────────────────────────────
+    if intent in ("web", "app"):
         from modules.web_automation import WebAutomation
+        from modules.app_launcher import AppLauncher
         import re
         wa = WebAutomation(_config)
+        al = AppLauncher(_config)
 
-        # "search YouTube for X" / "search X on YouTube"
-        yt_match = re.search(
-            r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+youtube)",
-            original, re.IGNORECASE
-        )
+        # Handle explicit web search/scroll commands
+        yt_match = re.search(r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+youtube)", original, re.IGNORECASE)
         if not yt_match:
-            yt_match = re.search(
-                r"(?:search|find)\s+(?:on\s+)?youtube\s+(?:for\s+)?(.+)",
-                original, re.IGNORECASE
-            )
+            yt_match = re.search(r"(?:search|find)\s+(?:on\s+)?youtube\s+(?:for\s+)?(.+)", original, re.IGNORECASE)
         if yt_match:
             return wa.search_youtube(yt_match.group(1).strip())
 
-        # "search Google for X" / "google X"
-        google_match = re.search(
-            r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+google)",
-            original, re.IGNORECASE
-        )
+        google_match = re.search(r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+google)", original, re.IGNORECASE)
         if not google_match:
-            google_match = re.search(
-                r"(?:google|search google for)\s+(.+)",
-                original, re.IGNORECASE
-            )
+            google_match = re.search(r"(?:google|search google for)\s+(.+)", original, re.IGNORECASE)
         if google_match:
             return wa.search_google(google_match.group(1).strip())
 
-        # "scroll down" / "scroll up"
         if "scroll down" in original.lower():
             return wa.scroll_down()
         if "scroll up" in original.lower():
             return wa.scroll_up()
 
-        # Default: extract site name and open it
-        site_name = re.sub(
-            r"^(open|go to|visit|browse|launch)\s+", "",
+        # Extract target name to open
+        target_name = re.sub(
+            r"^(open|go to|visit|browse|launch|start|run)\s+", "",
             original, flags=re.IGNORECASE
         ).strip()
-        return wa.open_site(site_name)
 
-    # ── Day 11 ────────────────────────────────────────────────────────
-    if intent == "app":
-        from modules.app_launcher import AppLauncher
-        import re
-        al = AppLauncher(_config)
-        original = entities.get("original", "")
-        # Extract app name from "open X", "launch X", "start X", "run X"
-        app_name = re.sub(
-            r"^(open|launch|start|run)\s+", "",
-            original, flags=re.IGNORECASE
-        ).strip()
-        return al.launch(app_name)
+        # Disambiguate App vs Web
+        # Priority 1: Check if it's a known app
+        if al.is_app_known(target_name):
+            return al.launch(target_name)
+        
+        # Priority 2: Check if it's a known site
+        if wa.is_site_known(target_name):
+            return wa.open_site(target_name)
+            
+        # Priority 3: If intent was explicitly app, but unknown, fallback to AppLauncher's error message
+        # OR if intent was web, fallback to WebAutomation's error message.
+        if intent == "app":
+            return al.launch(target_name)
+        else:
+            return wa.open_site(target_name)
 
     if intent == "clipboard":
         from modules.clipboard_manager import ClipboardManager

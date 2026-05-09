@@ -75,6 +75,19 @@ class WebAutomation:
 
         return f"I don't know a website called '{name}'. You can say open google dot com or add it to sites.json."
 
+    def is_site_known(self, name: str) -> bool:
+        """Helper to check if a site name matches known sites above the threshold."""
+        if not name or not name.strip():
+            return False
+        query = name.lower().strip()
+        if query in self._alias_map:
+            return True
+        all_aliases = list(self._alias_map.keys())
+        if not all_aliases:
+            return False
+        match = process.extractOne(query, all_aliases, scorer=fuzz.WRatio, score_cutoff=65)
+        return bool(match)
+
     def search_youtube(self, query: str) -> str:
         """Searches YouTube for the given query."""
         if not query or not query.strip():
