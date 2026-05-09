@@ -54,6 +54,11 @@
       "name": "NOVA AI Repo",
       "aliases": ["nova repo", "nova github", "project repo"],
       "url": "https://github.com/AkifNaveed12/NOVA-AI"
+    },
+    {
+      "name": "Portfolio",
+      "aliases": ["portfolio", "my portfolio", "portfolio website", "personal website"],
+      "url": "https://portfolio-muhammad-akif-naveed.vercel.app/"
     }
   ]
 }
