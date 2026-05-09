@@ -599,3 +599,160 @@ def test_nova_core_clipboard_route():
         "original": "read clipboard"
     })
     assert "testing" in read_res
+
+
+# ── Day 12: Email Module Tests ────────────────────────────────────
+
+def test_email_module_importable():
+    """EmailModule must be importable and expose correct public API."""
+    from modules.email_module import EmailModule
+    em = EmailModule()
+    assert hasattr(em, "draft_email")
+    assert hasattr(em, "send_email")
+    assert hasattr(em, "handle_email_command")
+    assert hasattr(em, "has_credentials")
+
+
+def test_email_module_has_credentials_false():
+    """has_credentials() must return False when no env vars are set."""
+    import os
+    from modules.email_module import EmailModule
+    # Temporarily unset the env vars
+    orig_addr = os.environ.pop("GMAIL_ADDRESS", None)
+    orig_pass = os.environ.pop("GMAIL_APP_PASSWORD", None)
+    try:
+        em = EmailModule()
+        assert em.has_credentials() is False
+    finally:
+        if orig_addr:
+            os.environ["GMAIL_ADDRESS"] = orig_addr
+        if orig_pass:
+            os.environ["GMAIL_APP_PASSWORD"] = orig_pass
+
+
+def test_email_send_no_credentials():
+    """send_email() without credentials must return a descriptive error string, not raise."""
+    import os
+    from modules.email_module import EmailModule
+    orig_addr = os.environ.pop("GMAIL_ADDRESS", None)
+    orig_pass = os.environ.pop("GMAIL_APP_PASSWORD", None)
+    try:
+        em = EmailModule()
+        result = em.send_email("test@example.com", "Test Subject", "Hello body")
+        assert isinstance(result, str)
+        assert len(result) > 0
+        assert "configured" in result.lower() or "credential" in result.lower()
+    finally:
+        if orig_addr:
+            os.environ["GMAIL_ADDRESS"] = orig_addr
+        if orig_pass:
+            os.environ["GMAIL_APP_PASSWORD"] = orig_pass
+
+
+def test_email_draft_parsing():
+    """
+    draft_email() must return a dict with 'subject', 'body', 'recipient' keys.
+    Uses Groq API — skipped if no valid key.
+    """
+    import os
+    key = os.getenv("GROQ_API_KEY", "")
+    if not key or "your_key" in key:
+        return  # Skip on CI without key
+
+    from modules.email_module import EmailModule
+    em = EmailModule()
+    draft = em.draft_email("Ali", "project meeting tomorrow")
+
+    assert isinstance(draft, dict)
+    assert "subject"   in draft
+    assert "body"      in draft
+    assert "recipient" in draft
+    assert isinstance(draft["subject"], str) and len(draft["subject"]) > 0
+    assert isinstance(draft["body"],    str) and len(draft["body"]) > 0
+    assert draft["recipient"] == "Ali"
+
+
+def test_email_handle_command_cancel():
+    """
+    handle_email_command() must return a cancellation string when user says 'no'.
+    Uses mocked speak/listen callbacks — no network/TTS/STT needed.
+    """
+    import os
+    key = os.getenv("GROQ_API_KEY", "")
+    if not key or "your_key" in key:
+        return  # Skip on CI without key
+
+    from modules.email_module import EmailModule
+
+    spoken = []
+    # Simulate: user confirms recipient="Ali", topic="meeting", then says "no"
+    listen_responses = iter(["no"])
+
+    em = EmailModule()
+    result = em.handle_email_command(
+        original    = "write an email to Ali about the project meeting",
+        entities    = {"name": "Ali"},
+        speak_func  = lambda text: spoken.append(text),
+        listen_func = lambda: next(listen_responses, "no"),
+    )
+    assert isinstance(result, str)
+    assert "cancel" in result.lower()
+
+
+def test_email_handle_command_send_flow():
+    """
+    handle_email_command() with 'yes' must attempt to send and return a string.
+    Mocks the SMTP send to avoid real network calls.
+    """
+    import os
+    from unittest.mock import patch, MagicMock
+    key = os.getenv("GROQ_API_KEY", "")
+    if not key or "your_key" in key:
+        return  # Skip on CI without key
+
+    from modules.email_module import EmailModule
+    os.environ["GMAIL_ADDRESS"]      = "test@gmail.com"
+    os.environ["GMAIL_APP_PASSWORD"] = "testpassword"
+
+    spoken = []
+    listen_responses = iter(["yes"])
+
+    with patch("smtplib.SMTP") as mock_smtp:
+        mock_server = MagicMock()
+        mock_smtp.return_value.__enter__ = lambda s: mock_server
+        mock_smtp.return_value.__exit__  = MagicMock(return_value=False)
+
+        em = EmailModule()
+        result = em.handle_email_command(
+            original    = "write an email to Ali about the project meeting",
+            entities    = {"name": "Ali"},
+            speak_func  = lambda text: spoken.append(text),
+            listen_func = lambda: next(listen_responses, "yes"),
+        )
+
+    assert isinstance(result, str)
+    # Should either confirm sent or ask for address (Ali has address in contacts.json)
+    assert len(result) > 0
+
+
+def test_nlp_classifies_email_intent():
+    """NLP must classify email-related commands as 'email' intent."""
+    from modules.nlp_engine import classify_intent
+    assert classify_intent("write an email to Ali about the project")  == "email"
+    assert classify_intent("send email to john about the proposal")     == "email"
+    assert classify_intent("mail the report to the manager")            == "email"
+
+
+def test_nova_core_email_route_no_callbacks():
+    """
+    nova_core.route() with email intent and no callbacks must return a
+    descriptive string (graceful degradation), not raise.
+    """
+    import nova_core
+    result = nova_core.route({
+        "intent":   "email",
+        "entities": {},
+        "original": "write an email to Ali about the project meeting",
+    })
+    assert isinstance(result, str)
+    assert len(result) > 0

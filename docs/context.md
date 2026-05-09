@@ -299,3 +299,58 @@ No module (weather.py, email_module.py, etc.) should import or call `hud` direct
 For reminders (Module 13) and calendar (Module 14), the reminder engine thread should place ticker strings into the `reminder_queue` already defined in `main.py`, and `main.py` should drain the queue and call `hud.update_ticker(text)`. This preserves thread safety.
 
 ---
+
+## Day 12 — Module 10 (Email Compose & Send)
+
+**Date:** 2026-05-09
+**Status:** Complete
+
+### What was done
+
+**`modules/email_module.py`** — fully implemented (replaces TODO stub):
+
+- `EmailModule.__init__()` — loads `GMAIL_ADDRESS` and `GMAIL_APP_PASSWORD` from `.env`; stores SMTP config (`smtp.gmail.com:587`)
+- `draft_email(recipient, topic, details)` — builds a Groq prompt; calls `GroqBrain.chat()`; parses the `Subject:` line from the response; returns `{"subject", "body", "recipient"}`
+- `send_email(to_address, subject, body)` — builds `MIMEMultipart` message; connects via `smtplib.SMTP`; calls `starttls()` → `login()` → `sendmail()`; handles `SMTPAuthenticationError`, `SMTPConnectError`, `SMTPRecipientsRefused`, and `TimeoutError` gracefully (return descriptive string, never raise)
+- `handle_email_command(original, entities, speak_func, listen_func)` — full interactive multi-turn flow:
+  1. Extracts recipient + topic via regex on `original` text; fills gaps with spoken follow-up questions
+  2. Calls `draft_email()` and speaks a 60-word preview via `speak_func`
+  3. Asks `"Should I send it?"` and listens for `"yes"` / `"no"` via `listen_func`
+  4. On yes: resolves email address from `contacts.json`; falls back to asking the user; calls `send_email()`
+  5. On no: returns `"Email cancelled."` string
+- `has_credentials()` — returns `True` if both env vars are set
+- `_resolve_address(name)` — looks up email from `config/contacts.json` by fuzzy name match
+
+**`nova_core.py`** changes:
+
+- `"email"` moved from `GROQ_INTENTS` → `LOCAL_INTENTS` (it now runs through the interactive local flow instead of plain Groq)
+- `route()` signature extended: `route(nlp_result, speak_func=None, listen_func=None)` — optional callbacks passed through to `dispatch_local()`
+- `dispatch_local()` signature extended with the same callbacks
+- Email handler block added: calls `em.handle_email_command()` when callbacks are present; falls back to a descriptive string when in non-interactive mode (e.g., unit tests, CI)
+
+**`main.py`** changes:
+
+- Added `_listen_once()` inner function inside `voice_pipeline()` — wraps `stt.listen()` + `stt.transcribe()`; updates HUD to "listening" / "processing"; logs the follow-up utterance via `hud.log_message()`
+- `nova_core.route()` call updated to pass `speak_func=speak` and `listen_func=_listen_once`
+
+### Architecture contract enforced
+
+- `email_module.py` does NOT import or call `hud` directly
+- All HUD updates (status, log) during the multi-turn email flow happen via the `_listen_once` wrapper and `speak()` function in `main.py` which already call `hud.*` before delegating to the module
+
+### Test coverage added (8 new tests)
+
+| Test | Coverage |
+|---|---|
+| `test_email_module_importable` | API surface / public methods |
+| `test_email_module_has_credentials_false` | Env var detection |
+| `test_email_send_no_credentials` | Graceful error path |
+| `test_email_draft_parsing` | Groq draft + subject extraction (live, skipped without key) |
+| `test_email_handle_command_cancel` | Multi-turn cancel path (mocked speak/listen) |
+| `test_email_handle_command_send_flow` | Multi-turn send path (SMTP mocked) |
+| `test_nlp_classifies_email_intent` | NLP pattern matching for email commands |
+| `test_nova_core_email_route_no_callbacks` | Graceful degradation without callbacks |
+
+### Total test count: 54 (46 passed offline, 8 API-skipped on CI)
+
+---

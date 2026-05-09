@@ -134,7 +134,25 @@ def main() -> None:
                         print(f"[NLP] Intent: {intent} | Entities: {entities}")
 
                         import nova_core
-                        response = nova_core.route(result)
+
+                        # STT listen wrapper for multi-turn interactive flows (e.g. email)
+                        def _listen_once() -> str:
+                            hud.update_status("listening")
+                            _audio = stt.listen()
+                            hud.update_status("processing")
+                            if _audio:
+                                _text = stt.transcribe(_audio)
+                                if _text:
+                                    print(f"[USER follow-up] {_text}")
+                                    hud.log_message("user", _text)
+                                    return _text
+                            return ""
+
+                        response = nova_core.route(
+                            result,
+                            speak_func  = speak,
+                            listen_func = _listen_once,
+                        )
 
                         activity_id = db_manager.log_activity(
                             command=text,
