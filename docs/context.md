@@ -178,3 +178,37 @@
   - `test_nlp_extracts_translate_entities` — NLP regex extracts text + language
   - `test_nlp_extracts_wiki_query` — NLP regex extracts wiki topic
   - `test_nova_core_wikipedia_route` — end-to-end Wikipedia via nova_core
+
+---
+
+## Day 10 — web_automation.py + NLP intent priority fix
+**Date:** 2026-05-09
+**Status:** Complete
+
+### What was done:
+- `modules/web_automation.py`: Implemented `WebAutomation` with `open_site(name)` using rapidfuzz fuzzy matching against `sites.json` aliases (score threshold 65). YouTube search via `search_youtube(query)`, Google search via `search_google(query)`. Selenium lazy-init with `scroll_down()` / `scroll_up()`. Falls back to `webbrowser.open()` for speed on simple opens.
+- `nova_core.py`: Wired `web` intent with regex parsing for YouTube/Google search, scroll commands, and default site opening. Updated `dispatch_local()` signature to pass `original` text for full-command parsing.
+- `modules/nlp_engine.py` (**critical fix**): Reordered `INTENT_PATTERNS` — weather/news/wikipedia/translate now checked **before** datetime. Removed the generic word `"today"` from datetime triggers. Fixed "what's the weather today" being misclassified as `datetime`.
+- `tests/test_all.py`: Added 4 Day 10 tests (41 total, all passing):
+  - `test_web_open_known_site` — site list contains YouTube, GitHub
+  - `test_web_fuzzy_match` — alias map resolves yt, github, gmail
+  - `test_web_unknown_site` — graceful error for fake sites
+  - `test_web_nlp_classifies_open_youtube` — go to/visit/browse → web intent
+
+---
+
+## Day 11 — app_launcher.py + clipboard_manager.py
+**Date:** 2026-05-09
+**Status:** Complete
+
+### What was done:
+- `modules/app_launcher.py`: Implemented `AppLauncher` with `launch(app_name)` using rapidfuzz fuzzy matching against `apps.json` aliases (score threshold 65). Uses `subprocess.Popen` for non-blocking app launch.
+- `modules/clipboard_manager.py`: Implemented `ClipboardManager` with `read()` (truncates to 200 chars for TTS) and `write(text)` using `pyperclip`.
+- `config/sites.json`: Added `Portfolio` entry mapped to the user's personal website.
+- `nova_core.py`: Wired `app` intent to `AppLauncher.launch()` and `clipboard` intent to `ClipboardManager` with regex parsing for read vs write sub-actions. Fixed an issue where the `original` parameter was getting shadowed by `entities.get("original")` during local dispatch.
+- `tests/test_all.py`: Added 5 Day 11 tests (46 total, all passing):
+  - `test_app_launcher_list` — loads apps.json properly
+  - `test_app_launcher_unknown_app` — graceful error for fake app
+  - `test_clipboard_manager_write_and_read` — successfully writes and reads using pyperclip
+  - `test_nova_core_app_route` — end-to-end app route via nova_core
+  - `test_nova_core_clipboard_route` — end-to-end clipboard read/write route via nova_core

@@ -61,7 +61,7 @@ def route(nlp_result: dict) -> str:
 
     if intent in LOCAL_INTENTS:
         # Dispatch to local module
-        local_response = dispatch_local(intent, entities)
+        local_response = dispatch_local(intent, entities, original)
         if local_response:
             return local_response
         else:
@@ -73,7 +73,7 @@ def route(nlp_result: dict) -> str:
         return groq_brain.chat(original)
 
 
-def dispatch_local(intent: str, entities: dict) -> Optional[str]:
+def dispatch_local(intent: str, entities: dict, original: str = "") -> Optional[str]:
     """
     Dispatch to the correct local module handler based on intent.
     Each module is imported lazily to avoid startup cost.
@@ -122,12 +122,87 @@ def dispatch_local(intent: str, entities: dict) -> Optional[str]:
             )
         return TranslationModule().translate(text_to_translate, target_lang)
 
+    # ── Day 10 ────────────────────────────────────────────────────────
+    if intent == "web":
+        from modules.web_automation import WebAutomation
+        import re
+        wa = WebAutomation(_config)
+
+        # "search YouTube for X" / "search X on YouTube"
+        yt_match = re.search(
+            r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+youtube)",
+            original, re.IGNORECASE
+        )
+        if not yt_match:
+            yt_match = re.search(
+                r"(?:search|find)\s+(?:on\s+)?youtube\s+(?:for\s+)?(.+)",
+                original, re.IGNORECASE
+            )
+        if yt_match:
+            return wa.search_youtube(yt_match.group(1).strip())
+
+        # "search Google for X" / "google X"
+        google_match = re.search(
+            r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+google)",
+            original, re.IGNORECASE
+        )
+        if not google_match:
+            google_match = re.search(
+                r"(?:google|search google for)\s+(.+)",
+                original, re.IGNORECASE
+            )
+        if google_match:
+            return wa.search_google(google_match.group(1).strip())
+
+        # "scroll down" / "scroll up"
+        if "scroll down" in original.lower():
+            return wa.scroll_down()
+        if "scroll up" in original.lower():
+            return wa.scroll_up()
+
+        # Default: extract site name and open it
+        site_name = re.sub(
+            r"^(open|go to|visit|browse|launch)\s+", "",
+            original, flags=re.IGNORECASE
+        ).strip()
+        return wa.open_site(site_name)
+
+    # ── Day 11 ────────────────────────────────────────────────────────
+    if intent == "app":
+        from modules.app_launcher import AppLauncher
+        import re
+        al = AppLauncher(_config)
+        original = entities.get("original", "")
+        # Extract app name from "open X", "launch X", "start X", "run X"
+        app_name = re.sub(
+            r"^(open|launch|start|run)\s+", "",
+            original, flags=re.IGNORECASE
+        ).strip()
+        return al.launch(app_name)
+
+    if intent == "clipboard":
+        from modules.clipboard_manager import ClipboardManager
+        import re
+        cm = ClipboardManager(_config)
+        original_lower = original.lower()
+        
+        # Determine if reading or writing
+        if "what" in original_lower or "read" in original_lower:
+            return cm.read()
+        elif "copy" in original_lower or "write" in original_lower:
+            # Extract text to copy: "copy X to clipboard" or "copy X"
+            copy_match = re.search(r"copy\s+(.*?)(?:\s+to\s+clipboard)?$", original, re.IGNORECASE)
+            if copy_match:
+                text_to_copy = copy_match.group(1).strip()
+                if text_to_copy:
+                    return cm.write(text_to_copy)
+            return "What would you like me to copy?"
+        
+        return "I didn't understand the clipboard command. Try saying 'read clipboard' or 'copy text'."
+
     # ── Future days ───────────────────────────────────────────────────
-    # Day 9:  wikipedia, translate
-    # Day 10: web
-    # Day 11: app
     # Day 12: system
     # Day 13: music
-    # Day 14: screenshot, clipboard
+    # Day 14: screenshot
     # Day 15: notes, reminder, calendar, task, datetime
     return None

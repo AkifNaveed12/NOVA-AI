@@ -452,3 +452,119 @@ def test_nova_core_wikipedia_route():
     })
     assert isinstance(result, str) and len(result) > 20
 
+
+# ── Day 10: Web Automation Tests ─────────────────────────────────
+
+def test_web_open_known_site():
+    """WebAutomation must resolve a known site alias to a response."""
+    from modules.web_automation import WebAutomation
+    wa = WebAutomation()
+    # Don't actually open browser — just test the lookup logic
+    # We test open_site indirectly by checking the site list
+    sites = wa.get_site_list()
+    assert "YouTube" in sites
+    assert "GitHub" in sites
+    assert len(sites) >= 10
+
+
+def test_web_fuzzy_match():
+    """WebAutomation alias map must contain known aliases."""
+    from modules.web_automation import WebAutomation
+    wa = WebAutomation()
+    assert "youtube" in wa._alias_map
+    assert "yt" in wa._alias_map
+    assert "github" in wa._alias_map
+    assert "gmail" in wa._alias_map
+
+
+def test_web_unknown_site():
+    """WebAutomation must return an error string for unknown sites."""
+    from modules.web_automation import WebAutomation
+    wa = WebAutomation()
+    # Override webbrowser.open to prevent actual browser launch
+    import webbrowser
+    _orig = webbrowser.open
+    webbrowser.open = lambda url: None  # no-op
+    result = wa.open_site("xyznonexistent_fake_site_12345")
+    webbrowser.open = _orig
+    assert isinstance(result, str)
+    assert "don't know" in result.lower() or "unknown" in result.lower()
+
+
+def test_web_nlp_classifies_open_youtube():
+    """NLP must classify 'go to YouTube' as web intent."""
+    from modules.nlp_engine import classify_intent
+    assert classify_intent("go to YouTube") == "web"
+    assert classify_intent("browse LinkedIn") == "web"
+
+
+# ── Day 11: App Launcher + Clipboard Tests ───────────────────────
+
+def test_app_launcher_list():
+    """AppLauncher must return a valid list of applications from apps.json."""
+    from modules.app_launcher import AppLauncher
+    al = AppLauncher()
+    apps = al.get_app_list()
+    assert isinstance(apps, list)
+    assert len(apps) > 0
+    assert "Notepad" in apps or "Calculator" in apps
+
+def test_app_launcher_unknown_app():
+    """AppLauncher must gracefully handle unknown apps without crashing."""
+    from modules.app_launcher import AppLauncher
+    al = AppLauncher()
+    result = al.launch("xyz_fake_app_12345")
+    assert isinstance(result, str)
+    assert "couldn't find" in result.lower() or "don't have" in result.lower()
+
+def test_clipboard_manager_write_and_read():
+    """ClipboardManager must correctly write and then read from clipboard."""
+    from modules.clipboard_manager import ClipboardManager
+    cm = ClipboardManager()
+    test_text = "pytest_clipboard_test_string_123"
+    
+    # Write to clipboard
+    write_result = cm.write(test_text)
+    assert "Copied" in write_result
+    
+    # Read from clipboard
+    read_result = cm.read()
+    assert test_text in read_result
+
+def test_nova_core_app_route():
+    """nova_core.route() with app intent must call AppLauncher."""
+    import nova_core
+    # Mock subprocess.Popen to prevent actual app launch during tests
+    import subprocess
+    _orig_popen = subprocess.Popen
+    subprocess.Popen = lambda *args, **kwargs: None
+    
+    result = nova_core.route({
+        "intent": "app",
+        "entities": {},
+        "original": "open notepad"
+    })
+    
+    subprocess.Popen = _orig_popen
+    assert isinstance(result, str)
+    assert len(result) > 0
+
+def test_nova_core_clipboard_route():
+    """nova_core.route() with clipboard intent must handle read/write."""
+    import nova_core
+    
+    # Write
+    write_res = nova_core.route({
+        "intent": "clipboard",
+        "entities": {},
+        "original": "copy testing to clipboard"
+    })
+    assert "Copied" in write_res
+    
+    # Read
+    read_res = nova_core.route({
+        "intent": "clipboard",
+        "entities": {},
+        "original": "read clipboard"
+    })
+    assert "testing" in read_res
