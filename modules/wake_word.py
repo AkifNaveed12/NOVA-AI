@@ -5,10 +5,11 @@ Keeps NOVA always listening in the background using a daemon thread.
 Detects "Hey NOVA" via SpeechRecognition + Google Web Speech API.
 Signals the main pipeline via threading.Event when the wake phrase is detected.
 
-Thread safety: Uses a dedicated `_mic_active` flag to ensure the background
-listener completely stops reading from the shared mic stream BEFORE the main
-pipeline begins listening. This prevents the race condition where both
-threads fight over the same audio buffer.
+Key fixes applied:
+- pause()/resume() API eliminates race condition with STT mic sharing
+- Debounce: minimum 2.0s gap between consecutive wake events
+- Short settle delay after resume() to let PyAudio buffer drain
+- Reads config from correct wake_word section
 
 Tech: SpeechRecognition, threading
 Thread: Daemon thread — never touches main thread directly
@@ -16,6 +17,7 @@ Output: threading.Event signal to main pipeline
 """
 
 import threading
+import time
 import speech_recognition as sr
 
 
@@ -25,29 +27,33 @@ class WakeWordDetector:
         Args:
             wake_event: Event set when wake word is detected. Main pipeline waits on this.
             config: Full config dictionary loaded from config.json.
-            shared_mic: Pre-opened sr.Microphone instance (shared with STT for zero latency).
+            shared_mic: Pre-opened sr.Microphone instance (shared with STT).
         """
         self.wake_event = wake_event
 
-        # Read from the correct config section — this was the primary bug
+        # Read from the correct config section
         ww_cfg = config.get("wake_word", {})
         self.wake_phrase = ww_cfg.get("phrase", "hey nova").lower()
-        self.energy_threshold = ww_cfg.get("energy_threshold", 400)
+        self.energy_threshold = ww_cfg.get("energy_threshold", 300)
         self.phrase_time_limit = ww_cfg.get("phrase_time_limit", 4)
-        
-        # Own recognizer for wake word — separate from STT's recognizer
+
         self.recognizer = sr.Recognizer()
         self.recognizer.energy_threshold = self.energy_threshold
         self.recognizer.dynamic_energy_threshold = True
-        self.recognizer.dynamic_energy_adjustment_damping = 0.15  # Adapt faster
-        self.recognizer.pause_threshold = 0.5  # Detect wake phrase end quickly
+        self.recognizer.dynamic_energy_adjustment_damping = 0.15
+        self.recognizer.pause_threshold = 0.5
 
         self.shared_mic = shared_mic
         self.thread = None
         self.running = False
-        # This flag tells the inner listen loop to IMMEDIATELY stop draining the mic
-        self._listening_active = threading.Event()
-        self._listening_active.set()  # Start in active state
+
+        # Pause flag: cleared by pause(), set by resume()
+        self._active = threading.Event()
+        self._active.set()
+
+        # Debounce: track last detection time to avoid false re-triggers
+        self._last_detected_at = 0.0
+        self._debounce_seconds = 2.0   # Minimum gap between wake events
 
     def start(self):
         """Starts the background listening thread."""
@@ -58,65 +64,74 @@ class WakeWordDetector:
             print(f"[WakeWord] Detector started. Listening for: '{self.wake_phrase}'")
 
     def stop(self):
-        """Signals the background thread to stop."""
+        """Signals the background thread to stop and unblocks it."""
         self.running = False
-        self._listening_active.set()  # Unblock if waiting
+        self._active.set()  # Unblock in case it's waiting
 
     def pause(self):
-        """Called by main pipeline to pause wake word detection while STT/TTS is active."""
-        self._listening_active.clear()
+        """
+        Called BEFORE the main pipeline starts STT listening.
+        Clears the active flag so the detector stops draining the mic buffer.
+        """
+        self._active.clear()
 
     def resume(self):
-        """Called by main pipeline to resume passive listening."""
-        self._listening_active.set()
+        """
+        Called AFTER the pipeline finishes speaking and draining the buffer.
+        Adds a settle delay before re-arming to prevent false re-triggers
+        from stale audio that accumulated during TTS playback.
+        """
+        # Settle: wait for buffer to clear before listening again
+        # This runs in the voice_pipeline thread so it blocks the pipeline briefly
+        time.sleep(1.2)
+        self._active.set()
 
     def _listen_loop(self):
-        import time
+        """Main detection loop — runs in daemon thread."""
 
         while self.running:
-            # Block here while main pipeline is busy (STT listening or TTS speaking)
-            self._listening_active.wait(timeout=0.5)
+            # Block while the main pipeline is busy (STT or TTS active)
+            if not self._active.wait(timeout=0.3):
+                continue
 
             if not self.running:
                 break
 
-            if not self._listening_active.is_set():
+            # Debounce guard — ignore detections too soon after the last one
+            now = time.time()
+            if (now - self._last_detected_at) < self._debounce_seconds:
+                time.sleep(0.1)
                 continue
 
             try:
-                # Single listen attempt — short phrase_time_limit is critical
-                # because we only need to capture "Hey NOVA", not a full sentence
                 audio = self.recognizer.listen(
                     self.shared_mic,
-                    timeout=0.5,        # Give up quickly if silence
+                    timeout=0.5,
                     phrase_time_limit=self.phrase_time_limit
                 )
 
-                # Only transcribe if we haven't been paused mid-listen
-                if not self._listening_active.is_set():
+                # Double-check we haven't been paused while listening
+                if not self._active.is_set():
                     continue
 
                 text = self.recognizer.recognize_google(audio).lower()
                 text = text.replace(",", "").replace(".", "").replace("!", "").replace("?", "")
 
-                if self.wake_phrase in text:
-                    print(f"\n[WakeWord] Detected: '{self.wake_phrase}'")
-                    # CRITICAL: Pause ourselves BEFORE setting wake_event
-                    # so STT can immediately use the mic without a race condition
+                if self.wake_phrase in text or "nova" in text:
+                    print(f"\n[WakeWord] Detected: '{text}'")
+                    self._last_detected_at = time.time()
+                    # Pause ourselves BEFORE setting wake_event so STT gets exclusive mic access
                     self.pause()
                     self.wake_event.set()
 
             except sr.WaitTimeoutError:
-                # Normal — no speech detected in timeout window, loop again
+                # Normal — no speech in window, loop again immediately
                 pass
             except sr.UnknownValueError:
-                # Speech detected but not recognizable — loop again
+                # Speech too unclear — loop again
                 pass
             except sr.RequestError as e:
-                print(f"[WakeWord] Google API error: {e}. Retrying in 2s...")
-                time.sleep(2)
-            except Exception as e:
-                # Log unexpected errors but keep running
-                import traceback
-                traceback.print_exc()
+                print(f"[WakeWord] Google API error: {e}. Retrying in 3s...")
+                time.sleep(3)
+            except Exception:
                 time.sleep(0.5)

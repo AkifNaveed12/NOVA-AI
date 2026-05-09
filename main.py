@@ -81,12 +81,13 @@ def main() -> None:
     tts_engine.setProperty('volume', tts_cfg.get("volume", 0.9))
 
     def speak(text: str):
-        """Speaks the text aloud using pyttsx3 and updates HUD."""
+        """Speaks the text aloud using pyttsx3. Pauses wake word during speech."""
         hud.update_status("speaking")
         hud.log_message("nova", text)
         print(f"[NOVA] {text}")
         tts_engine.say(text)
         tts_engine.runAndWait()
+        # Note: wake_word.resume() is called by voice_pipeline AFTER draining
         hud.update_status("sleeping")
 
     def speak_online(text: str):
@@ -110,10 +111,10 @@ def main() -> None:
             while True:
                 hud.update_status("sleeping")
 
-                # Block here until wake word thread fires the event
+                # Block until wake word detector fires
                 wake_event.wait()
-                # At this point, wake_word.pause() has already been called inside
-                # WakeWordDetector — the mic stream is exclusively ours.
+                # At this point, wake_word is already paused (called self.pause()
+                # before setting the event), so STT has exclusive mic access.
 
                 hud.update_status("listening")
                 audio = stt.listen()
@@ -126,17 +127,14 @@ def main() -> None:
                         print(f"\n[USER] {text}")
                         hud.log_message("user", text)
 
-                        # NLP Processing
                         result = nlp_process(text)
                         intent = result["intent"]
                         entities = result["entities"]
                         print(f"[NLP] Intent: {intent} | Entities: {entities}")
 
-                        # Core Routing
                         import nova_core
                         response = nova_core.route(result)
 
-                        # Log to SQLite
                         activity_id = db_manager.log_activity(
                             command=text,
                             module=intent,
@@ -148,18 +146,16 @@ def main() -> None:
                             db_manager.log_conversation("user", text, activity_id=activity_id)
                             db_manager.log_conversation("assistant", response, activity_id=activity_id)
 
-                        # Speak the response
                         speak(response)
 
-                # --- Reset pipeline ---
-                # Small sleep to let PyAudio drain any audio accumulated during TTS
-                # This prevents NOVA from "hearing" her own speech or stale mic buffer
-                time.sleep(0.3)
-
-                # Reset wake event and resume wake word listener
+                # --- Pipeline reset ---
+                # Reset the wake event first so the detector loop doesn't re-arm too soon
                 wake_event.clear()
-                wake_word.resume()
                 print("\n[NOVA] Resuming background listening...")
+                # wake_word.resume() internally sleeps 1.2s to let the PyAudio buffer
+                # drain before arming the detector again. This prevents TTS audio or
+                # stale mic buffer from triggering a false wake detection.
+                wake_word.resume()
                 hud.update_status("sleeping")
 
         except Exception as e:

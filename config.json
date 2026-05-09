@@ -8,14 +8,14 @@
   "wake_word": {
     "engine": "google",
     "phrase": "hey nova",
-    "energy_threshold": 400,
+    "energy_threshold": 300,
     "dynamic_energy_threshold": true,
     "phrase_time_limit": 4
   },
   "stt": {
     "engine": "google",
     "fallback": "whisper",
-    "energy_threshold": 400,
+    "energy_threshold": 300,
     "pause_threshold": 0.6,
     "phrase_threshold": 0.3,
     "timeout": 7,

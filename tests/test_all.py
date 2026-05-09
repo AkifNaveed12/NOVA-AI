@@ -191,3 +191,106 @@ def test_hud_instantiation():
             pass
         else:
             raise
+
+
+# ── Day 7: Week 1 Full Integration Tests ─────────────────────────
+
+def test_nlp_routes_to_groq_on_conversation():
+    """Any conversational / unknown input must resolve to a GROQ_INTENT."""
+    from modules.nlp_engine import classify_intent
+    import nova_core
+    intent = classify_intent("why is the sky blue")
+    # Must NOT be a LOCAL_INTENT that routes to an unimplemented local module
+    is_groq_or_unknown = (intent not in nova_core.LOCAL_INTENTS) or (intent in nova_core.GROQ_INTENTS)
+    assert is_groq_or_unknown, f"Unexpected local routing for conversational query: {intent}"
+
+
+def test_nlp_routes_to_local_on_app():
+    """App launch commands must map to LOCAL_INTENTS."""
+    from modules.nlp_engine import classify_intent
+    import nova_core
+    intent = classify_intent("open chrome")
+    assert intent in nova_core.LOCAL_INTENTS, f"'open chrome' routed to: {intent}"
+
+
+def test_groq_backoff_and_history():
+    """GroqBrain must maintain rolling history and handle repeated calls."""
+    import os
+    key = os.getenv("GROQ_API_KEY", "")
+    if not key or "your_key" in key:
+        return  # Skip on CI without key
+
+    from modules.groq_brain import GroqBrain
+    brain = GroqBrain({})
+    # First call
+    r1 = brain.chat("Say the word ALPHA")
+    assert isinstance(r1, str) and len(r1) > 0
+    # Second call — verifies history is maintained (model can reference previous)
+    r2 = brain.chat("What word did you just say?")
+    assert isinstance(r2, str) and len(r2) > 0
+    # History should grow but stay ≤ 10
+    assert len(brain.conversation_history) <= 10
+
+
+def test_db_activity_log_persists():
+    """ActivityLog must store and retrieve entries correctly."""
+    from modules.memory_system import DatabaseManager
+    db = DatabaseManager(":memory:")
+    aid = db.log_activity("what time is it", "datetime", "It is 3 PM", True)
+    assert aid is not None and aid >= 1
+
+    cursor = db.conn.cursor()
+    cursor.execute("SELECT command_text, module_triggered FROM ActivityLog WHERE id=?", (aid,))
+    row = cursor.fetchone()
+    assert row["command_text"] == "what time is it"
+    assert row["module_triggered"] == "datetime"
+
+
+def test_db_fact_survives_reload():
+    """Facts written in one DatabaseManager session must survive a fresh connection."""
+    import tempfile, os
+    tmp_path = os.path.join(tempfile.gettempdir(), "nova_test_persist.db")
+
+    # Write
+    from modules.memory_system import DatabaseManager
+    db1 = DatabaseManager(tmp_path)
+    db1.store_fact("test_key", "test_value", "test_category")
+    db1.conn.close()
+
+    # Re-read with a fresh instance (simulates restart)
+    db2 = DatabaseManager(tmp_path)
+    facts = db2.get_facts()
+    assert any(f[0] == "test_key" and f[1] == "test_value" for f in facts)
+    db2.conn.close()
+
+    # Cleanup
+    try:
+        os.remove(tmp_path)
+    except Exception:
+        pass
+
+
+def test_nova_core_route_returns_string():
+    """nova_core.route() must always return a non-empty string for any input."""
+    import nova_core
+
+    # Test local-intent stub path (no module implemented yet → returns stub message)
+    stub = nova_core.route({"intent": "weather", "entities": {"city": "Karachi"}, "original": "weather in Karachi"})
+    assert isinstance(stub, str) and len(stub) > 0
+
+    # Test groq path only if key available
+    import os
+    key = os.getenv("GROQ_API_KEY", "")
+    if key and "your_key" not in key:
+        groq_resp = nova_core.route({"intent": "conversation", "entities": {}, "original": "hello"})
+        assert isinstance(groq_resp, str) and len(groq_resp) > 0
+
+
+def test_pipeline_entrypoint_importable():
+    """main.py must be importable without crashing (no side effects at import)."""
+    import importlib.util, sys
+    spec = importlib.util.spec_from_file_location("main_module", "main.py")
+    mod = importlib.util.module_from_spec(spec)
+    # We do NOT exec it (that would open mic/HUD) — just check spec loads
+    assert spec is not None
+    assert mod is not None

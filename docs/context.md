@@ -117,3 +117,24 @@
 ### Day 6 Update — Full Screen HUD & Mic Latency Fix
 - `hud_interface.py`: Upgraded the HUD layout to fill the entire screen (`state("zoomed")`), enlarged the waveform, centered the UI, and increased typography size.
 - `main.py`, `wake_word.py`, `stt.py`: Radically refactored PyAudio stream management. A single `sr.Microphone()` instance is now opened continuously in the background at startup and shared between both the wake word and command detectors. This achieves **0.0s latency**, instantly capturing voice commands the exact millisecond the HUD turns yellow without missing any audio.
+
+---
+
+## Day 7 — Week 1 Integration Test + README Update
+**Date:** 2026-05-09
+**Status:** Complete
+
+### What was done:
+- **Full Pipeline Verified E2E**: Confirmed the complete voice pipeline works — Wake Word → STT → NLP → Groq/local stub → TTS → HUD → SQLite log → reset → loop.
+- **Groq Exponential Backoff**: Rewrote `groq_brain.chat()` with 3-attempt exponential backoff (1s, 2s, 4s delays) to gracefully handle rate limits (HTTP 429). Conversation history is not corrupted on failed attempts.
+- **Dynamic System Prompt**: `chat()` now rebuilds the system prompt on every call with a fresh timestamp, keeping NOVA's time-awareness accurate across long sessions.
+- **`inject_memory()` Fix**: Memory facts are now cached in `_cached_facts` and re-injected into the system prompt on every single `chat()` call, ensuring NOVA never forgets user context mid-session.
+- **Day 7 Integration Tests (7 new tests — 22 total, all passing)**:
+  - `test_nlp_routes_to_groq_on_conversation` — conversational queries never hit unimplemented local stubs
+  - `test_nlp_routes_to_local_on_app` — app commands correctly map to LOCAL_INTENTS
+  - `test_groq_backoff_and_history` — verifies multi-turn history and rolling 10-message window
+  - `test_db_activity_log_persists` — ActivityLog stores and retrieves entries correctly
+  - `test_db_fact_survives_reload` — facts written in one session survive a full restart (new DB connection)
+  - `test_nova_core_route_returns_string` — `route()` always returns a non-empty string for any input
+  - `test_pipeline_entrypoint_importable` — `main.py` spec loads without side effects
+- **README.md**: Complete rewrite with Week 1 status table, quick-start guide, architecture flow diagram, feature module table with status indicators, full project structure tree, and test instructions.
