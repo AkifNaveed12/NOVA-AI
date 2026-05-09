@@ -354,3 +354,50 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 ### Total test count: 54 (46 passed offline, 8 API-skipped on CI)
 
 ---
+
+## Out-of-Order / Continuous Enhancements
+
+**Status:** Complete
+
+### What was done
+
+**Music Module (`modules/music_module.py`)**:
+- Implemented robust Spotify control using PyAutoGUI to type search queries and press `Down` + `Enter` to guarantee playback of the top result.
+- Added intelligent intent extraction to strip verbs (e.g. removing "play " from "play my playlist").
+
+**YouTube Autoplay (`modules/web_automation.py`)**:
+- Modified `search_youtube()` to optionally extract the first video ID from the search results page and load it directly, achieving instant playback via the `music` intent.
+
+**Background Email Polling (`main.py`)**:
+- Added an `EmailPollerThread` that safely wakes NOVA and speaks announcements via the `announcement_queue` without blocking the main voice thread or entering continuous STT loops.
+
+**Multi-App Parsing (`nova_core.py`)**:
+- Upgraded the `"app"` and `"web"` intent handlers to split compound target strings (using commas and `" and "`), allowing NOVA to launch multiple apps sequentially in a single command.
+
+**Task Dictation & Priority Engine (`modules/task_manager.py`)**:
+- Implemented interactive multi-turn dictation loop (triggered by `"note down the tasks"`).
+- Integrated `GroqBrain` to logically sort the dictated tasks based on chronological urgency and category (e.g., communications first).
+- Sequentially executes the sorted task strings through the `nova_core` pipeline.
+
+---
+
+## Day 13 — Module 11 (WhatsApp)
+
+**Status:** Complete
+
+### What was done
+
+**`modules/whatsapp_module.py`**:
+- Implemented `WhatsAppModule` with `pywhatkit` integration.
+- `find_contact(name)` — Loads `config/contacts.json` and uses `rapidfuzz` to robustly match spoken names to phone numbers with a 70% confidence threshold.
+- `send_message(phone, message)` — Triggers Chrome to open `web.whatsapp.com`, waits 15 seconds for the DOM to load, types the message, and hits Enter automatically. Closes the tab afterwards.
+- `handle_whatsapp_command()` — Multi-turn voice flow:
+  1. Extracts target contact and message content via Regex from the NLP `original` string.
+  2. Fallback to `speak_func` / `listen_func` questions if contact or message is missing.
+  3. Looks up the phone number and validates.
+  4. Speaks a confirmation prompt asking `"Should I send it?"`.
+  5. Upon `"yes"`, triggers the `send_message` automation.
+
+**`nova_core.py`** changes:
+- Routed the `"whatsapp"` intent to `whatsapp_module.handle_whatsapp_command`.
+- Maintains the same callback-injection architecture as Email for smooth multi-turn flow.

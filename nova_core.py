@@ -252,6 +252,21 @@ def dispatch_local(
 
     # ── Future days ───────────────────────────────────────────────────
     # Day 13: whatsapp, music
+    
+    if intent == "whatsapp":
+        from modules.whatsapp_module import WhatsAppModule
+        wam = WhatsAppModule(_config)
+        
+        if speak_func is None or listen_func is None:
+            return "Interactive voice flow is required for WhatsApp commands."
+            
+        return wam.handle_whatsapp_command(
+            original=original,
+            entities=entities,
+            speak_func=speak_func,
+            listen_func=listen_func
+        )
+        
     if intent == "music":
         if "youtube" in original.lower() or "yt" in original.lower():
             from modules.web_automation import WebAutomation
