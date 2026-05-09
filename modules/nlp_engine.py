@@ -53,7 +53,10 @@ INTENT_PATTERNS = {
     "task": ["task", "to-do", "todo", "add task", "mark done"],
     "screenshot": ["screenshot", "capture screen", "take screenshot"],
     "clipboard": ["clipboard", "copy", "paste", "what did i copy"],
-    "translate": ["translate", "in french", "in arabic", "in urdu"],
+    "translate": ["translate", "in french", "in arabic", "in urdu", "in hindi", "in spanish",
+                   "in german", "in chinese", "in japanese", "in korean", "in turkish",
+                   "in russian", "in italian", "in portuguese", "to french", "to arabic",
+                   "to urdu", "to hindi", "to spanish", "to german", "what does", "mean in"],
     "memory": ["remember that", "forget that", "what do you know"],
     "joke": ["joke", "make me laugh", "funny"],
     "roast": ["roast me"]
@@ -99,11 +102,51 @@ def extract_entities(text: str) -> dict:
                 entities["org"] = ent.text
                 
     # Fallback/specific extractions via Regex
-    # E.g. extracted quoted strings for web searches or wikipedia
+    # Quoted strings for web searches or wikipedia
     quotes = re.findall(r'"([^"]*)"', text)
     if quotes:
         entities["query"] = quotes[0]
-        
+
+    # ── Translation entities ──────────────────────────────────────────
+    # Pattern: "translate 'text' to language" or "translate text to language"
+    trans_match = re.search(
+        r"translate\s+['\"]?(.+?)['\"]?\s+(?:to|into)\s+([a-zA-Z]+)",
+        text, re.IGNORECASE
+    )
+    if trans_match:
+        entities["translate_text"]     = trans_match.group(1).strip()
+        entities["target_language"]    = trans_match.group(2).strip().lower()
+
+    # Pattern: "what does 'word' mean in language"
+    meaning_match = re.search(
+        r"what\s+does\s+['\"]?(.+?)['\"]?\s+mean\s+in\s+([a-zA-Z]+)",
+        text, re.IGNORECASE
+    )
+    if meaning_match:
+        entities["translate_text"]  = meaning_match.group(1).strip()
+        entities["target_language"] = meaning_match.group(2).strip().lower()
+
+    # Pattern: "how do you say 'text' in language"
+    how_say_match = re.search(
+        r"how\s+(?:do\s+you\s+)?say\s+['\"]?(.+?)['\"]?\s+in\s+([a-zA-Z]+)",
+        text, re.IGNORECASE
+    )
+    if how_say_match:
+        entities["translate_text"]  = how_say_match.group(1).strip()
+        entities["target_language"] = how_say_match.group(2).strip().lower()
+
+    # ── Wikipedia query entity ────────────────────────────────────────
+    # Pattern: "tell me about X", "what is X", "who is X", "explain X"
+    wiki_match = re.search(
+        r"(?:tell\s+me\s+about|what\s+is\s+a?n?|who\s+is|explain|describe)\s+(.+)",
+        text, re.IGNORECASE
+    )
+    if wiki_match and "query" not in entities:
+        raw = wiki_match.group(1).strip()
+        # Remove trailing question marks and filler
+        raw = re.sub(r'[?!.]+$', '', raw).strip()
+        entities["wiki_query"] = raw
+
     return entities
 
 def process(text: str) -> dict:

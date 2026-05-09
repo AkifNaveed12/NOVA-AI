@@ -156,3 +156,25 @@
   - `test_news_science_fact_offline` — offline fact returns from list
   - `test_news_nasa_apod_live` — live NASA APOD fetched successfully
   - `test_nova_core_weather_route` — end-to-end route via nova_core
+
+---
+
+## Day 9 — wikipedia_module.py + translation_module.py
+**Date:** 2026-05-09
+**Status:** Complete
+
+### What was done:
+- `modules/wikipedia_module.py`: Implemented `WikipediaModule` with `search(query)` returning 3-sentence summaries. Handles `DisambiguationError` (offers top 3 options), `PageError`, and empty queries gracefully. Cleans `[1]`-style references from output.
+- `modules/translation_module.py`: Implemented `TranslationModule` with `translate(text, target_language)` using `deep-translator` GoogleTranslator backend. Includes a 50-language name→ISO code map covering South Asian, Middle Eastern, European, and East Asian languages. Added `detect_language()` and `get_supported_languages()` helpers.
+- `modules/nlp_engine.py`: Enhanced entity extraction with 3 new regex patterns for translation (`translate X to Y`, `what does X mean in Y`, `how do you say X in Y`) and 1 for Wikipedia (`tell me about X`, `what is X`, `who is X`, `explain X`). Expanded translate intent trigger words to cover 16+ language prepositions.
+- `nova_core.py`: Wired `wikipedia` and `translate` intents into `dispatch_local()` with full entity pass-through and fallback handling.
+- `tests/test_all.py`: Added 9 Day 9 tests (37 total, all passing):
+  - `test_wikipedia_valid_query` — live Wikipedia summary for Python programming language
+  - `test_wikipedia_not_found` — graceful handling of nonsense query
+  - `test_wikipedia_empty_query` — empty input returns prompt
+  - `test_translation_to_french` — English→French translation works
+  - `test_translation_to_urdu` — English→Urdu translation works
+  - `test_translation_unknown_language` — graceful error for fake language
+  - `test_nlp_extracts_translate_entities` — NLP regex extracts text + language
+  - `test_nlp_extracts_wiki_query` — NLP regex extracts wiki topic
+  - `test_nova_core_wikipedia_route` — end-to-end Wikipedia via nova_core

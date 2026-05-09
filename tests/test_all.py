@@ -371,3 +371,84 @@ def test_nova_core_weather_route():
         "original": "what is the weather in Lahore"
     })
     assert isinstance(result, str) and len(result) > 5
+
+
+# ── Day 9: Wikipedia + Translation Tests ─────────────────────────
+
+def test_wikipedia_valid_query():
+    """WikipediaModule must return a summary for a known topic."""
+    from modules.wikipedia_module import WikipediaModule
+    wm = WikipediaModule()
+    result = wm.search("Python programming language")
+    assert isinstance(result, str) and len(result) > 30
+    assert "python" in result.lower()
+
+
+def test_wikipedia_not_found():
+    """WikipediaModule must handle a nonsense query gracefully."""
+    from modules.wikipedia_module import WikipediaModule
+    wm = WikipediaModule()
+    result = wm.search("xyzqwertynonexistentpage12345")
+    assert isinstance(result, str) and len(result) > 5
+
+
+def test_wikipedia_empty_query():
+    """WikipediaModule must handle empty input gracefully."""
+    from modules.wikipedia_module import WikipediaModule
+    wm = WikipediaModule()
+    result = wm.search("")
+    assert "look up" in result.lower() or "what" in result.lower()
+
+
+def test_translation_to_french():
+    """TranslationModule must translate English to French."""
+    from modules.translation_module import TranslationModule
+    tm = TranslationModule()
+    result = tm.translate("hello", "french")
+    assert isinstance(result, str) and len(result) > 3
+    assert "french" in result.lower() or "bonjour" in result.lower()
+
+
+def test_translation_to_urdu():
+    """TranslationModule must translate English to Urdu."""
+    from modules.translation_module import TranslationModule
+    tm = TranslationModule()
+    result = tm.translate("how are you", "urdu")
+    assert isinstance(result, str) and len(result) > 3
+
+
+def test_translation_unknown_language():
+    """TranslationModule must handle an unknown language gracefully."""
+    from modules.translation_module import TranslationModule
+    tm = TranslationModule()
+    result = tm.translate("hello", "klingon_fake_language_xyz")
+    assert isinstance(result, str)
+    assert "recognise" in result.lower() or "sorry" in result.lower() or "couldn" in result.lower()
+
+
+def test_nlp_extracts_translate_entities():
+    """NLP must extract translate_text and target_language from translate commands."""
+    from modules.nlp_engine import extract_entities
+    ent = extract_entities("translate hello to french")
+    assert ent.get("translate_text") == "hello"
+    assert ent.get("target_language") == "french"
+
+
+def test_nlp_extracts_wiki_query():
+    """NLP must extract wiki_query from 'tell me about' commands."""
+    from modules.nlp_engine import extract_entities
+    ent = extract_entities("tell me about the Eiffel Tower")
+    assert "wiki_query" in ent
+    assert "eiffel" in ent["wiki_query"].lower()
+
+
+def test_nova_core_wikipedia_route():
+    """nova_core.route() with wikipedia intent must return a real summary."""
+    import nova_core
+    result = nova_core.route({
+        "intent": "wikipedia",
+        "entities": {"wiki_query": "Albert Einstein"},
+        "original": "tell me about Albert Einstein"
+    })
+    assert isinstance(result, str) and len(result) > 20
+

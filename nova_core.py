@@ -91,6 +91,37 @@ def dispatch_local(intent: str, entities: dict) -> Optional[str]:
         from modules.news import NewsModule
         return NewsModule(_config).get_nasa_apod()
 
+    # ── Day 9 ─────────────────────────────────────────────────────────
+    if intent == "wikipedia":
+        from modules.wikipedia_module import WikipediaModule
+        # Use wiki_query extracted by NLP, fall back to the raw original text
+        query = (
+            entities.get("wiki_query")
+            or entities.get("query")
+            or entities.get("org")
+            or entities.get("name")
+        )
+        if not query:
+            # Strip common filler phrases and use what's left
+            import re
+            query = re.sub(
+                r"^(tell me about|what is|who is|explain|describe|what are)\s+",
+                "", entities.get("original", ""),
+                flags=re.IGNORECASE
+            ).strip()
+        return WikipediaModule().search(query)
+
+    if intent == "translate":
+        from modules.translation_module import TranslationModule
+        text_to_translate = entities.get("translate_text", "")
+        target_lang       = entities.get("target_language", "")
+        if not text_to_translate or not target_lang:
+            return (
+                "Please tell me what to translate and which language. "
+                "For example: translate hello to French."
+            )
+        return TranslationModule().translate(text_to_translate, target_lang)
+
     # ── Future days ───────────────────────────────────────────────────
     # Day 9:  wikipedia, translate
     # Day 10: web
