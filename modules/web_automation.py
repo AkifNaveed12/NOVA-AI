@@ -88,12 +88,29 @@ class WebAutomation:
         match = process.extractOne(query, all_aliases, scorer=fuzz.WRatio, score_cutoff=65)
         return bool(match)
 
-    def search_youtube(self, query: str) -> str:
-        """Searches YouTube for the given query."""
+    def search_youtube(self, query: str, play: bool = False) -> str:
+        """Searches YouTube for the given query. If play is True, extracts the first video ID and plays it directly."""
+        import urllib.request
+        import urllib.parse
+        import re
+        
         if not query or not query.strip():
             return "What would you like me to search on YouTube?"
 
         encoded = urllib.parse.quote_plus(query.strip())
+        
+        if play:
+            try:
+                html = urllib.request.urlopen(f"https://www.youtube.com/results?search_query={encoded}")
+                video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
+                if video_ids:
+                    url = f"https://www.youtube.com/watch?v={video_ids[0]}"
+                    webbrowser.open(url)
+                    return f"Playing {query} on YouTube."
+            except Exception as e:
+                print(f"[WebAutomation] YouTube play error: {e}")
+                
+        # Fallback to normal search page
         url = f"https://www.youtube.com/results?search_query={encoded}"
         webbrowser.open(url)
         return f"Searching YouTube for: {query}."

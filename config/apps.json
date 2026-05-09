@@ -3,7 +3,7 @@
     {
       "name": "VS Code",
       "aliases": ["visual studio code", "vscode", "vs code", "code editor"],
-      "path": "C:\\Users\\Akif\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe"
+      "path": "%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe"
     },
     {
       "name": "Chrome",
@@ -28,7 +28,7 @@
     {
       "name": "Spotify",
       "aliases": ["spotify", "music app", "music player"],
-      "path": "C:\\Users\\Akif\\AppData\\Roaming\\Spotify\\Spotify.exe"
+      "path": "%APPDATA%\\Spotify\\Spotify.exe"
     },
     {
       "name": "VLC",
@@ -53,7 +53,7 @@
     {
       "name": "Discord",
       "aliases": ["discord", "disc"],
-      "path": "C:\\Users\\Akif\\AppData\\Local\\Discord\\Update.exe"
+      "path": "%LOCALAPPDATA%\\Discord\\Update.exe"
     },
     {
       "name": "Telegram",

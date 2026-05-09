@@ -459,6 +459,15 @@ window.novaSetStatus  = setStatus;
 window.novaAppendLog  = appendLog;
 window.novaSetTicker  = setTicker;
 
+// ── Keyboard Controls ─────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (window.pywebview && window.pywebview.api) {
+      window.pywebview.api.close_app();
+    }
+  }
+});
+
 // Quick self-test on load
 console.log('[NOVA HUD] HTML loaded and JS API ready.');
 </script>

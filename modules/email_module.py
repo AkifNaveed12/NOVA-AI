@@ -27,8 +27,11 @@ Tech: smtplib + email.mime (stdlib), Groq API, os/re
 import os
 import re
 import smtplib
+import imaplib
+import email
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.header import decode_header
 from typing import Callable, Optional
 
 
@@ -42,6 +45,74 @@ class EmailModule:
         self._config   = config or {}
         self._address  = os.getenv("GMAIL_ADDRESS", "")
         self._password = os.getenv("GMAIL_APP_PASSWORD", "")
+        self._imap_server = os.getenv("IMAP_SERVER", "imap.gmail.com")
+
+    # ── Inbox Checking ────────────────────────────────────────────
+    def check_inbox(self) -> list:
+        """
+        Connects to IMAP, fetches UNSEEN emails, marks them SEEN, and returns
+        a list of dicts with sender, subject, and body snippet.
+        """
+        if not self.has_credentials():
+            return []
+            
+        try:
+            mail = imaplib.IMAP4_SSL(self._imap_server)
+            mail.login(self._address, self._password)
+            mail.select("inbox")
+            
+            # Search for unseen emails
+            status, messages = mail.search(None, "UNSEEN")
+            if status != "OK":
+                return []
+                
+            email_ids = messages[0].split()
+            new_emails = []
+            
+            for e_id in email_ids:
+                # Fetch full message without marking as read
+                status, msg_data = mail.fetch(e_id, "(BODY.PEEK[])")
+                if status != "OK":
+                    continue
+                    
+                for response_part in msg_data:
+                    if isinstance(response_part, tuple):
+                        msg = email.message_from_bytes(response_part[1])
+                        
+                        # Decode Subject
+                        subject, encoding = decode_header(msg["Subject"])[0]
+                        if isinstance(subject, bytes):
+                            subject = subject.decode(encoding if encoding else "utf-8")
+                            
+                        # Decode Sender
+                        sender = msg.get("From")
+                        sender_name = sender.split("<")[0].strip().replace('"', '') if "<" in sender else sender
+                        sender_email = sender.split("<")[1].split(">")[0] if "<" in sender else sender
+                        
+                        # Extract body
+                        body = ""
+                        if msg.is_multipart():
+                            for part in msg.walk():
+                                if part.get_content_type() == "text/plain":
+                                    body = part.get_payload(decode=True).decode(errors="ignore")
+                                    break
+                        else:
+                            body = msg.get_payload(decode=True).decode(errors="ignore")
+                            
+                        new_emails.append({
+                            "sender_name": sender_name,
+                            "sender_email": sender_email,
+                            "subject": subject,
+                            "body": body
+                        })
+                        
+            mail.close()
+            mail.logout()
+            return new_emails
+            
+        except Exception as e:
+            print(f"[EmailModule] Error checking inbox: {e}")
+            return []
 
     # ── Draft ─────────────────────────────────────────────────────
     def draft_email(
@@ -159,10 +230,18 @@ class EmailModule:
 
         # Ask for missing recipient
         if not recipient_name:
+            # Also check 'org' in case spaCy misclassified it
+            recipient_name = entities.get("org", "")
+        
+        if not recipient_name:
             speak_func("Who should I send the email to?")
             recipient_name = listen_func().strip()
             if not recipient_name:
                 return "Email cancelled. No recipient provided."
+            # Clean up spoken replies like "send it to Hamza" or "to Hamza"
+            clean_match = re.search(r"(?:send(?:ing)?\s+(?:the\s+)?email\s+)?(?:to|for)\s+([a-z\s]+)$", recipient_name, re.IGNORECASE)
+            if clean_match:
+                recipient_name = clean_match.group(1).strip()
 
         # Ask for missing topic
         if not topic:
@@ -201,13 +280,73 @@ class EmailModule:
                     f"I don't have an email address for {recipient_name}. "
                     "What's their email address?"
                 )
-                to_address = listen_func().strip()
-                if not to_address:
+                spoken_address = listen_func().strip()
+                if not spoken_address:
                     return "Email cancelled. No email address provided."
+                
+                # Parse the spoken address (e.g. "john at gmail dot com")
+                to_address = self._parse_spoken_email(spoken_address)
 
             return self.send_email(to_address, subject, body)
         else:
             return "Email cancelled. The draft has not been sent."
+
+    def handle_check_email_command(self, speak_func: Callable, listen_func: Callable) -> str:
+        """
+        Triggered when user asks "check my emails" or "any new mail".
+        """
+        speak_func("Checking your inbox for new emails. One moment...")
+        emails = self.check_inbox()
+        
+        if not emails:
+            return "You have no new emails right now."
+            
+        speak_func(f"You have {len(emails)} new emails. Here is the summary:")
+        
+        # Give a quick summary of senders and subjects
+        for i, email_obj in enumerate(emails):
+            speak_func(f"Email {i+1}: from {email_obj['sender_name']}, about {email_obj['subject']}.")
+            
+        speak_func("Do you want me to read or reply to any of these? If yes, tell me the number or the sender's name.")
+        response = listen_func().lower()
+        
+        if not response or "no" in response or "none" in response or "skip" in response:
+            return "Okay, I'll leave them unread for now."
+            
+        # Try to match the response to an email
+        selected_email = None
+        for i, email_obj in enumerate(emails):
+            if str(i+1) in response or email_obj['sender_name'].lower() in response:
+                selected_email = email_obj
+                break
+                
+        if not selected_email:
+            return "I couldn't figure out which email you meant. Try asking me again later."
+            
+        from modules.groq_brain import GroqBrain
+        brain = GroqBrain(self._config)
+        
+        speak_func("Summarizing the email...")
+        prompt = f"Summarize this email in 2 short sentences for voice dictation:\nSender: {selected_email['sender_name']}\nSubject: {selected_email['subject']}\nBody:\n{selected_email['body']}"
+        summary = brain.chat(prompt)
+        
+        speak_func(f"Here is the summary: {summary}. What should I say in the reply?")
+        reply_context = listen_func()
+        
+        if reply_context and "nothing" not in reply_context.lower() and "cancel" not in reply_context.lower():
+            speak_func("Drafting your reply...")
+            draft_prompt = f"Draft an email reply to {selected_email['sender_name']}.\nContext of original email:\n{selected_email['body']}\nUser's reply instructions:\n{reply_context}\nWrite only the professional email body, no subject line."
+            draft_body = brain.chat(draft_prompt)
+            
+            speak_func(f"Here is the draft: {draft_body}. Should I send it?")
+            send_resp = listen_func().lower()
+            if "yes" in send_resp or "send" in send_resp:
+                self.send_email(selected_email["sender_email"], f"Re: {selected_email['subject']}", draft_body)
+                return "Reply sent."
+            else:
+                return "Reply cancelled."
+        else:
+            return "Okay, skipping the reply."
 
     # ── Helpers ───────────────────────────────────────────────────
     def _resolve_address(self, name: str, entities: dict) -> str:
@@ -215,6 +354,9 @@ class EmailModule:
         Try to find an email address for the given name.
         Checks contacts.json for an email field, otherwise returns empty string.
         """
+        if not name:
+            return ""
+        name_lower = name.lower()
         try:
             import json
             contacts_path = os.path.join(
@@ -224,13 +366,37 @@ class EmailModule:
                 data = json.load(f)
 
             for contact in data.get("contacts", []):
-                if name.lower() in contact.get("name", "").lower():
+                contact_name = contact.get("name", "").lower()
+                aliases = [a.lower() for a in contact.get("aliases", [])]
+                
+                # Match if the spoken name contains the contact name/alias, or vice versa
+                if contact_name in name_lower or name_lower in contact_name:
                     email = contact.get("email", "")
-                    if email:
-                        return email
-        except Exception:
-            pass
+                    if email: return email
+                
+                for alias in aliases:
+                    if alias in name_lower or name_lower in alias:
+                        email = contact.get("email", "")
+                        if email: return email
+                        
+        except Exception as e:
+            print(f"[EmailModule] Error resolving address: {e}")
         return ""
+
+    def _parse_spoken_email(self, spoken: str) -> str:
+        """Converts spoken text like 'john 123 at gmail dot com no spaces' to a real email."""
+        # Strip common trailing conversational additions
+        email = spoken.lower()
+        if " without spaces" in email:
+            email = email.split(" without spaces")[0]
+        if " it is " in email:
+            email = email.split(" it is ")[0]
+            
+        email = email.replace("at the rate", "@").replace(" at ", "@")
+        email = email.replace(" dot ", ".")
+        # Remove spaces
+        email = email.replace(" ", "")
+        return email
 
     def has_credentials(self) -> bool:
         """Returns True if Gmail credentials are configured in .env."""

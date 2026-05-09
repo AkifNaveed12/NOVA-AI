@@ -12,6 +12,7 @@
 import os
 import threading
 import queue
+import time
 from dotenv import load_dotenv
 
 # Load .env before anything else
@@ -75,19 +76,27 @@ def main() -> None:
     from gtts import gTTS
     import os
 
-    # Initialize pyttsx3 TTS
-    tts_engine = pyttsx3.init()
+    # Initialize pyttsx3 TTS using thread-local storage 
+    # to prevent SAPI5 COM hangs when called from background threads
+    tts_local = threading.local()
     tts_cfg = config.get("tts", {})
-    tts_engine.setProperty('rate', tts_cfg.get("rate", 175))
-    tts_engine.setProperty('volume', tts_cfg.get("volume", 0.9))
+
+    def get_tts_engine():
+        if not hasattr(tts_local, "engine"):
+            engine = pyttsx3.init()
+            engine.setProperty('rate', tts_cfg.get("rate", 175))
+            engine.setProperty('volume', tts_cfg.get("volume", 0.9))
+            tts_local.engine = engine
+        return tts_local.engine
 
     def speak(text: str):
         """Speaks the text aloud using pyttsx3. Pauses wake word during speech."""
         hud.update_status("speaking")
         hud.log_message("nova", text)
         print(f"[NOVA] {text}")
-        tts_engine.say(text)
-        tts_engine.runAndWait()
+        engine = get_tts_engine()
+        engine.say(text)
+        engine.runAndWait()
         # Note: wake_word.resume() is called by voice_pipeline AFTER draining
         hud.update_status("sleeping")
 
@@ -104,16 +113,57 @@ def main() -> None:
         except Exception as e:
             print(f"[TTS Error] {e}")
 
+    # Define STT wrapper globally for multi-turn flows (email, etc.)
+    def _listen_once() -> str:
+        hud.update_status("listening")
+        _audio = stt.listen()
+        hud.update_status("processing")
+        if _audio:
+            _text = stt.transcribe(_audio)
+            if _text:
+                print(f"[USER follow-up] {_text}")
+                hud.log_message("user", _text)
+                return _text
+        return ""
+
+    # Email polling background thread
+    from modules.email_module import EmailModule
+    em = EmailModule(config)
+    
+    announcement_queue = queue.Queue()
+    
+    def email_poller():
+        while True:
+            time.sleep(60)
+            # Only check if NOVA is sleeping
+            if not wake_event.is_set():
+                new_emails = em.check_inbox()
+                if new_emails:
+                    print(f"[EmailPoller] Found {len(new_emails)} new emails.")
+                    announcement_queue.put(f"You have {len(new_emails)} new emails. Just say, check my emails, if you want me to read them.")
+
+    threading.Thread(target=email_poller, daemon=True, name="EmailPollerThread").start()
+
+    # Define the voice pipeline thread
     def voice_pipeline():
         """Background thread: wakes on event, listens, routes, speaks, loops."""
-        import time
         print("\nNOVA AI — Ready (Listening for wake word...)")
         try:
             while True:
+                # Check for pending background announcements
+                while not announcement_queue.empty():
+                    ann = announcement_queue.get()
+                    wake_word.pause()
+                    speak(ann)
+                    wake_word.resume()
+                
                 hud.update_status("sleeping")
 
                 # Block until wake word detector fires
-                wake_event.wait()
+                triggered = wake_event.wait(timeout=1.0)
+                if not triggered:
+                    continue
+                    
                 # At this point, wake_word is already paused (called self.pause()
                 # before setting the event), so STT has exclusive mic access.
 
@@ -134,19 +184,6 @@ def main() -> None:
                         print(f"[NLP] Intent: {intent} | Entities: {entities}")
 
                         import nova_core
-
-                        # STT listen wrapper for multi-turn interactive flows (e.g. email)
-                        def _listen_once() -> str:
-                            hud.update_status("listening")
-                            _audio = stt.listen()
-                            hud.update_status("processing")
-                            if _audio:
-                                _text = stt.transcribe(_audio)
-                                if _text:
-                                    print(f"[USER follow-up] {_text}")
-                                    hud.log_message("user", _text)
-                                    return _text
-                            return ""
 
                         response = nova_core.route(
                             result,
@@ -195,9 +232,10 @@ def main() -> None:
     hud.start()
     
     print("\nNOVA AI — Shutting down gracefully...")
-    wake_word.stop()
     try:
-        shared_mic.__exit__(None, None, None) # Close the PyAudio stream
+        wake_word.stop()
+        if getattr(shared_mic, 'stream', None) is not None:
+            shared_mic.__exit__(None, None, None) # Close the PyAudio stream
     except OSError:
         pass
 

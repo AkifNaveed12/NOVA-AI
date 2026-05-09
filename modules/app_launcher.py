@@ -63,12 +63,14 @@ class AppLauncher:
                 return f"I couldn't find an app called '{app_name}'. You can add it to apps.json."
 
         try:
+            # Expand environment variables like %APPDATA%
+            expanded_path = os.path.expandvars(entry["path"])
+            
             # Non-blocking launch
-            # Some paths are simple executables like 'notepad.exe', others are absolute paths
-            subprocess.Popen([entry["path"]], shell=False)
+            subprocess.Popen([expanded_path], shell=False)
             return f"Opening {entry['name']}."
         except Exception as e:
-            print(f"[AppLauncher] Error launching {entry['name']}: {e}")
+            print(f"[AppLauncher] Error launching {entry['name']} at {expanded_path}: {e}")
             return f"I tried to open {entry['name']}, but encountered an error."
 
     def is_app_known(self, app_name: str) -> bool:

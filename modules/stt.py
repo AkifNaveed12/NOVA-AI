@@ -37,25 +37,43 @@ class SpeechToText:
         self.shared_mic = shared_mic
         self.whisper_model = None
 
-    def listen(self) -> sr.AudioData | None:
+    def listen(self, retries=1) -> sr.AudioData | None:
         """
         Listens on the shared mic stream and returns captured AudioData.
         The wake word detector must be paused before calling this.
         """
         print("[STT] Listening for your command...")
-        try:
-            audio = self.recognizer.listen(
-                self.shared_mic,
-                timeout=self.timeout,
-                phrase_time_limit=self.phrase_time_limit
-            )
-            return audio
-        except sr.WaitTimeoutError:
-            print("[STT] Timeout — no speech detected.")
-            return None
-        except Exception as e:
-            print(f"[STT] Error capturing audio: {e}")
-            return None
+        for attempt in range(retries + 1):
+            try:
+                audio = self.recognizer.listen(
+                    self.shared_mic,
+                    timeout=self.timeout,
+                    phrase_time_limit=self.phrase_time_limit
+                )
+                return audio
+            except sr.WaitTimeoutError:
+                print("[STT] Timeout — no speech detected.")
+                return None
+            except Exception as e:
+                print(f"[STT] Error capturing audio: {e}")
+                err_str = str(e).lower()
+                if "unanticipated host error" in err_str or "-9999" in err_str or "overflow" in err_str:
+                    if attempt < retries:
+                        print("[STT] Restarting microphone stream and retrying...")
+                        try:
+                            if getattr(self.shared_mic, 'stream', None) is not None:
+                                self.shared_mic.__exit__(None, None, None)
+                            
+                            # Fully rebuild PyAudio instance to clear Errno -9988 (Stream closed)
+                            if getattr(self.shared_mic, 'audio', None) is not None:
+                                self.shared_mic.audio.terminate()
+                            self.shared_mic.audio = self.shared_mic.pyaudio_module.PyAudio()
+                            
+                            self.shared_mic.__enter__()
+                        except Exception as ex:
+                            print(f"[STT] Mic restart failed: {ex}")
+                        continue
+                return None
 
     def transcribe(self, audio: sr.AudioData) -> str | None:
         """Transcribes the captured AudioData to text using Google, falls back to Whisper."""

@@ -3,22 +3,36 @@
     {
       "name": "Mama",
       "aliases": ["mama", "mom", "mother", "ammi"],
-      "phone": "+92300XXXXXXX",
-      "email": "",
+      "phone": "+923154048242",
+      "email": "uzma.naveed18@gmail.com",
       "platform": "whatsapp"
     },
     {
       "name": "Baba",
       "aliases": ["baba", "dad", "father", "abu"],
-      "phone": "+92300XXXXXXX",
-      "email": "",
+      "phone": "+923212888609",
+      "email": "naveed_khalid2002@yahoo.com",
       "platform": "whatsapp"
     },
     {
-      "name": "Ali",
-      "aliases": ["ali"],
-      "phone": "+92300XXXXXXX",
-      "email": "ali@example.com",
+      "name": "Obaid",
+      "aliases": ["obaid bhai", "obaid"],
+      "phone": "+923197062544",
+      "email": "minhasobaid8@gmail.com",
+      "platform": "whatsapp"
+    },
+    {
+      "name": "Ibraheem",
+      "aliases": ["ibrahim", "ibraheem","ibi","motuu", "baby elephent"],
+      "phone": "+923134763313",
+      "email": "ibraheemnaveed00@gmail.com",
+      "platform": "whatsapp"
+    },
+    {
+      "name": "Hamza",
+      "aliases": ["hamza", "hamzi","khan","Abbasi"],
+      "phone": "+923021437012",
+      "email": "hamzatalwarali712@gmail.com",
       "platform": "whatsapp"
     }
   ]

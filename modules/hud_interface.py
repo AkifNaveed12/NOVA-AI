@@ -55,6 +55,17 @@ if not _HTML.exists():
 HTML_PATH = _HTML.as_uri()
 
 
+class NOVAHudAPI:
+    """JS-accessible API for the pywebview window."""
+    def __init__(self):
+        self.window = None
+
+    def close_app(self):
+        """Called from JS to close the window gracefully."""
+        if self.window:
+            self.window.destroy()
+
+
 class NOVAHud:
     """
     Cinematic HUD window for NOVA AI using pywebview.
@@ -69,11 +80,13 @@ class NOVAHud:
         self._ready    = False         # True once DOM is fully loaded
         self._queue    = queue.Queue() # buffered JS calls before ready
         self._state    = "sleeping"
+        self._api      = NOVAHudAPI()
 
         # Create the pywebview window immediately (not shown until start())
         self._window = webview.create_window(
             title       = "NOVA AI",
             url         = HTML_PATH,
+            js_api      = self._api,
             width       = 380,
             height      = 900,
             x           = None,        # pywebview will centre or use OS default
@@ -85,6 +98,8 @@ class NOVAHud:
             transparent = True,        # allow semi-transparency on supported platforms
             min_size    = (320, 600),
         )
+
+        self._api.window = self._window
 
         # Register the loaded callback
         self._window.events.loaded += self._on_loaded

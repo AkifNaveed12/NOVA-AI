@@ -50,15 +50,15 @@ INTENT_PATTERNS = {
     "clipboard": ["clipboard", "what did i copy"],
     "memory": ["remember that", "forget that", "what do you know"],
     # ── Medium-priority: single-word triggers ─────────────────────
+    "music": ["play", "music", "song", "pause", "resume", "next"],
     "system": ["shutdown", "restart", "sleep", "lock", "volume", "brightness", "battery", "cpu", "ram"],
     "app": ["launch", "start", "run", "open"],
     "web": ["go to", "visit", "browse"],
+    "check_email": ["check email", "read my email", "any updates on gmail", "new mails", "recent emails", "check inbox", "any new mail"],
     "email": ["email", "mail", "send email", "write email"],
     "whatsapp": ["whatsapp", "send message"],
-    "music": ["play", "music", "song", "pause", "resume", "next"],
+    "task_queue": ["note down the tasks", "create a task list", "multiple tasks", "note down tasks", "note down"],
     "notes": ["note", "take a note", "write down"],
-    "reminder": ["remind", "reminder", "alert me", "set alarm"],
-    "calendar": ["calendar", "event", "schedule", "meeting"],
     "task": ["task", "to-do", "todo", "add task", "mark done"],
     # ── Low-priority: very generic words like "today", "time" ─────
     "datetime": ["what time", "what date", "what day", "how many days"],

@@ -35,7 +35,7 @@ LOCAL_INTENTS = {
     "weather", "news", "wikipedia", "app", "web",
     "system", "screenshot", "clipboard", "music", "notes",
     "reminder", "calendar", "task", "datetime", "math",
-    "translate", "whatsapp", "email",           # email added Day 12
+    "translate", "whatsapp", "email", "check_email",
 }
 
 GROQ_INTENTS = {
@@ -149,11 +149,12 @@ def dispatch_local(
         al = AppLauncher(_config)
 
         # Handle explicit web search/scroll commands
-        yt_match = re.search(r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+youtube)", original, re.IGNORECASE)
+        yt_match = re.search(r"(?:search|find|look up|play)\s+(?:for\s+)?(.+?)(?:\s+on\s+youtube)", original, re.IGNORECASE)
         if not yt_match:
-            yt_match = re.search(r"(?:search|find)\s+(?:on\s+)?youtube\s+(?:for\s+)?(.+)", original, re.IGNORECASE)
+            yt_match = re.search(r"(?:search|find|play)\s+(?:on\s+)?youtube\s+(?:for\s+)?(.+)", original, re.IGNORECASE)
         if yt_match:
-            return wa.search_youtube(yt_match.group(1).strip())
+            is_play = "play" in original.lower()
+            return wa.search_youtube(yt_match.group(1).strip(), play=is_play)
 
         google_match = re.search(r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+google)", original, re.IGNORECASE)
         if not google_match:
@@ -172,21 +173,34 @@ def dispatch_local(
             original, flags=re.IGNORECASE
         ).strip()
 
-        # Disambiguate App vs Web
-        # Priority 1: Check if it's a known app
-        if al.is_app_known(target_name):
-            return al.launch(target_name)
+        # Split multiple targets (e.g., "linkedin, edge and youtube")
+        # Replace " and " with a comma, then split by comma
+        raw_targets = target_name.replace(" and ", ",").split(",")
+        targets = [t.strip() for t in raw_targets if t.strip()]
         
-        # Priority 2: Check if it's a known site
-        if wa.is_site_known(target_name):
-            return wa.open_site(target_name)
+        responses = []
+        for target in targets:
+            # Priority 1: Check if it's a known app
+            if al.is_app_known(target):
+                responses.append(al.launch(target))
+                continue
             
-        # Priority 3: If intent was explicitly app, but unknown, fallback to AppLauncher's error message
-        # OR if intent was web, fallback to WebAutomation's error message.
-        if intent == "app":
-            return al.launch(target_name)
+            # Priority 2: Check if it's a known site
+            if wa.is_site_known(target):
+                responses.append(wa.open_site(target))
+                continue
+                
+            # Priority 3: Fallback based on original intent
+            if intent == "app":
+                responses.append(al.launch(target))
+            else:
+                responses.append(wa.open_site(target))
+                
+        # Combine responses into a single string for TTS
+        if len(responses) == 1:
+            return responses[0]
         else:
-            return wa.open_site(target_name)
+            return " ".join(responses)
 
     if intent == "clipboard":
         from modules.clipboard_manager import ClipboardManager
@@ -209,22 +223,15 @@ def dispatch_local(
         return "I didn't understand the clipboard command. Try saying 'read clipboard' or 'copy text'."
 
     # ── Day 12 ────────────────────────────────────────────────────────
-    if intent == "email":
+    if intent in ("email", "check_email"):
         from modules.email_module import EmailModule
         em = EmailModule(_config)
 
-        # Graceful degradation if no interactive callbacks are available
         if speak_func is None or listen_func is None:
-            # Non-interactive mode: just draft and return summary
-            if not em.has_credentials():
-                return (
-                    "Email is not configured. "
-                    "Add GMAIL_ADDRESS and GMAIL_APP_PASSWORD to your .env file."
-                )
-            return (
-                "Email module is ready. "
-                "Say a command like 'write an email to Ali about the project meeting'."
-            )
+            return "Interactive voice flow is required for email commands."
+            
+        if intent == "check_email":
+            return em.handle_check_email_command(speak_func, listen_func)
 
         return em.handle_email_command(
             original   = original,
@@ -233,8 +240,37 @@ def dispatch_local(
             listen_func= listen_func,
         )
 
+    # ── Task Queue ────────────────────────────────────────────────────
+    if intent == "task_queue":
+        from modules.task_manager import TaskManager
+        tm = TaskManager(_config)
+        
+        if speak_func is None or listen_func is None:
+            return "Interactive voice flow is required for task dictation."
+            
+        return tm.handle_task_queue(speak_func, listen_func)
+
     # ── Future days ───────────────────────────────────────────────────
     # Day 13: whatsapp, music
+    if intent == "music":
+        if "youtube" in original.lower() or "yt" in original.lower():
+            from modules.web_automation import WebAutomation
+            import re
+            wa = WebAutomation(_config)
+            yt_match = re.search(r"(?:play|search|find)\s+(.*?)(?:\s+on\s+youtube|\s+on\s+yt)", original, re.IGNORECASE)
+            song = yt_match.group(1).strip() if yt_match else original.lower().replace("play ", "").replace(" on youtube", "")
+            return wa.search_youtube(song, play=True)
+            
+        from modules.music_module import MusicModule
+        mm = MusicModule(_config)
+        return mm.handle_music_command(
+            original=original,
+            entities=entities,
+            speak_func=speak_func,
+            listen_func=listen_func
+        )
+        
+    # Day 15: notes, reminder, calendar, task
     # Day 15: notes, reminder, calendar, task
     # Day 17: system, screenshot
     # Day 21: datetime, math

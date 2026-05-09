@@ -133,5 +133,20 @@ class WakeWordDetector:
             except sr.RequestError as e:
                 print(f"[WakeWord] Google API error: {e}. Retrying in 3s...")
                 time.sleep(3)
-            except Exception:
+            except Exception as e:
+                err_str = str(e).lower()
+                if "unanticipated host error" in err_str or "-9999" in err_str or "overflow" in err_str:
+                    print(f"[WakeWord] Mic error: {e}. Attempting restart...")
+                    try:
+                        if getattr(self.shared_mic, 'stream', None) is not None:
+                            self.shared_mic.__exit__(None, None, None)
+                            
+                        # Fully rebuild PyAudio instance to clear Errno -9988
+                        if getattr(self.shared_mic, 'audio', None) is not None:
+                            self.shared_mic.audio.terminate()
+                        self.shared_mic.audio = self.shared_mic.pyaudio_module.PyAudio()
+                        
+                        self.shared_mic.__enter__()
+                    except Exception as ex:
+                        print(f"[WakeWord] Mic restart failed: {ex}")
                 time.sleep(0.5)
