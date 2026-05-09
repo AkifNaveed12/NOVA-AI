@@ -81,9 +81,22 @@ def dispatch_local(intent: str, entities: dict) -> Optional[str]:
     Returns:
         Response string or None if module not yet implemented
     """
-    # TODO Day 2+: import and call each module as it's implemented
-    # Example (Day 8):
-    #   if intent == "weather":
-    #       from modules.weather import WeatherModule
-    #       return WeatherModule().get_weather(entities.get("city"))
+    # ── Day 8 ─────────────────────────────────────────────────────────
+    if intent == "weather":
+        from modules.weather import WeatherModule
+        city = entities.get("city") or entities.get("location") or None
+        return WeatherModule(_config).get_weather(city)
+
+    if intent == "news":
+        from modules.news import NewsModule
+        return NewsModule(_config).get_nasa_apod()
+
+    # ── Future days ───────────────────────────────────────────────────
+    # Day 9:  wikipedia, translate
+    # Day 10: web
+    # Day 11: app
+    # Day 12: system
+    # Day 13: music
+    # Day 14: screenshot, clipboard
+    # Day 15: notes, reminder, calendar, task, datetime
     return None

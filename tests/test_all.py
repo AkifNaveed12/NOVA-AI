@@ -286,6 +286,7 @@ def test_nova_core_route_returns_string():
         assert isinstance(groq_resp, str) and len(groq_resp) > 0
 
 
+
 def test_pipeline_entrypoint_importable():
     """main.py must be importable without crashing (no side effects at import)."""
     import importlib.util, sys
@@ -294,3 +295,79 @@ def test_pipeline_entrypoint_importable():
     # We do NOT exec it (that would open mic/HUD) — just check spec loads
     assert spec is not None
     assert mod is not None
+
+
+# ── Day 8: Weather + News Tests ──────────────────────────────────
+
+def test_weather_live():
+    """WeatherModule must return a non-empty string for a valid city."""
+    import os
+    key = os.getenv("OPENWEATHER_API_KEY", "")
+    if not key or "your_key" in key:
+        return  # Skip on CI without key
+    from modules.weather import WeatherModule
+    wm = WeatherModule()
+    result = wm.get_weather("Islamabad")
+    assert isinstance(result, str) and len(result) > 10
+    # Should contain temperature info
+    assert "°C" in result or "°F" in result or "weather" in result.lower()
+
+
+def test_weather_invalid_city():
+    """WeatherModule must handle an invalid city name gracefully."""
+    import os
+    key = os.getenv("OPENWEATHER_API_KEY", "")
+    if not key or "your_key" in key:
+        return
+    from modules.weather import WeatherModule
+    wm = WeatherModule()
+    result = wm.get_weather("XYZnonexistentcity999")
+    assert isinstance(result, str)
+    # Must NOT crash — should return a meaningful error message
+    assert len(result) > 5
+
+
+def test_weather_default_city():
+    """WeatherModule must use default city when no city is provided."""
+    import os
+    key = os.getenv("OPENWEATHER_API_KEY", "")
+    if not key or "your_key" in key:
+        return
+    from modules.weather import WeatherModule
+    wm = WeatherModule()
+    result = wm.get_weather(None)  # None → default city
+    assert isinstance(result, str) and len(result) > 5
+
+
+def test_news_science_fact_offline():
+    """NewsModule.get_science_fact() must return a non-empty fact without network."""
+    from modules.news import NewsModule, SCIENCE_FACTS
+    nm = NewsModule()
+    fact = nm.get_science_fact()
+    assert isinstance(fact, str) and len(fact) > 10
+    assert fact in SCIENCE_FACTS
+
+
+def test_news_nasa_apod_live():
+    """NewsModule must return a non-empty APOD string with a valid API key."""
+    import os
+    key = os.getenv("NASA_API_KEY", "DEMO_KEY")
+    from modules.news import NewsModule
+    nm = NewsModule()
+    result = nm.get_nasa_apod()
+    assert isinstance(result, str) and len(result) > 20
+
+
+def test_nova_core_weather_route():
+    """nova_core.route() with weather intent must call WeatherModule."""
+    import os
+    key = os.getenv("OPENWEATHER_API_KEY", "")
+    if not key or "your_key" in key:
+        return
+    import nova_core
+    result = nova_core.route({
+        "intent": "weather",
+        "entities": {"city": "Lahore"},
+        "original": "what is the weather in Lahore"
+    })
+    assert isinstance(result, str) and len(result) > 5

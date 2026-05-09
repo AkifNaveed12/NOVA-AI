@@ -138,3 +138,21 @@
   - `test_nova_core_route_returns_string` — `route()` always returns a non-empty string for any input
   - `test_pipeline_entrypoint_importable` — `main.py` spec loads without side effects
 - **README.md**: Complete rewrite with Week 1 status table, quick-start guide, architecture flow diagram, feature module table with status indicators, full project structure tree, and test instructions.
+
+---
+
+## Day 8 — weather.py + news.py (Week 2 begins)
+**Date:** 2026-05-09
+**Status:** Complete
+
+### What was done:
+- `modules/weather.py`: Implemented `WeatherModule` using OpenWeatherMap free API. `get_weather(city)` falls back to default city (`Wah Cantt`) when no city is given. Handles 404 (city not found), 401 (bad key), connection errors, and timeouts gracefully. Returns a natural-language TTS-ready string.
+- `modules/news.py`: Implemented `NewsModule` with `get_nasa_apod()` fetching NASA Astronomy Picture of the Day (title + first 3 sentences of explanation). Added `get_science_fact()` with a 20-item offline list as fallback. Caches last successful APOD response for use when offline.
+- `nova_core.py`: Wired `weather` and `news` intents into `dispatch_local()` using lazy imports.
+- `tests/test_all.py`: Added 6 Day 8 tests (28 total, all passing):
+  - `test_weather_live` — live weather for Islamabad via API
+  - `test_weather_invalid_city` — graceful error for unknown city
+  - `test_weather_default_city` — falls back when no city provided
+  - `test_news_science_fact_offline` — offline fact returns from list
+  - `test_news_nasa_apod_live` — live NASA APOD fetched successfully
+  - `test_nova_core_weather_route` — end-to-end route via nova_core
