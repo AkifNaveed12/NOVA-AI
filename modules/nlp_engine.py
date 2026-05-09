@@ -35,51 +35,54 @@ except OSError:
     print("[NLP] Warning: en_core_web_sm not found. Entities won't be extracted properly.")
     nlp = None
 
+# Priority order matters! More specific intents MUST come before generic ones.
+# "today" in "what's the weather today" must match weather, NOT datetime.
 INTENT_PATTERNS = {
-    "system": ["shutdown", "restart", "sleep", "lock", "volume", "brightness", "battery", "cpu", "ram"],
-    "datetime": ["time", "date", "today", "what day", "how many days"],
-    "math": ["calculate", "+", "-", "*", "/", "percent"],
-    "weather": ["weather", "temperature", "forecast", "rain", "sunny"],
-    "news": ["news", "headlines", "space", "nasa", "science"],
-    "wikipedia": ["tell me about", "what is", "who is", "explain"],
-    "app": ["launch", "start", "run", "open"],
-    "web": ["open", "go to", "visit", "browse"],
-    "email": ["email", "mail", "send email", "write email"],
-    "whatsapp": ["whatsapp", "message", "send message"],
-    "music": ["play", "music", "song", "pause", "resume", "next"],
-    "notes": ["note", "take a note", "write down", "remember"],
-    "reminder": ["remind", "reminder", "alert me", "set alarm"],
-    "calendar": ["calendar", "event", "schedule", "meeting"],
-    "task": ["task", "to-do", "todo", "add task", "mark done"],
-    "screenshot": ["screenshot", "capture screen", "take screenshot"],
-    "clipboard": ["clipboard", "copy", "paste", "what did i copy"],
+    # ── High-priority: specific multi-word phrases first ──────────
+    "weather": ["weather", "temperature", "forecast", "rain", "sunny", "humid", "climate"],
+    "news": ["news", "headlines", "nasa", "space news", "science news", "what's happening"],
+    "wikipedia": ["tell me about", "what is a", "what is an", "what is the", "what is", "who is", "who was", "explain", "describe"],
     "translate": ["translate", "in french", "in arabic", "in urdu", "in hindi", "in spanish",
                    "in german", "in chinese", "in japanese", "in korean", "in turkish",
                    "in russian", "in italian", "in portuguese", "to french", "to arabic",
                    "to urdu", "to hindi", "to spanish", "to german", "what does", "mean in"],
+    "screenshot": ["screenshot", "capture screen", "take screenshot"],
+    "clipboard": ["clipboard", "what did i copy"],
     "memory": ["remember that", "forget that", "what do you know"],
+    # ── Medium-priority: single-word triggers ─────────────────────
+    "system": ["shutdown", "restart", "sleep", "lock", "volume", "brightness", "battery", "cpu", "ram"],
+    "app": ["launch", "start", "run", "open"],
+    "web": ["go to", "visit", "browse"],
+    "email": ["email", "mail", "send email", "write email"],
+    "whatsapp": ["whatsapp", "send message"],
+    "music": ["play", "music", "song", "pause", "resume", "next"],
+    "notes": ["note", "take a note", "write down"],
+    "reminder": ["remind", "reminder", "alert me", "set alarm"],
+    "calendar": ["calendar", "event", "schedule", "meeting"],
+    "task": ["task", "to-do", "todo", "add task", "mark done"],
+    # ── Low-priority: very generic words like "today", "time" ─────
+    "datetime": ["what time", "what date", "what day", "how many days"],
+    "math": ["calculate", "percent"],
     "joke": ["joke", "make me laugh", "funny"],
-    "roast": ["roast me"]
+    "roast": ["roast me"],
 }
 
 def classify_intent(text: str) -> str:
-    """Classifies the user text into one of the known intents."""
+    """Classifies the user text into one of the known intents.
+    
+    Uses priority-ordered pattern matching. Longer/multi-word patterns
+    are checked first to prevent generic words like 'today' from
+    stealing specific intents like 'weather'.
+    """
     text_lower = text.lower()
     
     # Check strict math expressions via regex first
     if re.search(r'\d+\s*[\+\-\*\/]\s*\d+', text_lower):
         return "math"
 
-    # Tokenize and remove stopwords
-    tokens = word_tokenize(text_lower)
-    stop_words = set(stopwords.words('english'))
-    filtered_tokens = [w for w in tokens if not w in stop_words]
-    
-    # Check tokens against our intent patterns
-    # Priority ordered matching based on the dict order
+    # Priority-ordered matching — first match in dict order wins
     for intent, patterns in INTENT_PATTERNS.items():
         for pattern in patterns:
-            # Simple substring matching
             if pattern in text_lower:
                 return intent
                 
