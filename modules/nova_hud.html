@@ -470,6 +470,22 @@ document.addEventListener('keydown', function(e) {
 
 // Quick self-test on load
 console.log('[NOVA HUD] HTML loaded and JS API ready.');
+
+// ── Background Polling for Thread-Safe Updates ────────────────────
+setInterval(async () => {
+  if (window.pywebview && window.pywebview.api) {
+    try {
+      let updates = await window.pywebview.api.get_updates();
+      if (updates && updates.length > 0) {
+        updates.forEach(u => {
+          if (u.type === "status") window.novaSetStatus(u.data);
+          else if (u.type === "log") window.novaAppendLog(u.role, u.text);
+          else if (u.type === "ticker") window.novaSetTicker(u.data);
+        });
+      }
+    } catch(e) {}
+  }
+}, 200);
 </script>
 </body>
 </html>

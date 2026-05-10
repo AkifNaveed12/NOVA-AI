@@ -48,10 +48,11 @@ class EmailModule:
         self._imap_server = os.getenv("IMAP_SERVER", "imap.gmail.com")
 
     # ── Inbox Checking ────────────────────────────────────────────
-    def check_inbox(self) -> list:
+    def check_inbox(self, unseen_only: bool = True, limit: int = 5) -> list:
         """
-        Connects to IMAP, fetches UNSEEN emails, marks them SEEN, and returns
-        a list of dicts with sender, subject, and body snippet.
+        Connects to IMAP, fetches emails, and returns a list of dicts.
+        If unseen_only is True, fetches only UNSEEN emails.
+        Otherwise, fetches the latest `limit` emails.
         """
         if not self.has_credentials():
             return []
@@ -61,12 +62,17 @@ class EmailModule:
             mail.login(self._address, self._password)
             mail.select("inbox")
             
-            # Search for unseen emails
-            status, messages = mail.search(None, "UNSEEN")
-            if status != "OK":
-                return []
+            if unseen_only:
+                status, messages = mail.search(None, "UNSEEN")
+                if status != "OK":
+                    return []
+                email_ids = messages[0].split()
+            else:
+                status, messages = mail.search(None, "ALL")
+                if status != "OK":
+                    return []
+                email_ids = messages[0].split()[-limit:] # Get the last N emails
                 
-            email_ids = messages[0].split()
             new_emails = []
             
             for e_id in email_ids:
@@ -295,13 +301,22 @@ class EmailModule:
         """
         Triggered when user asks "check my emails" or "any new mail".
         """
-        speak_func("Checking your inbox for new emails. One moment...")
-        emails = self.check_inbox()
+        speak_func("Checking your inbox. One moment...")
+        emails = self.check_inbox(unseen_only=True)
         
+        is_unseen = True
         if not emails:
-            return "You have no new emails right now."
+            # Fallback to recent emails if no new ones
+            emails = self.check_inbox(unseen_only=False, limit=3)
+            is_unseen = False
             
-        speak_func(f"You have {len(emails)} new emails. Here is the summary:")
+        if not emails:
+            return "Your inbox is completely empty right now."
+            
+        if is_unseen:
+            speak_func(f"You have {len(emails)} new emails. Here is the summary:")
+        else:
+            speak_func(f"You have no new emails, but here are your {len(emails)} most recent ones:")
         
         # Give a quick summary of senders and subjects
         for i, email_obj in enumerate(emails):
@@ -311,7 +326,7 @@ class EmailModule:
         response = listen_func().lower()
         
         if not response or "no" in response or "none" in response or "skip" in response:
-            return "Okay, I'll leave them unread for now."
+            return "Okay, I'll leave them for now."
             
         # Try to match the response to an email
         selected_email = None

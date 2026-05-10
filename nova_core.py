@@ -14,6 +14,7 @@
 
 import json
 import os
+import re
 from typing import Optional
 
 
@@ -49,6 +50,47 @@ GROQ_INTENTS = {
 }
 
 
+def _split_multi_commands(original: str) -> list:
+    """
+    Detect and split compound commands like:
+    "open LinkedIn and email Hamza"
+    "open YouTube, play music, and text mama"
+    into separate sub-commands.
+    Returns a list of (intent, sub_text) pairs.
+    """
+    from modules.nlp_engine import process as nlp_process
+    
+    # Markers that strongly signal a new sub-command
+    # Split only on " and " boundaries that start a new verb/intent
+    SPLITTERS = re.compile(
+        r'\b(and|then|also|plus|open|launch|start|email|text|send|play|check|search)\b',
+        re.IGNORECASE
+    )
+    
+    # Quick check: does this sentence contain a whatsapp/email keyword alongside an open/app keyword?
+    lower = original.lower()
+    has_open   = any(k in lower for k in ("open", "launch", "start"))
+    has_email  = any(k in lower for k in ("email", "mail to"))
+    has_wa     = any(k in lower for k in ("whatsapp", "text mama", "text baba", "text hamza", "text obaid", "text ibraheem", "send message"))
+    
+    segments = []
+    
+    # If the command mixes opening apps/sites with email or whatsapp, split it
+    if has_open and (has_email or has_wa):
+        # Split by " and "
+        parts = re.split(r'\band\b', original, flags=re.IGNORECASE)
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            sub_result = nlp_process(part)
+            segments.append((sub_result["intent"], part, sub_result))
+        return segments
+    
+    # Single command — no split needed
+    return []
+
+
 def route(
     nlp_result:   dict,
     speak_func:   Optional[callable] = None,
@@ -69,6 +111,21 @@ def route(
     intent   = nlp_result.get("intent", "conversation")
     original = nlp_result.get("original", "")
     entities = nlp_result.get("entities", {})
+
+    # ── Multi-command detection: "open X and email Y" ─────────────────
+    if intent in ("app", "web"):
+        segments = _split_multi_commands(original)
+        if segments:
+            responses = []
+            for seg_intent, seg_text, seg_result in segments:
+                if seg_intent in LOCAL_INTENTS:
+                    r = dispatch_local(seg_intent, seg_result["entities"], seg_text,
+                                       speak_func=speak_func, listen_func=listen_func)
+                    if r:
+                        responses.append(r)
+                else:
+                    responses.append(groq_brain.chat(seg_text))
+            return " ".join(responses) if responses else "Done!"
 
     if intent in LOCAL_INTENTS:
         local_response = dispatch_local(

@@ -58,12 +58,23 @@ HTML_PATH = _HTML.as_uri()
 class NOVAHudAPI:
     """JS-accessible API for the pywebview window."""
     def __init__(self):
-        self.window = None
+        self._window = None
+        self.updates_queue = queue.Queue()
 
     def close_app(self):
         """Called from JS to close the window gracefully."""
-        if self.window:
-            self.window.destroy()
+        if self._window:
+            self._window.destroy()
+
+    def get_updates(self):
+        """Called by JS every 200ms to fetch UI updates safely on the UI thread."""
+        updates = []
+        while not self.updates_queue.empty():
+            try:
+                updates.append(self.updates_queue.get_nowait())
+            except queue.Empty:
+                break
+        return updates
 
 
 class NOVAHud:
@@ -99,7 +110,7 @@ class NOVAHud:
             min_size    = (320, 600),
         )
 
-        self._api.window = self._window
+        self._api._window = self._window
 
         # Register the loaded callback
         self._window.events.loaded += self._on_loaded
@@ -108,26 +119,6 @@ class NOVAHud:
     def _on_loaded(self):
         """Called by pywebview once the HTML/JS is fully loaded."""
         self._ready = True
-        # Drain any calls that came in before the DOM was ready
-        while not self._queue.empty():
-            try:
-                js = self._queue.get_nowait()
-                self._window.evaluate_js(js)
-            except queue.Empty:
-                break
-
-    # ── Internal JS dispatcher ─────────────────────────────────────
-    def _js(self, code: str):
-        """
-        Safely evaluate JS in the webview window.
-        Buffers calls if the DOM isn't ready yet.
-        """
-        if self._window is None:
-            return
-        if self._ready:
-            self._window.evaluate_js(code)
-        else:
-            self._queue.put(code)
 
     # ── Public API (identical to old Tkinter NOVAHud) ──────────────
 
@@ -135,28 +126,28 @@ class NOVAHud:
         """
         Update NOVA's status indicator and waveform colour.
         state: 'sleeping' | 'listening' | 'processing' | 'speaking'
-        Thread-safe.
+        Thread-safe via JS polling.
         """
+        if self._state == state:
+            return
+            
         self._state = state
-        self._js(f"window.novaSetStatus('{state}')")
+        self._api.updates_queue.put({"type": "status", "data": state})
 
     def log_message(self, role: str, text: str):
         """
         Append a command/response pair to the conversation log.
         role: 'user' | 'nova'
-        Thread-safe.
+        Thread-safe via JS polling.
         """
-        # Escape backticks and backslashes for safe JS string injection
-        safe_text = text.replace("\\", "\\\\").replace("`", "\\`")
-        self._js(f"window.novaAppendLog('{role}', `{safe_text}`)")
+        self._api.updates_queue.put({"type": "log", "role": role, "text": text})
 
     def update_ticker(self, text: str):
         """
         Update the scrolling reminders ticker.
-        Thread-safe.
+        Thread-safe via JS polling.
         """
-        safe = text.replace("\\", "\\\\").replace("`", "\\`")
-        self._js(f"window.novaSetTicker(`{safe}`)")
+        self._api.updates_queue.put({"type": "ticker", "data": text})
 
     def start(self):
         """

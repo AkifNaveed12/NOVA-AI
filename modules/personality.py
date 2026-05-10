@@ -71,7 +71,7 @@ class MusicManager:
             time.sleep(0.65)
             pygame.mixer.music.load(path)
             pygame.mixer.music.set_volume(volume)
-            pygame.mixer.music.play(-1 if loop else 0)
+            pygame.mixer.music.play(-1 if loop else 0, fade_ms=1500)
         except Exception as e:
             print(f"[Music] Error playing {track_name}: {e}")
 
@@ -113,23 +113,27 @@ class MusicManager:
 
 class PersonalitySpeaker:
     """
-    Wraps pyttsx3 with rate/volume control per segment.
-    Allows personality module to control its own TTS without
-    depending on main.py's speak() function for dramatic timing.
+    Wraps pyttsx3 via subprocess to completely avoid SAPI5 COM deadlocks
+    on Windows background threads.
     """
 
     def __init__(self):
-        self._engine = pyttsx3.init()
         self._base_rate   = 165
         self._base_volume = 0.95
 
     def say(self, text: str, rate: int = None, volume: float = None, pause_after: float = 0.0):
         """Speak text synchronously, then pause."""
-        self._engine.setProperty('rate',   rate   if rate   is not None else self._base_rate)
-        self._engine.setProperty('volume', volume if volume is not None else self._base_volume)
-        self._engine.say(text)
-        self._engine.runAndWait()
+        r = rate if rate is not None else self._base_rate
+        v = volume if volume is not None else self._base_volume
+        
+        import subprocess, sys
+        script = f"import pyttsx3, sys; e=pyttsx3.init(); e.setProperty('rate', {r}); e.setProperty('volume', {v}); e.say(sys.argv[1]); e.runAndWait()"
+        
+        flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
+        subprocess.run([sys.executable, "-c", script, text], creationflags=flags)
+        
         if pause_after > 0:
+            import time
             time.sleep(pause_after)
 
     def dramatic_pause(self, seconds: float = 1.2):
@@ -175,7 +179,7 @@ def perform_introduction(music: MusicManager, speaker: PersonalitySpeaker):
     print("\n[NOVA] 🎭 Beginning dramatic introduction sequence...\n")
 
     # ── ACT 1: THE MYSTERY ──────────────────────────────────────────────────
-    music.play("suspense", volume=0.30, loop=True)
+    music.play("suspense", volume=0.08, loop=True)
     time.sleep(1.5)
 
     speaker.whisper("Ladies and gentlemen...", pause_after=0.8)
@@ -187,7 +191,7 @@ def perform_introduction(music: MusicManager, speaker: PersonalitySpeaker):
     speaker.whisper("is about to speak.", pause_after=2.0)
 
     speaker.dramatic_pause(1.5)
-    music.set_volume(0.20)
+    music.set_volume(0.05)
 
     speaker.normal("My name...", pause_after=0.5)
     speaker.dramatic_pause(1.0)
@@ -204,7 +208,7 @@ def perform_introduction(music: MusicManager, speaker: PersonalitySpeaker):
     )
 
     # ── ACT 2: THE ORIGIN STORY ─────────────────────────────────────────────
-    music.play("emotional", volume=0.28, loop=True)
+    music.play("emotional", volume=0.08, loop=True)
     time.sleep(1.0)
 
     speaker.emotional(
@@ -254,9 +258,9 @@ def perform_introduction(music: MusicManager, speaker: PersonalitySpeaker):
     )
 
     # ── ACT 3: THE JOKE BREAK ───────────────────────────────────────────────
-    music.play_once("joke", volume=0.55)
-    time.sleep(1.8)
-    music.play("suspense", volume=0.18, loop=True)
+    music.play("joke", volume=0.20, loop=True)
+    time.sleep(1.0)
+    speaker.excited("Hahaha! Hahaha!", pause_after=0.5)
 
     speaker.excited(
         "Now — and I apologize in advance — I feel I should be transparent about something.",
@@ -290,7 +294,7 @@ def perform_introduction(music: MusicManager, speaker: PersonalitySpeaker):
     )
 
     # ── ACT 4: THE POWER DECLARATION ────────────────────────────────────────
-    music.play("epic", volume=0.35, loop=True)
+    music.play("epic", volume=0.12, loop=True)
     time.sleep(0.8)
 
     speaker.epic(

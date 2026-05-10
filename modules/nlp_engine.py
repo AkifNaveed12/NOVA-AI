@@ -38,10 +38,23 @@ except OSError:
 # Priority order matters! More specific intents MUST come before generic ones.
 # "today" in "what's the weather today" must match weather, NOT datetime.
 INTENT_PATTERNS = {
-    # ── High-priority: specific multi-word phrases first ──────────
+    # ── Highest-priority: catch exact phrases before generic words fire ─
+    "introduce": [
+        "introduce yourself", "present yourself", "tell me about yourself",
+        "who are you", "what are you", "introduce", "about yourself",
+        "who is nova", "tell us about yourself", "your name",
+    ],
+    # WhatsApp must come BEFORE "app" (which catches "open")
+    "whatsapp": [
+        "whatsapp", "send message", "text mama", "text baba", "text hamza",
+        "text obaid", "text ibraheem", "send whatsapp", "message on whatsapp",
+        "send a message to", "whatsapp message", "text to", "send text",
+        "send message to",
+    ],
+    # ── High-priority: specific multi-word phrases first ──────────────
     "weather": ["weather", "temperature", "forecast", "rain", "sunny", "humid", "climate"],
     "news": ["news", "headlines", "nasa", "space news", "science news", "what's happening"],
-    "wikipedia": ["tell me about", "what is a", "what is an", "what is the", "what is", "who is", "who was", "explain", "describe"],
+    "wikipedia": ["what is a", "what is an", "what is the", "what is", "who is", "who was", "explain", "describe"],
     "translate": ["translate", "in french", "in arabic", "in urdu", "in hindi", "in spanish",
                    "in german", "in chinese", "in japanese", "in korean", "in turkish",
                    "in russian", "in italian", "in portuguese", "to french", "to arabic",
@@ -49,29 +62,29 @@ INTENT_PATTERNS = {
     "screenshot": ["screenshot", "capture screen", "take screenshot"],
     "clipboard": ["clipboard", "what did i copy"],
     "memory": ["remember that", "forget that", "what do you know"],
-    # ── Medium-priority: single-word triggers ─────────────────────
+    # ── Medium-priority: single-word triggers ─────────────────────────
     "music": ["play", "music", "song", "pause", "resume", "next"],
     "system": ["shutdown", "restart", "sleep", "lock", "volume", "brightness", "battery", "cpu", "ram"],
     "app": ["launch", "start", "run", "open"],
     "web": ["go to", "visit", "browse"],
     "check_email": ["check email", "read my email", "any updates on gmail", "new mails", "recent emails", "check inbox", "any new mail"],
     "email": ["email", "mail", "send email", "write email"],
-    "whatsapp": ["whatsapp", "send message"],
-    "task_queue": ["note down the tasks", "create a task list", "multiple tasks", "note down tasks", "note down"],
+    # List / task dictation — all "make a list" variants
+    "task_queue": [
+        "make a list", "create a list", "create a task list", "note down the tasks",
+        "multiple tasks", "note down tasks", "note down", "list mode",
+        "take a list", "start a list", "i have tasks", "list of tasks",
+        "add to list", "task list",
+    ],
     "notes": ["note", "take a note", "write down"],
     "reminder": ["remind", "reminder", "alert me", "set alarm"],
     "calendar": ["calendar", "event", "schedule", "meeting"],
     "task": ["task", "to-do", "todo", "add task", "mark done"],
-    # ── Low-priority: very generic words like "today", "time" ─────
+    # ── Low-priority: very generic words like "today", "time" ─────────
     "datetime": ["what time", "what date", "what day", "how many days"],
     "math": ["calculate", "percent"],
     "joke": ["joke", "make me laugh", "funny"],
     "roast": ["roast me"],
-    "introduce": [
-        "introduce yourself", "present yourself", "tell me about yourself",
-        "who are you", "what are you", "introduce", "presentation",
-        "who is nova", "tell us about yourself", "about yourself"
-    ],
 }
 
 def classify_intent(text: str) -> str:
@@ -92,14 +105,6 @@ def classify_intent(text: str) -> str:
         for pattern in patterns:
             if pattern in text_lower:
                 return intent
-
-    # Check introduce intent — must be before conversation fallback
-    introduce_phrases = [
-        "introduce yourself", "present yourself", "tell me about yourself",
-        "who are you", "what are you", "who is nova", "tell us about yourself"
-    ]
-    if any(phrase in text_lower for phrase in introduce_phrases):
-        return "introduce"
 
     return "conversation"
 

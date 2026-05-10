@@ -76,19 +76,9 @@
       "path": "C:\\Program Files\\Microsoft Office\\root\\Office16\\EXCEL.EXE"
     },
     {
-      "name": "GitHub Desktop",
-      "aliases": ["github desktop", "github", "git"],
-      "path": "C:\\Users\\Akif\\AppData\\Local\\GitHubDesktop\\GitHubDesktop.exe"
-    },
-    {
       "name": "Postman",
       "aliases": ["postman", "api client", "api tester"],
       "path": "C:\\Users\\Akif\\AppData\\Local\\Postman\\Postman.exe"
-    },
-    {
-      "name": "WhatsApp",
-      "aliases": ["whatsapp", "whatsapp desktop"],
-      "path": "C:\\Users\\Akif\\AppData\\Local\\WhatsApp\\WhatsApp.exe"
     }
   ]
 }

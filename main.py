@@ -76,27 +76,23 @@ def main() -> None:
     from gtts import gTTS
     import os
 
-    # Initialize pyttsx3 TTS using thread-local storage 
-    # to prevent SAPI5 COM hangs when called from background threads
-    tts_local = threading.local()
     tts_cfg = config.get("tts", {})
-
-    def get_tts_engine():
-        if not hasattr(tts_local, "engine"):
-            engine = pyttsx3.init()
-            engine.setProperty('rate', tts_cfg.get("rate", 175))
-            engine.setProperty('volume', tts_cfg.get("volume", 0.9))
-            tts_local.engine = engine
-        return tts_local.engine
 
     def speak(text: str):
         """Speaks the text aloud using pyttsx3. Pauses wake word during speech."""
         hud.update_status("speaking")
         hud.log_message("nova", text)
         print(f"[NOVA] {text}")
-        engine = get_tts_engine()
-        engine.say(text)
-        engine.runAndWait()
+        
+        import subprocess, sys
+        rate = tts_cfg.get("rate", 175)
+        volume = tts_cfg.get("volume", 0.9)
+        script = f"import pyttsx3, sys; e=pyttsx3.init(); e.setProperty('rate', {rate}); e.setProperty('volume', {volume}); e.say(sys.argv[1]); e.runAndWait()"
+        
+        # Run TTS in a completely isolated process to bypass Windows SAPI5 background thread deadlocks
+        flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
+        subprocess.run([sys.executable, "-c", script, text], creationflags=flags)
+        
         # Note: wake_word.resume() is called by voice_pipeline AFTER draining
         hud.update_status("sleeping")
 
@@ -147,15 +143,26 @@ def main() -> None:
     # Define the voice pipeline thread
     def voice_pipeline():
         """Background thread: wakes on event, listens, routes, speaks, loops."""
+        import pythoncom
+        pythoncom.CoInitialize()
+        
         from modules.personality import PersonalityModule
         _personality_startup = PersonalityModule()
+        
+        # CRITICAL: Wait for PyWebView to finish COM initialization before using SAPI5
+        while not getattr(hud, "_ready", False):
+            import time
+            time.sleep(0.1)
+            
         greeting = _personality_startup.get_greeting(
             user_name=config.get("user", {}).get("name", "Akif"),
             notes_count=db_manager.get_notes_count() if hasattr(db_manager, 'get_notes_count') else 0,
             reminders=[],
             events=[]
         )
+        wake_word.pause()
         speak(greeting)
+        wake_word.resume()
         
         try:
             while True:
