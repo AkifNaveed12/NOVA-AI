@@ -59,6 +59,8 @@ INTENT_PATTERNS = {
     "whatsapp": ["whatsapp", "send message"],
     "task_queue": ["note down the tasks", "create a task list", "multiple tasks", "note down tasks", "note down"],
     "notes": ["note", "take a note", "write down"],
+    "reminder": ["remind", "reminder", "alert me", "set alarm"],
+    "calendar": ["calendar", "event", "schedule", "meeting"],
     "task": ["task", "to-do", "todo", "add task", "mark done"],
     # ── Low-priority: very generic words like "today", "time" ─────
     "datetime": ["what time", "what date", "what day", "how many days"],

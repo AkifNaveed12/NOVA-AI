@@ -756,3 +756,75 @@ def test_nova_core_email_route_no_callbacks():
     })
     assert isinstance(result, str)
     assert len(result) > 0
+
+# ── Day 13 WhatsApp Tests ──────────────────────────────────────────
+
+def test_whatsapp_module_importable():
+    from modules.whatsapp_module import WhatsAppModule
+    wam = WhatsAppModule()
+    assert wam is not None
+
+def test_nlp_classifies_whatsapp_intent():
+    from modules.nlp_engine import classify_intent
+    assert classify_intent("send a whatsapp to Mama") == "whatsapp"
+
+# ── Day 14 Week 2 Integration Tests ──────────────────────────────────────────
+
+def test_weather_islamabad():
+    """Test 8: Weather for Islamabad returns temp and description."""
+    import os
+    if not os.getenv("OPENWEATHER_API_KEY"):
+        return # Skip if no key
+    from modules.weather import WeatherModule
+    wm = WeatherModule()
+    res = wm.get_weather("Islamabad")
+    assert "°C" in res
+    assert "Islamabad" in res
+
+def test_news_nasa_apod():
+    """Test 9: NASA APOD returns non-empty title."""
+    from modules.news import NewsModule
+    nm = NewsModule()
+    res = nm.get_nasa_apod()
+    assert isinstance(res, str)
+    assert len(res) > 10
+
+def test_wikipedia_python():
+    """Test 10: Wikipedia search Python returns sentences."""
+    from modules.wikipedia_module import WikipediaModule
+    wm = WikipediaModule()
+    res = wm.search("Python programming language")
+    assert isinstance(res, str)
+    assert len(res) > 20
+
+def test_translation_french():
+    """Test 11: Translation how are you to French."""
+    from modules.translation import TranslationModule
+    tm = TranslationModule()
+    res = tm.translate("how are you", "french")
+    assert isinstance(res, str)
+    assert len(res) > 0
+    assert "comment" in res.lower()
+
+def test_sites_json_loading():
+    """Test 12: sites.json loads and youtube maps correctly."""
+    from modules.web_automation import WebAutomation
+    wa = WebAutomation()
+    assert len(wa.sites) > 0
+    youtube_found = False
+    for site in wa.sites:
+        if site.get("name", "").lower() == "youtube" or "youtube" in site.get("aliases", []):
+            youtube_found = True
+            assert "youtube.com" in site.get("url", "")
+            break
+    assert youtube_found
+
+def test_clipboard_rw():
+    """Test 14: Clipboard write -> read returns same text."""
+    from modules.clipboard_manager import ClipboardManager
+    cm = ClipboardManager()
+    original = cm.read()
+    cm.write("nova_test_clipboard_123")
+    assert "nova_test_clipboard_123" in cm.read()
+    if original:
+        cm.write(original)

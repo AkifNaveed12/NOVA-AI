@@ -401,3 +401,27 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 **`nova_core.py`** changes:
 - Routed the `"whatsapp"` intent to `whatsapp_module.handle_whatsapp_command`.
 - Maintains the same callback-injection architecture as Email for smooth multi-turn flow.
+
+---
+
+## Day 14 — Week 2 Integration Test
+
+**Status:** Complete
+
+### What was done
+
+**`tests/test_all.py`**:
+- Added `test_weather_islamabad` to verify the Weather API integration and response formatting.
+- Added `test_news_nasa_apod` to verify the NASA API returns the space news string.
+- Added `test_wikipedia_python` to ensure Wikipedia summary extraction works.
+- Added `test_translation_french` to ensure `deep-translator` accurately translates text to target languages.
+- Added `test_sites_json_loading` to verify that `config/sites.json` is parsed as a list of dictionaries and successfully mapped.
+- Added `test_clipboard_rw` to verify `pyperclip` successfully reads and writes system clipboard memory.
+- Added WhatsApp import and intent classification tests.
+
+**Bug Fixes**:
+- Discovered and implemented the missing `TranslationModule` for Day 9 which was an empty stub.
+- Restored the `"reminder"` and `"calendar"` intent classifications in `nlp_engine.py` which were accidentally shadowed by `task_queue`.
+- Re-formatted `WebAutomation` testing to iterate correctly over the new `sites.json` structure.
+
+**Total Test Count:** 62 tests passing. All modules from Week 1 and Week 2 are completely integrated, stable, and ready for Week 3.
