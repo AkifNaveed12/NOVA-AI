@@ -147,7 +147,16 @@ def main() -> None:
     # Define the voice pipeline thread
     def voice_pipeline():
         """Background thread: wakes on event, listens, routes, speaks, loops."""
-        print("\nNOVA AI — Ready (Listening for wake word...)")
+        from modules.personality import PersonalityModule
+        _personality_startup = PersonalityModule()
+        greeting = _personality_startup.get_greeting(
+            user_name=config.get("user", {}).get("name", "Akif"),
+            notes_count=db_manager.get_notes_count() if hasattr(db_manager, 'get_notes_count') else 0,
+            reminders=[],
+            events=[]
+        )
+        speak(greeting)
+        
         try:
             while True:
                 # Check for pending background announcements
@@ -190,6 +199,13 @@ def main() -> None:
                             speak_func  = speak,
                             listen_func = _listen_once,
                         )
+
+                        # Guard: personality intro manages its own TTS — skip speak()
+                        if response == "" and result.get("intent") == "introduce":
+                            wake_event.clear()
+                            wake_word.resume()
+                            hud.update_status("sleeping")
+                            continue
 
                         activity_id = db_manager.log_activity(
                             command=text,

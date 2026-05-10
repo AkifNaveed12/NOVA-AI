@@ -37,6 +37,7 @@ Pillow==10.2.0
 # ── Messaging & Media ─────────────────────────────────────────────
 pywhatkit==5.4
 pyjokes==0.6.0
+pygame==2.5.2
 
 # ── Computer Vision / Gesture ────────────────────────────────────
 opencv-python==4.9.0.80

@@ -28,6 +28,10 @@ from modules.groq_brain import GroqBrain
 _config = load_config()
 groq_brain = GroqBrain(_config)
 
+# Initialize PersonalityModule once at module level
+from modules.personality import PersonalityModule
+_personality = PersonalityModule()
+
 
 # ── Intent routing tables ─────────────────────────────────────────
 
@@ -36,6 +40,7 @@ LOCAL_INTENTS = {
     "system", "screenshot", "clipboard", "music", "notes",
     "reminder", "calendar", "task", "datetime", "math",
     "translate", "whatsapp", "email", "check_email",
+    "task_queue", "introduce", "joke", "motivate", "roast",
 }
 
 GROQ_INTENTS = {
@@ -71,7 +76,7 @@ def route(
             speak_func=speak_func,
             listen_func=listen_func,
         )
-        if local_response:
+        if local_response is not None:
             return local_response
         else:
             return f"The local module for {intent} is not yet implemented."
@@ -285,7 +290,21 @@ def dispatch_local(
             listen_func=listen_func
         )
         
-    # Day 15: notes, reminder, calendar, task
+    if intent == "introduce":
+        _personality.introduce()
+        return ""   # personality.py manages its own TTS — do NOT double-speak
+
+    elif intent == "joke":
+        return _personality.get_joke()
+
+    elif intent == "motivate":
+        prompt = _personality.get_motivation_prompt()
+        return groq_brain.chat(prompt)
+
+    elif intent == "roast":
+        prompt = _personality.get_roast_prompt("Akif")
+        return groq_brain.chat(prompt)
+
     # Day 15: notes, reminder, calendar, task
     # Day 17: system, screenshot
     # Day 21: datetime, math

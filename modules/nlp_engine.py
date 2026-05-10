@@ -67,6 +67,11 @@ INTENT_PATTERNS = {
     "math": ["calculate", "percent"],
     "joke": ["joke", "make me laugh", "funny"],
     "roast": ["roast me"],
+    "introduce": [
+        "introduce yourself", "present yourself", "tell me about yourself",
+        "who are you", "what are you", "introduce", "presentation",
+        "who is nova", "tell us about yourself", "about yourself"
+    ],
 }
 
 def classify_intent(text: str) -> str:
@@ -87,7 +92,15 @@ def classify_intent(text: str) -> str:
         for pattern in patterns:
             if pattern in text_lower:
                 return intent
-                
+
+    # Check introduce intent — must be before conversation fallback
+    introduce_phrases = [
+        "introduce yourself", "present yourself", "tell me about yourself",
+        "who are you", "what are you", "who is nova", "tell us about yourself"
+    ]
+    if any(phrase in text_lower for phrase in introduce_phrases):
+        return "introduce"
+
     return "conversation"
 
 def extract_entities(text: str) -> dict:

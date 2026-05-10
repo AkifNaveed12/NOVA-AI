@@ -1460,6 +1460,10 @@ git push origin main
 
 ## DAY 21 — Week 3 Integration Test + Git Push
 
+Note: personality.py was implemented as a pre-Day-15 feature addition.
+It includes MusicManager (pygame), PersonalitySpeaker (pyttsx3 multi-rate),
+and a 5-act scripted dramatic introduction. Music assets in assets/music/.
+
 **Goal:** All Week 3 modules verified. Full NOVA pipeline with gestures, notes, reminders, calendar, system controls, and logging all working together.
 
 ### T0 — Pull latest, review all Week 3 modules
@@ -1764,7 +1768,7 @@ git push origin main --tags
 | 17    | M16, M17 | System Controls + Screenshot                    | `system_controls.py`, `screenshot_tools.py` |
 | 18–19 | M22      | Gesture Engine (2 days)                         | `gesture_engine.py`                         |
 | 20    | M24, M25 | Activity Log + Config Manager                   | `activity_log.py`, `config_manager.py`      |
-| 21    | M15, M21 | Week 3 Integration + DateTime + Personality     | `datetime_calc.py`, `personality.py`        |
+| 21    | M15, M21 | Week 3 Integration + DateTime + Personality (with dramatic intro) | `datetime_calc.py`, `personality.py`        |
 | 22–23 | —        | Bug Fixing + Edge Cases                         | All modules                                 |
 | 24–25 | —        | Performance + Threading                         | All modules                                 |
 | 26–28 | —        | Demo Prep + Final Release                       | README, docs, v1.0.0 tag                    |

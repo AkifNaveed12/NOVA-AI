@@ -425,3 +425,32 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 - Re-formatted `WebAutomation` testing to iterate correctly over the new `sites.json` structure.
 
 **Total Test Count:** 62 tests passing. All modules from Week 1 and Week 2 are completely integrated, stable, and ready for Week 3.
+
+---
+
+## Pre-Day-15 Addition — Module 21 personality.py (Dramatic Introduction)
+**Date:** 2026-05-10
+**Status:** Complete
+
+### Files created:
+- `modules/personality.py` — Full Module 21 implementation
+  - `MusicManager`: pygame.mixer wrapper, plays/switches/fades 4 background tracks
+  - `PersonalitySpeaker`: pyttsx3 wrapper with rate/volume presets per emotional state
+  - `perform_introduction()`: 5-act scripted dramatic intro (~3 min runtime)
+  - `PersonalityModule`: public API — introduce(), get_joke(), get_greeting(), get_roast_prompt()
+- `setup_music.py` — One-time music downloader (project root)
+- `assets/music/` — Directory containing 4 royalty-free .mp3 tracks
+- `nova_core_personality_patch.py` — Reference patch file (applied, now safe to delete)
+
+### Files modified:
+- `modules/nlp_engine.py`: Added "introduce" to INTENT_PATTERNS; added introduce_phrases check in classify_intent() before conversation fallback
+- `nova_core.py`: Added PersonalityModule import + `_personality` instance; added introduce/joke/motivate/roast cases to dispatch_local(); added "introduce", "joke", "motivate", "roast" to LOCAL_INTENTS
+- `main.py`: Added empty-response guard for "introduce" intent in voice_pipeline(); startup greeting now uses `_personality_startup.get_greeting()`
+- `requirements.txt`: Added pygame==2.5.2
+- `planning.md`: Module 21 row updated to reflect dramatic intro feature
+
+### Tests:
+- Say "Hey NOVA, introduce yourself" → 5-act intro plays with music transitions
+- Say "Hey NOVA, tell me a joke" → offline pyjoke returned
+- Say "Hey NOVA, who are you" → same intro triggers
+- After intro completes → NOVA returns to sleeping state cleanly, wake word re-arms
