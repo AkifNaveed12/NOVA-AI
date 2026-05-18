@@ -127,18 +127,36 @@ def main() -> None:
     em = EmailModule(config)
     
     announcement_queue = queue.Queue()
-    
+    hud_ticker_queue   = queue.Queue()
+
     def email_poller():
+        """Polls inbox every 60s; only announces when unread count INCREASES."""
+        last_announced_count = 0
         while True:
             time.sleep(60)
-            # Only check if NOVA is sleeping
             if not wake_event.is_set():
-                new_emails = em.check_inbox()
-                if new_emails:
-                    print(f"[EmailPoller] Found {len(new_emails)} new emails.")
-                    announcement_queue.put(f"You have {len(new_emails)} new emails. Just say, check my emails, if you want me to read them.")
+                try:
+                    new_emails = em.check_inbox(unseen_only=True)
+                    count = len(new_emails)
+                    if count > last_announced_count:
+                        print(f"[EmailPoller] Found {count} new emails.")
+                        announcement_queue.put(
+                            f"You have {count} new email{'s' if count > 1 else ''}. "
+                            "Just say, check my emails, if you want me to read them."
+                        )
+                        last_announced_count = count
+                    elif count == 0:
+                        last_announced_count = 0  # Reset so next batch is announced
+                except Exception as e:
+                    print(f"[EmailPoller] Error: {e}")
 
     threading.Thread(target=email_poller, daemon=True, name="EmailPollerThread").start()
+
+    # ── ReminderEngine — Day 15 ───────────────────────────────────────
+    from modules.notes_reminders import RemindersModule, ReminderEngine
+    _reminders_module = RemindersModule()
+    reminder_engine = ReminderEngine(_reminders_module, announcement_queue, hud_ticker_queue)
+    reminder_engine.start()
 
     # Define the voice pipeline thread
     def voice_pipeline():
@@ -153,11 +171,25 @@ def main() -> None:
         while not getattr(hud, "_ready", False):
             import time
             time.sleep(0.1)
+
+        # ── Load today's calendar events into HUD ticker ───────────────
+        try:
+            from modules.calendar_tasks import CalendarModule
+            _cal = CalendarModule()
+            ticker_text = _cal.get_today_ticker_text()
+            if ticker_text:
+                hud.update_ticker(ticker_text)
+        except Exception:
+            pass
+
+        # Drain any pending ticker messages from reminder engine
+        while not hud_ticker_queue.empty():
+            hud.update_ticker(hud_ticker_queue.get())
             
         greeting = _personality_startup.get_greeting(
             user_name=config.get("user", {}).get("name", "Akif"),
-            notes_count=db_manager.get_notes_count() if hasattr(db_manager, 'get_notes_count') else 0,
-            reminders=[],
+            notes_count=0,
+            reminders=_reminders_module.get_upcoming_reminders(),
             events=[]
         )
         wake_word.pause()
@@ -172,6 +204,10 @@ def main() -> None:
                     wake_word.pause()
                     speak(ann)
                     wake_word.resume()
+
+                # Drain HUD ticker updates from reminder engine
+                while not hud_ticker_queue.empty():
+                    hud.update_ticker(hud_ticker_queue.get())
                 
                 hud.update_status("sleeping")
 

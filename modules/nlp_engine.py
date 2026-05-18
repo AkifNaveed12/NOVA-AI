@@ -36,51 +36,89 @@ except OSError:
     nlp = None
 
 # Priority order matters! More specific intents MUST come before generic ones.
-# "today" in "what's the weather today" must match weather, NOT datetime.
 INTENT_PATTERNS = {
-    # ── Highest-priority: catch exact phrases before generic words fire ─
+    # ── Tier 1: Exact phrases — must beat all single-word triggers ────
     "introduce": [
         "introduce yourself", "present yourself", "tell me about yourself",
         "who are you", "what are you", "introduce", "about yourself",
         "who is nova", "tell us about yourself", "your name",
     ],
-    # WhatsApp must come BEFORE "app" (which catches "open")
+    # WhatsApp before "app" (which catches "open")
     "whatsapp": [
         "whatsapp", "send message", "text mama", "text baba", "text hamza",
         "text obaid", "text ibraheem", "send whatsapp", "message on whatsapp",
         "send a message to", "whatsapp message", "text to", "send text",
         "send message to",
     ],
-    # ── High-priority: specific multi-word phrases first ──────────────
+    # check_email MUST come before "email" — "check my emails" contains "email"
+    "check_email": [
+        "check email", "check my email", "check my emails", "read my email",
+        "any updates on gmail", "new mails", "recent emails", "check inbox",
+        "any new mail", "do i have emails", "show my emails", "my inbox",
+        "check gmail", "read my inbox",
+    ],
+    # ── Tier 2: High-priority specific phrases ────────────────────────
     "weather": ["weather", "temperature", "forecast", "rain", "sunny", "humid", "climate"],
     "news": ["news", "headlines", "nasa", "space news", "science news", "what's happening"],
     "wikipedia": ["what is a", "what is an", "what is the", "what is", "who is", "who was", "explain", "describe"],
-    "translate": ["translate", "in french", "in arabic", "in urdu", "in hindi", "in spanish",
-                   "in german", "in chinese", "in japanese", "in korean", "in turkish",
-                   "in russian", "in italian", "in portuguese", "to french", "to arabic",
-                   "to urdu", "to hindi", "to spanish", "to german", "what does", "mean in"],
-    "screenshot": ["screenshot", "capture screen", "take screenshot"],
+    "translate": [
+        "translate", "in french", "in arabic", "in urdu", "in hindi", "in spanish",
+        "in german", "in chinese", "in japanese", "in korean", "in turkish",
+        "in russian", "in italian", "in portuguese", "to french", "to arabic",
+        "to urdu", "to hindi", "to spanish", "to german", "what does", "mean in",
+    ],
+    "screenshot": ["screenshot", "capture screen", "take screenshot", "take a screenshot"],
     "clipboard": ["clipboard", "what did i copy"],
-    "memory": ["remember that", "forget that", "what do you know"],
-    # ── Medium-priority: single-word triggers ─────────────────────────
-    "music": ["play", "music", "song", "pause", "resume", "next"],
-    "system": ["shutdown", "restart", "sleep", "lock", "volume", "brightness", "battery", "cpu", "ram"],
+    "memory": ["remember that", "forget that", "what do you know about me"],
+    # ── Tier 3: Medium-priority ───────────────────────────────────────
+    "music": ["play", "music", "song", "pause", "resume", "next track", "previous track"],
+    "system": [
+        "shutdown", "restart", "sleep", "lock screen", "lock the screen",
+        "set volume", "volume to", "volume up", "volume down", "mute", "unmute",
+        "brightness", "battery", "cpu usage", "ram usage", "system info",
+        "what's my battery", "how much battery",
+    ],
+    # University portal → web (before "app" which catches "open")
+    "web": [
+        "go to", "visit", "browse",
+        "university portal", "my university portal", "university login",
+        "cuonline", "comsats portal", "student portal", "my portal",
+    ],
     "app": ["launch", "start", "run", "open"],
-    "web": ["go to", "visit", "browse"],
-    "check_email": ["check email", "read my email", "any updates on gmail", "new mails", "recent emails", "check inbox", "any new mail"],
-    "email": ["email", "mail", "send email", "write email"],
-    # List / task dictation — all "make a list" variants
+    "email": ["email", "mail", "send email", "write email", "compose email"],
+    # List / task dictation
     "task_queue": [
         "make a list", "create a list", "create a task list", "note down the tasks",
         "multiple tasks", "note down tasks", "note down", "list mode",
         "take a list", "start a list", "i have tasks", "list of tasks",
         "add to list", "task list",
     ],
-    "notes": ["note", "take a note", "write down"],
-    "reminder": ["remind", "reminder", "alert me", "set alarm"],
-    "calendar": ["calendar", "event", "schedule", "meeting"],
-    "task": ["task", "to-do", "todo", "add task", "mark done"],
-    # ── Low-priority: very generic words like "today", "time" ─────────
+    # Notes — Day 15
+    "notes": [
+        "take a note", "save a note", "note that", "write down", "jot down",
+        "make a note", "save this", "remember this", "read my notes",
+        "show my notes", "what are my notes", "search notes",
+    ],
+    # Reminders — Day 15
+    "reminder": [
+        "set a reminder", "remind me", "reminder for", "remind me at",
+        "alert me at", "alert me in", "set alarm", "set an alarm",
+        "remind me in", "add a reminder",
+    ],
+    # Calendar — Day 16
+    "calendar": [
+        "add event", "add a calendar event", "schedule", "meeting",
+        "what do i have today", "what do i have tomorrow", "today's events",
+        "upcoming events", "my schedule", "add to calendar",
+    ],
+    # Tasks — Day 16
+    "task": [
+        "add task", "add a task", "to-do", "todo", "add to my task list",
+        "add to my to do", "what are my tasks", "show my tasks",
+        "pending tasks", "mark done", "mark as done", "complete task",
+        "mark task done",
+    ],
+    # ── Tier 4: Generic / low-priority ───────────────────────────────
     "datetime": ["what time", "what date", "what day", "how many days"],
     "math": ["calculate", "percent"],
     "joke": ["joke", "make me laugh", "funny"],

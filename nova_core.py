@@ -362,7 +362,199 @@ def dispatch_local(
         prompt = _personality.get_roast_prompt("Akif")
         return groq_brain.chat(prompt)
 
-    # Day 15: notes, reminder, calendar, task
-    # Day 17: system, screenshot
+    # ── Day 15: Notes ────────────────────────────────────────────────
+    if intent == "notes":
+        from modules.notes_reminders import NotesModule
+        nm = NotesModule()
+        lower = original.lower()
+
+        # Determine if reading or writing
+        if any(k in lower for k in ("read", "show", "what are", "tell me my", "list my")):
+            return nm.read_notes()
+        if any(k in lower for k in ("search", "find", "look for")):
+            # Extract search query
+            import re as _re
+            q = _re.sub(r"^(search|find|look for)\s+(notes?|about)?\s*", "", lower).strip()
+            return nm.search_notes(q) if q else nm.read_notes()
+
+        # Default: save a new note — strip verb prefix
+        import re as _re
+        content = _re.sub(
+            r"^(take a note|save a note|note that|write down|jot down|make a note|save this|remember this)[:\s]*",
+            "", original, flags=_re.IGNORECASE
+        ).strip()
+        return nm.save_note(content) if content else "What would you like me to note down?"
+
+    # ── Day 15: Reminders ────────────────────────────────────────────
+    if intent == "reminder":
+        from modules.notes_reminders import RemindersModule
+        rm = RemindersModule()
+        lower = original.lower()
+        import re as _re
+
+        # Extract: "remind me [in X / at Y] to [message]" or "set a reminder for [message] at [time]"
+        # Pattern 1: "remind me in/at [time] to [message]"
+        m = _re.search(
+            r"remind\s+me\s+(in\s+[\w\s]+?|at\s+[\w:\s]+?)\s+to\s+(.+)",
+            original, _re.IGNORECASE
+        )
+        if m:
+            time_str = m.group(1).strip()
+            message  = m.group(2).strip()
+            return rm.set_reminder(message, time_str)
+
+        # Pattern 2: "set a reminder for [time] to [message]" / "reminder at [time] [message]"
+        m = _re.search(
+            r"(?:set\s+(?:a\s+)?reminder|reminder)\s+(?:for\s+|in\s+|at\s+)([\w\s:]+?)\s+(?:to\s+|that\s+|—\s*)?(.+)",
+            original, _re.IGNORECASE
+        )
+        if m:
+            time_str = m.group(1).strip()
+            message  = m.group(2).strip()
+            return rm.set_reminder(message, time_str)
+
+        # Ask interactively
+        if speak_func and listen_func:
+            speak_func("What should the reminder say?")
+            message = listen_func()
+            if not message:
+                return "Reminder cancelled."
+            speak_func("When should I remind you?")
+            time_str = listen_func()
+            if not time_str:
+                return "Reminder cancelled."
+            return rm.set_reminder(message.strip(), time_str.strip())
+
+        return "Please tell me the reminder message and time."
+
+    # ── Day 16: Calendar ─────────────────────────────────────────────
+    if intent == "calendar":
+        from modules.calendar_tasks import CalendarModule
+        cm = CalendarModule()
+        lower = original.lower()
+
+        if any(k in lower for k in ("today", "what do i have today", "today's events")):
+            return cm.get_events_today()
+        if any(k in lower for k in ("tomorrow", "what do i have tomorrow")):
+            return cm.get_events_tomorrow()
+        if any(k in lower for k in ("upcoming", "next week", "this week", "my schedule")):
+            return cm.get_upcoming_events()
+
+        # Add event — extract title and time
+        import re as _re
+        # "add event: title on/at datetime"
+        m = _re.search(
+            r"(?:add\s+(?:a\s+)?(?:calendar\s+)?event|schedule)[:\s]+(.+?)(?:\s+on\s+|\s+at\s+|\s+for\s+)(.+)",
+            original, _re.IGNORECASE
+        )
+        if m:
+            return cm.add_event(m.group(1).strip(), m.group(2).strip())
+
+        if speak_func and listen_func:
+            speak_func("What's the event title?")
+            title = listen_func()
+            if not title:
+                return "Event cancelled."
+            speak_func("When is the event?")
+            dt_str = listen_func()
+            if not dt_str:
+                return "Event cancelled."
+            return cm.add_event(title.strip(), dt_str.strip())
+
+        return "Please specify the event name and time."
+
+    # ── Day 16: Tasks ────────────────────────────────────────────────
+    if intent == "task":
+        from modules.calendar_tasks import TasksModule
+        tm = TasksModule()
+        lower = original.lower()
+
+        if any(k in lower for k in ("what are my tasks", "show my tasks", "pending tasks", "my to-do", "my todo")):
+            return tm.get_pending_tasks()
+
+        if any(k in lower for k in ("mark done", "mark as done", "complete task", "mark task done", "finished")):
+            import re as _re
+            # Extract task title/id after the verb
+            task_ref = _re.sub(
+                r"(mark|complete|finished?|done)\s*(task\s*|as\s*done\s*)?", "",
+                lower
+            ).strip()
+            return tm.mark_done(task_ref) if task_ref else "Which task should I mark as done?"
+
+        # Add task — strip verb prefix
+        import re as _re
+        content = _re.sub(
+            r"^(add\s+(?:a\s+)?task|add\s+to\s+my\s+(?:task\s+list|to.?do)|to-?do)[:\s]*",
+            "", original, flags=_re.IGNORECASE
+        ).strip()
+        # Parse priority
+        priority = "medium"
+        if "high priority" in lower:
+            priority = "high"
+            content = content.replace("high priority", "").strip()
+        elif "low priority" in lower:
+            priority = "low"
+            content = content.replace("low priority", "").strip()
+
+        return tm.add_task(content, priority) if content else "What task would you like to add?"
+
+    # ── Day 17: System Controls ───────────────────────────────────────
+    if intent == "system":
+        from modules.system_controls import SystemControls
+        sc = SystemControls()
+        lower = original.lower()
+        import re as _re
+
+        # Volume commands
+        vol_match = _re.search(r"(?:set\s+)?volume\s+(?:to\s+)?(\d+)", lower)
+        if vol_match:
+            return sc.set_volume(int(vol_match.group(1)))
+        if any(k in lower for k in ("volume up", "turn it up", "louder")):
+            return sc.volume_up()
+        if any(k in lower for k in ("volume down", "turn it down", "quieter")):
+            return sc.volume_down()
+        if "mute" in lower and "unmute" not in lower:
+            return sc.mute()
+        if "unmute" in lower:
+            return sc.unmute()
+        if "get volume" in lower or "what's the volume" in lower or "current volume" in lower:
+            return sc.get_volume()
+
+        # Brightness commands
+        bright_match = _re.search(r"brightness\s+(?:to\s+)?(\d+)", lower)
+        if bright_match:
+            return sc.set_brightness(int(bright_match.group(1)))
+        if "brightness up" in lower or "brighter" in lower:
+            return sc.brightness_up()
+        if "brightness down" in lower or "dimmer" in lower:
+            return sc.brightness_down()
+
+        # System info
+        if any(k in lower for k in ("battery", "how much battery")):
+            return sc.get_battery()
+        if any(k in lower for k in ("cpu", "cpu usage", "processor")):
+            return sc.get_cpu_usage()
+        if any(k in lower for k in ("ram", "ram usage", "memory usage")):
+            return sc.get_ram_usage()
+
+        # Power
+        if "shutdown" in lower:
+            return sc.shutdown()
+        if "restart" in lower or "reboot" in lower:
+            return sc.restart()
+        if "sleep" in lower:
+            return sc.sleep()
+        if any(k in lower for k in ("lock screen", "lock the screen", "lock computer")):
+            return sc.lock_screen()
+
+        return "I didn't understand the system command. Try: 'set volume to 50', 'mute', 'battery level', or 'lock screen'."
+
+    # ── Day 17: Screenshot ────────────────────────────────────────────
+    if intent == "screenshot":
+        from modules.screenshot_tools import ScreenshotTools
+        st = ScreenshotTools()
+        return st.take_screenshot()
+
     # Day 21: datetime, math
     return None
+

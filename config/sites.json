@@ -47,7 +47,12 @@
     },
     {
       "name": "University Portal",
-      "aliases": ["university", "comsats portal", "student portal", "cu online", "cuonline"],
+      "aliases": [
+        "university", "university portal", "my university portal",
+        "comsats portal", "comsats", "student portal", "cu online",
+        "cuonline", "my portal", "uni portal", "university login",
+        "comsats login", "academic portal"
+      ],
       "url": "https://cuonline.edu.pk"
     },
     {
