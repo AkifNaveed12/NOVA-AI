@@ -55,7 +55,7 @@ INTENT_PATTERNS = {
         "check email", "check my email", "check my emails", "read my email",
         "any updates on gmail", "new mails", "recent emails", "check inbox",
         "any new mail", "do i have emails", "show my emails", "my inbox",
-        "check gmail", "read my inbox",
+        "check gmail", "check my gmail", "read my inbox",
     ],
     # ── Tier 2: High-priority specific phrases ────────────────────────
     "weather": ["weather", "temperature", "forecast", "rain", "sunny", "humid", "climate"],
