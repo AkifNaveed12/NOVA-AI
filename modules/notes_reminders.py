@@ -54,12 +54,31 @@ class NotesModule:
         return f"Here are your last {len(parts)} notes. " + ". ".join(parts) + "."
 
     def search_notes(self, query: str) -> str:
-        """Searches notes for a keyword."""
+        """Searches notes for a keyword. Tries full query, then prefix/stem matching."""
         with self._conn() as conn:
             rows = conn.execute(
                 "SELECT content FROM Notes WHERE user_id = ? AND content LIKE ? ORDER BY created_at DESC LIMIT 5",
                 (self.user_id, f"%{query}%")
             ).fetchall()
+
+        # If no exact match, try prefix-based search (handles plurals/tense)
+        # "groceries" → try "grocer", "grocery" → matches "grocery store"
+        if not rows:
+            words = [w for w in query.split() if len(w) > 2]
+            for word in words:
+                # Try progressively shorter prefixes (min 4 chars)
+                for prefix_len in range(len(word) - 1, 3, -1):
+                    prefix = word[:prefix_len]
+                    with self._conn() as conn:
+                        rows = conn.execute(
+                            "SELECT content FROM Notes WHERE user_id = ? AND content LIKE ? ORDER BY created_at DESC LIMIT 5",
+                            (self.user_id, f"%{prefix}%")
+                        ).fetchall()
+                    if rows:
+                        break
+                if rows:
+                    break
+
         if not rows:
             return f"I couldn't find any notes containing '{query}'."
         parts = [row["content"] for row in rows]

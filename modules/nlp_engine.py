@@ -116,7 +116,7 @@ INTENT_PATTERNS = {
         "add task", "add a task", "to-do", "todo", "add to my task list",
         "add to my to do", "what are my tasks", "show my tasks",
         "pending tasks", "mark done", "mark as done", "complete task",
-        "mark task done",
+        "mark task done", "mark complete", "mark the task",
     ],
     # ── Tier 4: Generic / low-priority ───────────────────────────────
     "datetime": ["what time", "what date", "what day", "how many days"],

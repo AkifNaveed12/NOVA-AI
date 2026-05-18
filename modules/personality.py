@@ -418,7 +418,19 @@ class PersonalityModule:
             greeting += f" You have {len(events)} event{'s' if len(events) != 1 else ''} today."
         if reminders:
             next_r = reminders[0]
-            greeting += f" Reminder at {next_r}."
+            # Format the reminder dict into a readable string
+            if isinstance(next_r, dict):
+                r_msg = next_r.get("message") or next_r.get("title", "upcoming reminder")
+                r_time = next_r.get("trigger_at", "")
+                try:
+                    import datetime as _dt
+                    dt = _dt.datetime.fromisoformat(r_time)
+                    r_time_str = dt.strftime("%I:%M %p")
+                    greeting += f" You have a reminder at {r_time_str}: {r_msg}."
+                except Exception:
+                    greeting += f" You have a pending reminder: {r_msg}."
+            else:
+                greeting += f" Reminder: {next_r}."
         if notes_count:
             greeting += f" You have {notes_count} saved note{'s' if notes_count != 1 else ''}."
 

@@ -67,6 +67,9 @@ class EmailModule:
                 if status != "OK":
                     return []
                 email_ids = messages[0].split()
+                # Apply limit to unseen emails too
+                if limit and len(email_ids) > limit:
+                    email_ids = email_ids[-limit:]
             else:
                 status, messages = mail.search(None, "ALL")
                 if status != "OK":

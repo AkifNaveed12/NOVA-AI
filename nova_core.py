@@ -112,6 +112,9 @@ def route(
     original = nlp_result.get("original", "")
     entities = nlp_result.get("entities", {})
 
+    # ── Strip STT noise prefix (wake word tail leaks into transcription) ──
+    original = re.sub(r"^(?:innova|renuka|nova|nava|in nova)\s+", "", original, flags=re.IGNORECASE).strip()
+
     # ── Multi-command detection: "open X and email Y" ─────────────────
     if intent in ("app", "web"):
         segments = _split_multi_commands(original)
@@ -242,21 +245,22 @@ def dispatch_local(
         
         responses = []
         for target in targets:
-            # Priority 1: Check if it's a known app
-            if al.is_app_known(target):
-                responses.append(al.launch(target))
-                continue
-            
-            # Priority 2: Check if it's a known site
-            if wa.is_site_known(target):
-                responses.append(wa.open_site(target))
-                continue
-                
-            # Priority 3: Fallback based on original intent
-            if intent == "app":
-                responses.append(al.launch(target))
+            if intent == "web":
+                # Web intent: check sites FIRST, then apps
+                if wa.is_site_known(target):
+                    responses.append(wa.open_site(target))
+                elif al.is_app_known(target):
+                    responses.append(al.launch(target))
+                else:
+                    responses.append(wa.open_site(target))
             else:
-                responses.append(wa.open_site(target))
+                # App intent: check apps FIRST, then sites
+                if al.is_app_known(target):
+                    responses.append(al.launch(target))
+                elif wa.is_site_known(target):
+                    responses.append(wa.open_site(target))
+                else:
+                    responses.append(al.launch(target))
                 
         # Combine responses into a single string for TTS
         if len(responses) == 1:
@@ -372,9 +376,9 @@ def dispatch_local(
         if any(k in lower for k in ("read", "show", "what are", "tell me my", "list my")):
             return nm.read_notes()
         if any(k in lower for k in ("search", "find", "look for")):
-            # Extract search query
+            # Extract search query — strip verb + filler words
             import re as _re
-            q = _re.sub(r"^(search|find|look for)\s+(notes?|about)?\s*", "", lower).strip()
+            q = _re.sub(r"^(search|find|look for)\s+(notes?\s+)?(for\s+|about\s+|related to\s+)?", "", lower).strip()
             return nm.search_notes(q) if q else nm.read_notes()
 
         # Default: save a new note — strip verb prefix
@@ -392,10 +396,9 @@ def dispatch_local(
         lower = original.lower()
         import re as _re
 
-        # Extract: "remind me [in X / at Y] to [message]" or "set a reminder for [message] at [time]"
-        # Pattern 1: "remind me in/at [time] to [message]"
+        # Pattern 1: "remind me in/at [TIME] to [MESSAGE]" — greedy time capture
         m = _re.search(
-            r"remind\s+me\s+(in\s+[\w\s]+?|at\s+[\w:\s]+?)\s+to\s+(.+)",
+            r"remind\s+me\s+((?:in|at)\s+.+)\s+to\s+(.+)",
             original, _re.IGNORECASE
         )
         if m:
@@ -403,9 +406,9 @@ def dispatch_local(
             message  = m.group(2).strip()
             return rm.set_reminder(message, time_str)
 
-        # Pattern 2: "set a reminder for [time] to [message]" / "reminder at [time] [message]"
+        # Pattern 2: "set a reminder in/at/for [TIME] to [MESSAGE]" — greedy
         m = _re.search(
-            r"(?:set\s+(?:a\s+)?reminder|reminder)\s+(?:for\s+|in\s+|at\s+)([\w\s:]+?)\s+(?:to\s+|that\s+|—\s*)?(.+)",
+            r"(?:set\s+(?:a\s+)?reminder|reminder)\s+(?:for|in|at)\s+(.+)\s+to\s+(.+)",
             original, _re.IGNORECASE
         )
         if m:
@@ -433,22 +436,33 @@ def dispatch_local(
         cm = CalendarModule()
         lower = original.lower()
 
-        if any(k in lower for k in ("today", "what do i have today", "today's events")):
-            return cm.get_events_today()
+        # IMPORTANT: check "tomorrow" BEFORE "today" — "tomorrow" contains "today"
         if any(k in lower for k in ("tomorrow", "what do i have tomorrow")):
             return cm.get_events_tomorrow()
+        if any(k in lower for k in ("today", "what do i have today", "today's events")):
+            return cm.get_events_today()
         if any(k in lower for k in ("upcoming", "next week", "this week", "my schedule")):
             return cm.get_upcoming_events()
 
         # Add event — extract title and time
         import re as _re
-        # "add event: title on/at datetime"
+        # Pattern: "schedule [a] [title] [on/at/for] [datetime]" — greedy backtracking
         m = _re.search(
-            r"(?:add\s+(?:a\s+)?(?:calendar\s+)?event|schedule)[:\s]+(.+?)(?:\s+on\s+|\s+at\s+|\s+for\s+)(.+)",
+            r"(?:add\s+(?:a\s+)?(?:calendar\s+)?event|schedule)\s+(?:a\s+)?(.+)\s+(?:on|at|for)\s+(.+)",
             original, _re.IGNORECASE
         )
         if m:
-            return cm.add_event(m.group(1).strip(), m.group(2).strip())
+            title    = m.group(1).strip()
+            time_str = m.group(2).strip()
+            # Move trailing day-words from title into time string
+            day_match = _re.search(
+                r"\s+(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next\s+\w+)$",
+                title, _re.IGNORECASE
+            )
+            if day_match:
+                time_str = day_match.group(1) + " " + time_str
+                title = title[:day_match.start()].strip()
+            return cm.add_event(title, time_str)
 
         if speak_func and listen_func:
             speak_func("What's the event title?")
@@ -472,16 +486,16 @@ def dispatch_local(
         if any(k in lower for k in ("what are my tasks", "show my tasks", "pending tasks", "my to-do", "my todo")):
             return tm.get_pending_tasks()
 
-        if any(k in lower for k in ("mark done", "mark as done", "complete task", "mark task done", "finished")):
+        if any(k in lower for k in ("mark done", "mark as done", "complete task", "mark task done", "mark complete", "finished")):
             import re as _re
             # Extract task title/id after the verb
             task_ref = _re.sub(
-                r"(mark|complete|finished?|done)\s*(task\s*|as\s*done\s*)?", "",
+                r"(mark|complete|finished?|done|as done|as complete)\s*(task\s*|the\s+)?", "",
                 lower
             ).strip()
             return tm.mark_done(task_ref) if task_ref else "Which task should I mark as done?"
 
-        # Add task — strip verb prefix
+        # Add task — strip verb prefix (including STT noise words)
         import re as _re
         content = _re.sub(
             r"^(add\s+(?:a\s+)?task|add\s+to\s+my\s+(?:task\s+list|to.?do)|to-?do)[:\s]*",
@@ -491,10 +505,10 @@ def dispatch_local(
         priority = "medium"
         if "high priority" in lower:
             priority = "high"
-            content = content.replace("high priority", "").strip()
+            content = _re.sub(r"high\s+priority", "", content, flags=_re.IGNORECASE).strip()
         elif "low priority" in lower:
             priority = "low"
-            content = content.replace("low priority", "").strip()
+            content = _re.sub(r"low\s+priority", "", content, flags=_re.IGNORECASE).strip()
 
         return tm.add_task(content, priority) if content else "What task would you like to add?"
 
@@ -505,47 +519,51 @@ def dispatch_local(
         lower = original.lower()
         import re as _re
 
-        # Volume commands
-        vol_match = _re.search(r"(?:set\s+)?volume\s+(?:to\s+)?(\d+)", lower)
-        if vol_match:
-            return sc.set_volume(int(vol_match.group(1)))
-        if any(k in lower for k in ("volume up", "turn it up", "louder")):
-            return sc.volume_up()
-        if any(k in lower for k in ("volume down", "turn it down", "quieter")):
-            return sc.volume_down()
-        if "mute" in lower and "unmute" not in lower:
-            return sc.mute()
-        if "unmute" in lower:
-            return sc.unmute()
-        if "get volume" in lower or "what's the volume" in lower or "current volume" in lower:
-            return sc.get_volume()
+        try:
+            # Volume commands
+            vol_match = _re.search(r"(?:set\s+)?(?:the\s+)?volume\s+(?:to\s+)?(\d+)", lower)
+            if vol_match:
+                return sc.set_volume(int(vol_match.group(1)))
+            if any(k in lower for k in ("volume up", "turn it up", "louder")):
+                return sc.volume_up()
+            if any(k in lower for k in ("volume down", "turn it down", "quieter")):
+                return sc.volume_down()
+            if "mute" in lower and "unmute" not in lower:
+                return sc.mute()
+            if "unmute" in lower:
+                return sc.unmute()
+            if "get volume" in lower or "what's the volume" in lower or "current volume" in lower:
+                return sc.get_volume()
 
-        # Brightness commands
-        bright_match = _re.search(r"brightness\s+(?:to\s+)?(\d+)", lower)
-        if bright_match:
-            return sc.set_brightness(int(bright_match.group(1)))
-        if "brightness up" in lower or "brighter" in lower:
-            return sc.brightness_up()
-        if "brightness down" in lower or "dimmer" in lower:
-            return sc.brightness_down()
+            # Brightness commands
+            bright_match = _re.search(r"brightness\s+(?:to\s+)?(\d+)", lower)
+            if bright_match:
+                return sc.set_brightness(int(bright_match.group(1)))
+            if "brightness up" in lower or "brighter" in lower:
+                return sc.brightness_up()
+            if "brightness down" in lower or "dimmer" in lower:
+                return sc.brightness_down()
 
-        # System info
-        if any(k in lower for k in ("battery", "how much battery")):
-            return sc.get_battery()
-        if any(k in lower for k in ("cpu", "cpu usage", "processor")):
-            return sc.get_cpu_usage()
-        if any(k in lower for k in ("ram", "ram usage", "memory usage")):
-            return sc.get_ram_usage()
+            # System info
+            if any(k in lower for k in ("battery", "how much battery")):
+                return sc.get_battery()
+            if any(k in lower for k in ("cpu", "cpu usage", "processor")):
+                return sc.get_cpu_usage()
+            if any(k in lower for k in ("ram", "ram usage", "memory usage")):
+                return sc.get_ram_usage()
 
-        # Power
-        if "shutdown" in lower:
-            return sc.shutdown()
-        if "restart" in lower or "reboot" in lower:
-            return sc.restart()
-        if "sleep" in lower:
-            return sc.sleep()
-        if any(k in lower for k in ("lock screen", "lock the screen", "lock computer")):
-            return sc.lock_screen()
+            # Power
+            if "shutdown" in lower:
+                return sc.shutdown()
+            if "restart" in lower or "reboot" in lower:
+                return sc.restart()
+            if "sleep" in lower:
+                return sc.sleep()
+            if any(k in lower for k in ("lock screen", "lock the screen", "lock computer")):
+                return sc.lock_screen()
+        except Exception as e:
+            print(f"[SystemControls] Error: {e}")
+            return f"System command failed: {e}"
 
         return "I didn't understand the system command. Try: 'set volume to 50', 'mute', 'battery level', or 'lock screen'."
 
