@@ -15,15 +15,8 @@ class WhatsAppModule:
     def __init__(self, config: dict = None):
         self._config = config or {}
         
-        # Load contacts
-        self.contacts = []
-        contacts_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "contacts.json")
-        try:
-            with open(contacts_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                self.contacts = data.get("contacts", [])
-        except Exception as e:
-            print(f"[WhatsApp] Error loading contacts: {e}")
+        from modules.config_manager import config_manager
+        self.contacts = config_manager.contacts.get("contacts", [])
 
     def _resolve_phone(self, name: str) -> Optional[str]:
         """Fuzzy match a name against contacts.json aliases/names to find a phone number."""

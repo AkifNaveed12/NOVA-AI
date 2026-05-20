@@ -43,6 +43,15 @@ INTENT_PATTERNS = {
         "who are you", "what are you", "introduce", "about yourself",
         "who is nova", "tell us about yourself", "your name",
     ],
+    "config_manager": [
+        "reload config", "reload settings", "reload configuration", "refresh settings",
+        "update settings", "reload apps", "reload sites", "reload contacts",
+    ],
+    "activity_log": [
+        "what did i ask you earlier", "what did i ask earlier", "show today's log",
+        "show today's logs", "show my activity log", "show command history",
+        "what did i say earlier", "what were my last commands", "show history",
+    ],
     # WhatsApp before "app" (which catches "open")
     "whatsapp": [
         "whatsapp", "send message", "text mama", "text baba", "text hamza",

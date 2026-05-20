@@ -376,14 +376,10 @@ class EmailModule:
             return ""
         name_lower = name.lower()
         try:
-            import json
-            contacts_path = os.path.join(
-                os.path.dirname(os.path.dirname(__file__)), "config", "contacts.json"
-            )
-            with open(contacts_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            from modules.config_manager import config_manager
+            contacts = config_manager.contacts.get("contacts", [])
 
-            for contact in data.get("contacts", []):
+            for contact in contacts:
                 contact_name = contact.get("name", "").lower()
                 aliases = [a.lower() for a in contact.get("aliases", [])]
                 

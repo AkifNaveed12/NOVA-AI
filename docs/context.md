@@ -499,3 +499,16 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 - **WhatsApp Web Sending Hardening**: Replaced the black-box `pywhatkit` library in `WhatsAppModule.send_message` with direct native browser opening and robust `pyautogui` key events. It waits 20 seconds for the WhatsApp Web page to load, presses `enter` to send, waits 3 seconds, and closes the tab using `ctrl+w` to prevent browser clutter.
 - **Verification**: Ran all 52 automated tests in the test suite and confirmed 100% pass rates.
 
+---
+
+## Day 20 (Part 2) — Module 24 (Activity Log) & Module 25 (Config Manager)
+**Date:** 2026-05-20
+**Status:** Complete
+
+### What was done
+- **ConfigManager (`modules/config_manager.py`)**: Implemented dynamic central configuration management with thread-safe file reloading. Added methods to get, set, reload configurations and add new applications, sites, and contacts directly to the JSON configuration registries.
+- **ConfigProxy (`modules/config_manager.py`)**: Implemented a dynamic dictionary proxy that delegates all key lookups and path fetches to `ConfigManager` to allow live config hot-reloads without restarting.
+- **ActivityLogger (`modules/activity_log.py`)**: Implemented centralized command and action logging via the existing SQLite database. Includes an automated database cleanup task that removes logs older than 30 days.
+- **Changelog Routing & Queries**: Integrated `"What did I ask you earlier?"` and `"Show today's log"` commands to query history from the database, formatting it cleanly into list responses. Added `"reload config"` voice control.
+- **Verification**: Created `tests/test_day20.py` and ran the new unit tests verifying ConfigManager, ConfigProxy, ActivityLogger, and routing patterns. Verified with 100% pass rate.
+

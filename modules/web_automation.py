@@ -19,15 +19,8 @@ from rapidfuzz import process, fuzz
 
 class WebAutomation:
     def __init__(self, config: dict = None):
-        # Load sites registry
-        sites_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "sites.json")
-        try:
-            with open(sites_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            self.sites = data.get("sites", [])
-        except Exception as e:
-            print(f"[Web] Error loading sites.json: {e}")
-            self.sites = []
+        from modules.config_manager import config_manager
+        self.sites = config_manager.sites.get("sites", [])
 
         # Build a flat lookup: alias → {name, url}
         self._alias_map = {}

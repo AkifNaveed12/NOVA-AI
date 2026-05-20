@@ -23,15 +23,8 @@ def main() -> None:
     """Entry point — initialises all threads and launches HUD."""
     print("NOVA AI — Initializing...")
 
-    import json
-    
-    # Load config
-    try:
-        with open("config.json", "r", encoding="utf-8") as f:
-            config = json.load(f)
-    except Exception as e:
-        print(f"Error loading config.json: {e}")
-        return
+    from modules.config_manager import config_proxy
+    config = config_proxy
 
     # ── Shared state ─────────────────────────────────────────────────
     # wake_event: set() by wake_word_thread → main pipeline waits on it
@@ -51,7 +44,9 @@ def main() -> None:
     from modules.hud_interface import NOVAHud
 
     # ── Initialize Modules ────────────────────────────────────────────
+    from modules.activity_log import ActivityLogger
     db_manager = DatabaseManager()
+    activity_logger = ActivityLogger(db_manager)
     
     # Inject memory facts into GroqBrain (which is globally imported in nova_core)
     import nova_core
@@ -266,10 +261,10 @@ def main() -> None:
                             hud.update_status("sleeping")
                             continue
 
-                        activity_id = db_manager.log_activity(
-                            command=text,
-                            module=intent,
-                            response=response,
+                        activity_id = activity_logger.log(
+                            command_text=text,
+                            module_triggered=intent,
+                            response_summary=response,
                             success=True
                         )
 

@@ -18,15 +18,10 @@ import re
 from typing import Optional
 
 
-def load_config() -> dict:
-    """Load master config.json from project root."""
-    config_path = os.path.join(os.path.dirname(__file__), "config.json")
-    with open(config_path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
 # Initialize GroqBrain globally so history is maintained across routes
 from modules.groq_brain import GroqBrain
-_config = load_config()
+from modules.config_manager import config_proxy
+_config = config_proxy
 groq_brain = GroqBrain(_config)
 
 # Initialize PersonalityModule once at module level
@@ -42,6 +37,7 @@ LOCAL_INTENTS = {
     "reminder", "calendar", "task", "datetime", "math",
     "translate", "whatsapp", "email", "check_email",
     "task_queue", "introduce", "joke", "motivate", "roast",
+    "config_manager", "activity_log",
 }
 
 GROQ_INTENTS = {
@@ -572,6 +568,42 @@ def dispatch_local(
         from modules.screenshot_tools import ScreenshotTools
         st = ScreenshotTools()
         return st.take_screenshot()
+
+    # ── Day 20: Config Manager & Activity Log ─────────────────────────
+    if intent == "config_manager":
+        from modules.config_manager import config_manager
+        config_manager.reload()
+        return "I have successfully reloaded the configuration files."
+
+    if intent == "activity_log":
+        from modules.activity_log import ActivityLogger
+        logger = ActivityLogger()
+        if "today" in original.lower() or "log" in original.lower():
+            logs = logger.get_today()
+            if not logs:
+                return "You haven't asked me anything yet today."
+            # Format and return the last 5 commands
+            recent = logs[:5]
+            summary_lines = []
+            for i, entry in enumerate(recent):
+                cmd = entry.get("command_text", "")
+                resp = entry.get("response_summary", "")
+                if len(resp) > 60:
+                    resp = resp[:57] + "..."
+                summary_lines.append(f"{i+1}: You asked '{cmd}', and I responded '{resp}'")
+            return "Here are your recent commands for today: " + ". ".join(summary_lines)
+        else:
+            logs = logger.get_recent(5)
+            if not logs:
+                return "I don't have any recorded command history."
+            summary_lines = []
+            for i, entry in enumerate(logs):
+                cmd = entry.get("command_text", "")
+                resp = entry.get("response_summary", "")
+                if len(resp) > 60:
+                    resp = resp[:57] + "..."
+                summary_lines.append(f"{i+1}: You asked '{cmd}', and I responded '{resp}'")
+            return "Earlier, you asked me: " + ". ".join(summary_lines)
 
     # Day 21: datetime, math
     return None

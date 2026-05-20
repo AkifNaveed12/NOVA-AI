@@ -18,15 +18,8 @@ from rapidfuzz import process, fuzz
 
 class AppLauncher:
     def __init__(self, config: dict = None):
-        # Load apps registry
-        apps_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "apps.json")
-        try:
-            with open(apps_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            self.apps = data.get("apps", [])
-        except Exception as e:
-            print(f"[AppLauncher] Error loading apps.json: {e}")
-            self.apps = []
+        from modules.config_manager import config_manager
+        self.apps = config_manager.apps.get("apps", [])
 
         # Build a flat lookup: alias -> {name, path}
         self._alias_map = {}
