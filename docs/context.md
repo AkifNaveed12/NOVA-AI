@@ -512,3 +512,25 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 - **Changelog Routing & Queries**: Integrated `"What did I ask you earlier?"` and `"Show today's log"` commands to query history from the database, formatting it cleanly into list responses. Added `"reload config"` voice control.
 - **Verification**: Created `tests/test_day20.py` and ran the new unit tests verifying ConfigManager, ConfigProxy, ActivityLogger, and routing patterns. Verified with 100% pass rate.
 
+---
+
+## Day 21 — Module 15 (Date, Time & Math) + Personality Roast + Week 3 Integration
+**Date:** 2026-05-20
+**Status:** Complete
+
+### What was done
+- **DateTimeCalc (`modules/datetime_calc.py`)**: Implemented local date, time, and arithmetic handlers.
+- **SafeMathEvaluator**: Created a safe, sandboxed AST-based mathematical evaluator (avoiding dangerous `eval()` and `exec()`). Normalizes text prepositions (plus, minus, percent of) and filters alphanumeric tokens to prevent code injection.
+- **Personality Module Roast (`modules/personality.py`)**: Enhanced `PersonalityModule` with a new `roast(name)` method that calls `groq_brain.chat(prompt)` using the friendly roast prompt.
+- **NLP Engine Upgrades (`modules/nlp_engine.py`)**:
+  - Added robust regex entity extraction for `math_expr` and `target_date`.
+  - Added early classification overrides for math queries (containing "percent") and date queries ("what's today's date") to prevent them from being intercepted by the general Wikipedia intent check.
+- **System Integration (`nova_core.py`)**:
+  - Routed `"datetime"` intent to local date, time, and days_until handlers.
+  - Routed `"math"` intent to safe local AST math evaluator.
+  - Updated `"roast"` routing to call the new `roast()` method in `PersonalityModule`.
+- **E2E Integration Testing (`tests/test_day21.py`)**:
+  - Wrote 29 comprehensive unit and integration tests covering Module 15, Personality roast, NLP extraction, Notes, Reminders, Calendar, Tasks, system controls, screenshot, gestures, activity log, and config manager.
+  - Configured file-based temporary databases for DB-related tests to ensure correct isolated schema initialization.
+  - Confirmed all tests passed with a 100% pass rate.
+

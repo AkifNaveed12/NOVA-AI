@@ -359,8 +359,7 @@ def dispatch_local(
         return groq_brain.chat(prompt)
 
     elif intent == "roast":
-        prompt = _personality.get_roast_prompt("Akif")
-        return groq_brain.chat(prompt)
+        return _personality.roast("Akif")
 
     # ── Day 15: Notes ────────────────────────────────────────────────
     if intent == "notes":
@@ -606,5 +605,34 @@ def dispatch_local(
             return "Earlier, you asked me: " + ". ".join(summary_lines)
 
     # Day 21: datetime, math
+    if intent == "datetime":
+        from modules.datetime_calc import DateTimeCalc
+        dt = DateTimeCalc()
+        lower = original.lower()
+        if "until" in lower or "days" in lower:
+            target_date = entities.get("target_date")
+            if not target_date:
+                import re as _re
+                m = _re.search(r"until\s+(.+)", lower)
+                target_date = m.group(1).strip() if m else None
+            return dt.days_until(target_date)
+        elif "date" in lower or "day" in lower:
+            return dt.get_date()
+        else:
+            return dt.get_time()
+
+    if intent == "math":
+        from modules.datetime_calc import DateTimeCalc
+        dt = DateTimeCalc()
+        expr = entities.get("math_expr")
+        if not expr:
+            import re as _re
+            m = _re.search(r"calculate\s+(.+)", original, _re.IGNORECASE)
+            if m:
+                expr = m.group(1).strip()
+            else:
+                expr = original
+        return dt.calculate(expr)
+
     return None
 

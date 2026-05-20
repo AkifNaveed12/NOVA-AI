@@ -147,6 +147,12 @@ def classify_intent(text: str) -> str:
     if re.search(r'\d+\s*[\+\-\*\/]\s*\d+', text_lower):
         return "math"
 
+    if "percent" in text_lower:
+        return "math"
+
+    if "what is the date" in text_lower or "what's the date" in text_lower or "what is today's date" in text_lower:
+        return "datetime"
+
     # Priority-ordered matching — first match in dict order wins
     for intent, patterns in INTENT_PATTERNS.items():
         for pattern in patterns:
@@ -216,6 +222,22 @@ def extract_entities(text: str) -> dict:
         # Remove trailing question marks and filler
         raw = re.sub(r'[?!.]+$', '', raw).strip()
         entities["wiki_query"] = raw
+
+    # ── Math expression extraction ────────────────────────────────────
+    math_match = re.search(r"calculate\s+(.+)", text, re.IGNORECASE)
+    if math_match:
+        entities["math_expr"] = math_match.group(1).strip()
+    else:
+        what_is_math = re.search(r"what\s+is\s+(.+)", text, re.IGNORECASE)
+        candidate = what_is_math.group(1).strip() if what_is_math else text
+        if re.search(r"\d", candidate) and (re.search(r"[\+\-\*\/%]", candidate) or any(k in candidate.lower() for k in ("percent", "plus", "minus", "times", "divided", "multiplied"))):
+            entities["math_expr"] = re.sub(r"[?!.]+$", "", candidate).strip()
+
+    # ── Date calculation extraction ───────────────────────────────────
+    days_until_match = re.search(r"(?:how\s+many\s+)?days\s+until\s+(.+)", text, re.IGNORECASE)
+    if days_until_match:
+        raw_date = days_until_match.group(1).strip()
+        entities["target_date"] = re.sub(r"[?!.]+$", "", raw_date).strip()
 
     return entities
 
