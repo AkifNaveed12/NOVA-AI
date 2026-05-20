@@ -59,7 +59,7 @@ class WebAutomation:
 
         # Fuzzy match against all aliases
         all_aliases = list(self._alias_map.keys())
-        match = process.extractOne(query, all_aliases, scorer=fuzz.WRatio, score_cutoff=65)
+        match = process.extractOne(query, all_aliases, scorer=fuzz.token_set_ratio, score_cutoff=65)
 
         if match:
             matched_alias, score, _ = match
@@ -85,7 +85,7 @@ class WebAutomation:
         all_aliases = list(self._alias_map.keys())
         if not all_aliases:
             return False
-        match = process.extractOne(query, all_aliases, scorer=fuzz.WRatio, score_cutoff=65)
+        match = process.extractOne(query, all_aliases, scorer=fuzz.token_set_ratio, score_cutoff=65)
         return bool(match)
 
     def search_youtube(self, query: str, play: bool = False) -> str:
