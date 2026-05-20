@@ -484,3 +484,18 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 - **Action Dispatcher**: Translates gestures directly into OS actions using `pyautogui` (media play/pause, scroll up/down, volume up, next/previous track, zoom in, and switch tabs).
 - **Thread Architecture**: Wired into `main.py` as a daemon thread that starts automatically if `"gesture_control": true` is set in `config.json`. Runs safely alongside the voice pipeline.
 - **Unit Tests**: Added `tests/test_gesture.py` with mock CV landmarks to verify finger state extraction, gesture classification logic, and debouncing without requiring a physical camera.
+
+---
+
+## Day 20 (Part 1) — Core Automation Hardening & API Fixes
+**Date:** 2026-05-20
+**Status:** Complete
+
+### What was done
+- **Fuzzy Match Precision**: Replaced `fuzz.WRatio` with `fuzz.token_set_ratio` in both `AppLauncher` and `WebAutomation` modules. This ensures noisy voice commands containing website names (like "my linkedin nova") no longer trigger false matches against short app names (like "my computer" / File Explorer).
+- **Windows URL Opening Reliability**: Replaced Python's standard `webbrowser.open` with a native `os.startfile` helper on Windows (with browser fallback on other platforms). This guarantees that links like LinkedIn open in the default browser every time without silent failures.
+- **Wikipedia JSON Parse Error Fixed**: Fixed a crash in the Wikipedia search feature where queries like "my teacher" threw `Expecting value: line 1 column 1 (char 0)` because the Wikipedia API blocked bot requests without a custom user agent. Added `wikipedia.set_user_agent("NOVA-AI/1.0 (contact: uzma.naveed18@gmail.com)")` to fix the API handshake.
+- **Spotify Automation Tuning**: Simplified Spotify's keyboard navigation sequence in `MusicModule._play_song_automation` to only use `down` arrow and a single `enter` keypress, preventing double-play toggling or UI navigation errors.
+- **WhatsApp Web Sending Hardening**: Replaced the black-box `pywhatkit` library in `WhatsAppModule.send_message` with direct native browser opening and robust `pyautogui` key events. It waits 20 seconds for the WhatsApp Web page to load, presses `enter` to send, waits 3 seconds, and closes the tab using `ctrl+w` to prevent browser clutter.
+- **Verification**: Ran all 52 automated tests in the test suite and confirmed 100% pass rates.
+

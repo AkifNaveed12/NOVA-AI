@@ -49,14 +49,51 @@ class WhatsAppModule:
             
         return None
 
-    def send_message(self, phone: str, message: str) -> bool:
-        """Sends a WhatsApp message via pywhatkit (instantly, no scheduled time)."""
+    def _open_url(self, url: str):
+        """Helper to open URLs reliably on Windows using native os.startfile, with fallback to webbrowser."""
         try:
-            import pywhatkit
-            print(f"[WhatsApp] Sending to {phone}: {message}")
-            # wait_time=15 gives WhatsApp Web time to load
-            # tab_close=True closes the browser tab after sending
-            pywhatkit.sendwhatmsg_instantly(phone, message, wait_time=15, tab_close=True, close_time=5)
+            import platform
+            if platform.system() == "Windows":
+                os.startfile(url)
+            else:
+                webbrowser.open(url)
+        except Exception as e:
+            print(f"[WhatsApp] Error opening URL {url}: {e}")
+            import webbrowser
+            webbrowser.open(url)
+
+    def send_message(self, phone: str, message: str) -> bool:
+        """Sends a WhatsApp message via direct browser automation with robust timing."""
+        try:
+            import urllib.parse
+            import time
+            try:
+                import pyautogui
+            except ImportError:
+                print("[WhatsApp] pyautogui not installed, cannot send keys.")
+                return False
+
+            # Format URL with phone and message text
+            encoded_msg = urllib.parse.quote(message)
+            url = f"https://web.whatsapp.com/send?phone={phone}&text={encoded_msg}"
+            
+            print(f"[WhatsApp] Opening browser to send to {phone}...")
+            self._open_url(url)
+            
+            # Wait for WhatsApp Web to load. 20s is safer than 15s.
+            time.sleep(20)
+            
+            # Press enter to send
+            print("[WhatsApp] Pressing enter to send...")
+            pyautogui.press("enter")
+            
+            # Wait 3 seconds for the message to be transmitted
+            time.sleep(3)
+            
+            # Close the tab to prevent browser clutter
+            print("[WhatsApp] Closing WhatsApp Web tab...")
+            pyautogui.hotkey("ctrl", "w")
+            
             return True
         except Exception as e:
             print(f"[WhatsApp] Failed to send message: {e}")

@@ -129,12 +129,6 @@ class MusicModule:
             pyautogui.press('down')
             time.sleep(0.5)
             pyautogui.press('enter')
-            time.sleep(0.5)
-            pyautogui.press('enter')
-            
-            # Also press tab and enter just in case it requires a button click
-            pyautogui.press('tab')
-            pyautogui.press('enter')
             
         except Exception as e:
             print(f"[MusicModule] Automation failed: {e}")

@@ -17,6 +17,8 @@ class WikipediaModule:
     def __init__(self):
         # Use English Wikipedia
         wikipedia.set_lang("en")
+        # Set user agent to avoid API request blocking/JSON errors
+        wikipedia.set_user_agent("NOVA-AI/1.0 (contact: uzma.naveed18@gmail.com)")
 
     def search(self, query: str) -> str:
         """

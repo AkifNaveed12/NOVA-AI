@@ -41,6 +41,18 @@ class WebAutomation:
         # Selenium driver (lazy init)
         self.driver = None
 
+    def _open_url(self, url: str):
+        """Helper to open URLs reliably on Windows using native os.startfile, with fallback to webbrowser."""
+        try:
+            import platform
+            if platform.system() == "Windows":
+                os.startfile(url)
+            else:
+                webbrowser.open(url)
+        except Exception as e:
+            print(f"[Web] Error opening URL {url}: {e}")
+            webbrowser.open(url)
+
     def open_site(self, name: str) -> str:
         """
         Opens a website by name. Uses fuzzy matching against sites.json.
@@ -54,7 +66,7 @@ class WebAutomation:
         # Direct match first
         if query in self._alias_map:
             entry = self._alias_map[query]
-            webbrowser.open(entry["url"])
+            self._open_url(entry["url"])
             return f"Opening {entry['name']}."
 
         # Fuzzy match against all aliases
@@ -64,13 +76,13 @@ class WebAutomation:
         if match:
             matched_alias, score, _ = match
             entry = self._alias_map[matched_alias]
-            webbrowser.open(entry["url"])
+            self._open_url(entry["url"])
             return f"Opening {entry['name']}."
 
         # Unknown site — try opening as a raw URL or Google search
         if "." in query:
             url = query if query.startswith("http") else f"https://{query}"
-            webbrowser.open(url)
+            self._open_url(url)
             return f"Opening {query}."
 
         return f"I don't know a website called '{name}'. You can say open google dot com or add it to sites.json."
@@ -105,14 +117,14 @@ class WebAutomation:
                 video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
                 if video_ids:
                     url = f"https://www.youtube.com/watch?v={video_ids[0]}"
-                    webbrowser.open(url)
+                    self._open_url(url)
                     return f"Playing {query} on YouTube."
             except Exception as e:
                 print(f"[WebAutomation] YouTube play error: {e}")
                 
         # Fallback to normal search page
         url = f"https://www.youtube.com/results?search_query={encoded}"
-        webbrowser.open(url)
+        self._open_url(url)
         return f"Searching YouTube for: {query}."
 
     def search_google(self, query: str) -> str:
@@ -122,7 +134,7 @@ class WebAutomation:
 
         encoded = urllib.parse.quote_plus(query.strip())
         url = f"https://www.google.com/search?q={encoded}"
-        webbrowser.open(url)
+        self._open_url(url)
         return f"Searching Google for: {query}."
 
     def _get_driver(self):
