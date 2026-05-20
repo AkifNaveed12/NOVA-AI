@@ -158,6 +158,22 @@ def main() -> None:
     reminder_engine = ReminderEngine(_reminders_module, announcement_queue, hud_ticker_queue)
     reminder_engine.start()
 
+    # ── Gesture Engine — Day 18-19 ─────────────────────────────────────
+    if config.get("modules", {}).get("gesture_control", False):
+        from modules.gesture_engine import GestureEngine
+        gesture_cfg = config.get("gesture", {})
+        # approximate pinch threshold normalization
+        pinch_thresh = gesture_cfg.get("pinch_threshold_px", 30) / 300.0 
+        gesture_engine = GestureEngine(
+            camera_index=gesture_cfg.get("camera_index", 0),
+            fps_target=gesture_cfg.get("fps_target", 20),
+            debounce_seconds=gesture_cfg.get("debounce_seconds", 0.4),
+            pinch_threshold=pinch_thresh
+        )
+        gesture_engine.start()
+    else:
+        gesture_engine = None
+
     # Define the voice pipeline thread
     def voice_pipeline():
         """Background thread: wakes on event, listens, routes, speaks, loops."""
@@ -292,6 +308,8 @@ def main() -> None:
     
     print("\nNOVA AI — Shutting down gracefully...")
     try:
+        if gesture_engine:
+            gesture_engine.stop()
         wake_word.stop()
         if getattr(shared_mic, 'stream', None) is not None:
             shared_mic.__exit__(None, None, None) # Close the PyAudio stream

@@ -454,3 +454,33 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 - Say "Hey NOVA, tell me a joke" → offline pyjoke returned
 - Say "Hey NOVA, who are you" → same intro triggers
 - After intro completes → NOVA returns to sleeping state cleanly, wake word re-arms
+
+
+---
+
+## Days 15-17 — Core Systems Stabilization & Bug Fixes
+**Date:** 2026-05-18
+**Status:** Complete
+
+### What was done
+- **Routing Priority Fix**: Swapped NLP routing priority in `nova_core.py` to check `sites` before `apps`, fixing the issue where University Portal opened File Explorer instead of the browser.
+- **Email Fetch Limit**: Fixed the EmailModule returning too many failed delivery notifications by capping `unseen` fetches to 5.
+- **Fuzzy Note Search**: Improved `NotesModule.search_notes()` to use prefix matching and stem expansion so that 'groceries' successfully matches 'grocery store'.
+- **Reminder Regex & Time Fix**: Swapped to greedy regex to capture full date/time strings (e.g. '1 min') instead of truncating, fixing 12 AM default errors.
+- **Task 'Mark Complete' NLP**: Added intent matching patterns for 'mark complete' and 'mark task done' to properly route to `task_manager`.
+- **System Controls Safety**: Wrapped hardware-level SystemControls API calls in `try/except` to prevent application crashes when adjusting volume/brightness limits.
+- **Greeting formatting**: Updated `PersonalityModule` to correctly parse reminder dictionary objects into human-readable strings for the startup announcement.
+- **E2E Testing**: Added 48 targeted tests in `tests/test_bugfixes.py` verifying each of the 8 reported bugs. Passed all 91 tests across the entire suite.
+
+---
+
+## Days 18-19 — Module 22 (Hand Gesture Engine)
+**Date:** 2026-05-20
+**Status:** Complete
+
+### What was done
+- **GestureEngine (`modules/gesture_engine.py`)**: Implemented always-on background hand gesture recognition using OpenCV and MediaPipe Hands.
+- **Landmark Tracking & Debouncing**: Maps 21 landmarks to 9 specific gestures (open palm, fist, index up, index+middle up, 3 fingers up, pinch, ok sign, and swipe left/right). Added a 0.4s debounce timer to prevent misfires.
+- **Action Dispatcher**: Translates gestures directly into OS actions using `pyautogui` (media play/pause, scroll up/down, volume up, next/previous track, zoom in, and switch tabs).
+- **Thread Architecture**: Wired into `main.py` as a daemon thread that starts automatically if `"gesture_control": true` is set in `config.json`. Runs safely alongside the voice pipeline.
+- **Unit Tests**: Added `tests/test_gesture.py` with mock CV landmarks to verify finger state extraction, gesture classification logic, and debouncing without requiring a physical camera.
