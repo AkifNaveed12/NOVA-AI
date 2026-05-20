@@ -138,15 +138,26 @@ class WakeWordDetector:
                 if "unanticipated host error" in err_str or "-9999" in err_str or "overflow" in err_str:
                     print(f"[WakeWord] Mic error: {e}. Attempting restart...")
                     try:
+                        # Safely close the stream without crashing on -9988
                         if getattr(self.shared_mic, 'stream', None) is not None:
-                            self.shared_mic.__exit__(None, None, None)
-                            
+                            try:
+                                self.shared_mic.stream.close()
+                            except Exception:
+                                pass
+                            finally:
+                                self.shared_mic.stream = None
+                                
                         # Fully rebuild PyAudio instance to clear Errno -9988
                         if getattr(self.shared_mic, 'audio', None) is not None:
-                            self.shared_mic.audio.terminate()
+                            try:
+                                self.shared_mic.audio.terminate()
+                            except Exception:
+                                pass
+                                
                         self.shared_mic.audio = self.shared_mic.pyaudio_module.PyAudio()
                         
                         self.shared_mic.__enter__()
+                        print("[WakeWord] Mic restarted successfully.")
                     except Exception as ex:
                         print(f"[WakeWord] Mic restart failed: {ex}")
                 time.sleep(0.5)
