@@ -217,6 +217,22 @@ def extract_entities(text: str) -> dict:
         raw = re.sub(r'[?!.]+$', '', raw).strip()
         entities["wiki_query"] = raw
 
+    # ── Math expression extraction ────────────────────────────────────
+    math_match = re.search(r"calculate\s+(.+)", text, re.IGNORECASE)
+    if math_match:
+        entities["math_expr"] = math_match.group(1).strip()
+    else:
+        what_is_math = re.search(r"what\s+is\s+(.+)", text, re.IGNORECASE)
+        candidate = what_is_math.group(1).strip() if what_is_math else text
+        if re.search(r"\d", candidate) and (re.search(r"[\+\-\*\/%]", candidate) or any(k in candidate.lower() for k in ("percent", "plus", "minus", "times", "divided", "multiplied"))):
+            entities["math_expr"] = re.sub(r"[?!.]+$", "", candidate).strip()
+
+    # ── Date calculation extraction ───────────────────────────────────
+    days_until_match = re.search(r"(?:how\s+many\s+)?days\s+until\s+(.+)", text, re.IGNORECASE)
+    if days_until_match:
+        raw_date = days_until_match.group(1).strip()
+        entities["target_date"] = re.sub(r"[?!.]+$", "", raw_date).strip()
+
     return entities
 
 def process(text: str) -> dict:

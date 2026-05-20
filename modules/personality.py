@@ -447,6 +447,12 @@ class PersonalityModule:
             "Two sentences max. Keep it punchy."
         )
 
+    def roast(self, name: str = "Akif") -> str:
+        """Generate a roast for the given name by prompting GroqBrain."""
+        from nova_core import groq_brain
+        prompt = self.get_roast_prompt(name)
+        return groq_brain.chat(prompt)
+
     # ── Motivational prompt ───────────────────────────────────────────────
 
     def get_motivation_prompt(self) -> str:
@@ -455,6 +461,7 @@ class PersonalityModule:
             "No clichés. One powerful sentence, then one practical follow-up. "
             "Sound like a mentor, not a poster."
         )
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
