@@ -219,7 +219,7 @@ def dispatch_local(
 
         google_match = re.search(r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+google)", original, re.IGNORECASE)
         if not google_match:
-            google_match = re.search(r"(?:google|search google for)\s+(.+)", original, re.IGNORECASE)
+            google_match = re.search(r"^(?:search google for|search for|google|search)\s+(.+)", original, re.IGNORECASE)
         if google_match:
             return wa.search_google(google_match.group(1).strip())
 
@@ -547,11 +547,25 @@ def dispatch_local(
             if any(k in lower for k in ("ram", "ram usage", "memory usage")):
                 return sc.get_ram_usage()
 
-            # Power
-            if "shutdown" in lower:
-                return sc.shutdown()
+            # Power — require spoken confirmation before executing destructive commands
+            if "cancel shutdown" in lower or "abort shutdown" in lower:
+                return sc.cancel_shutdown()
+            if "shutdown" in lower or "shut down" in lower:
+                if speak_func and listen_func:
+                    speak_func("Are you sure you want to shut down? Say yes to confirm.")
+                    confirm = listen_func().lower().strip()
+                    if any(w in confirm for w in ("yes", "confirm", "sure", "do it", "yeah")):
+                        return sc.shutdown()
+                    return "Shutdown cancelled."
+                return "Please confirm: say yes to shut down."
             if "restart" in lower or "reboot" in lower:
-                return sc.restart()
+                if speak_func and listen_func:
+                    speak_func("Are you sure you want to restart? Say yes to confirm.")
+                    confirm = listen_func().lower().strip()
+                    if any(w in confirm for w in ("yes", "confirm", "sure", "do it", "yeah")):
+                        return sc.restart()
+                    return "Restart cancelled."
+                return "Please confirm: say yes to restart."
             if "sleep" in lower:
                 return sc.sleep()
             if any(k in lower for k in ("lock screen", "lock the screen", "lock computer")):
@@ -576,7 +590,8 @@ def dispatch_local(
 
     if intent == "activity_log":
         from modules.activity_log import ActivityLogger
-        logger = ActivityLogger()
+        from modules.memory_system import db_singleton
+        logger = ActivityLogger(db_singleton)
         if "today" in original.lower() or "log" in original.lower():
             logs = logger.get_today()
             if not logs:

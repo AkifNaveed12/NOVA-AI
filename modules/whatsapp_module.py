@@ -7,6 +7,7 @@ Uses pywhatkit to send WhatsApp messages securely via Chrome.
 import os
 import re
 import json
+import webbrowser
 from rapidfuzz import process, fuzz
 from typing import Callable, Optional
 
@@ -52,45 +53,60 @@ class WhatsAppModule:
                 webbrowser.open(url)
         except Exception as e:
             print(f"[WhatsApp] Error opening URL {url}: {e}")
-            import webbrowser
             webbrowser.open(url)
 
-    def send_message(self, phone: str, message: str) -> bool:
-        """Sends a WhatsApp message via direct browser automation with robust timing."""
+    def send_message(self, phone: str, message: str) -> str:
+        """
+        Sends a WhatsApp message via browser automation.
+        Returns a status string: 'sent', 'timeout', or 'error:<reason>'.
+        """
         try:
             import urllib.parse
             import time
             try:
                 import pyautogui
             except ImportError:
-                print("[WhatsApp] pyautogui not installed, cannot send keys.")
-                return False
+                return "error:pyautogui not installed"
 
-            # Format URL with phone and message text
             encoded_msg = urllib.parse.quote(message)
             url = f"https://web.whatsapp.com/send?phone={phone}&text={encoded_msg}"
-            
+
             print(f"[WhatsApp] Opening browser to send to {phone}...")
             self._open_url(url)
-            
-            # Wait for WhatsApp Web to load. 20s is safer than 15s.
-            time.sleep(20)
-            
-            # Press enter to send
+
+            # Poll for the WhatsApp Web tab to be active (up to 30s)
+            deadline = time.time() + 30
+            loaded = False
+            try:
+                import pygetwindow as gw
+                while time.time() < deadline:
+                    time.sleep(1)
+                    titles = [w.title for w in gw.getAllWindows()]
+                    if any("WhatsApp" in t for t in titles):
+                        loaded = True
+                        break
+            except ImportError:
+                # pygetwindow not available — fall back to fixed wait
+                time.sleep(20)
+                loaded = True
+
+            if not loaded:
+                print("[WhatsApp] Timed out waiting for WhatsApp Web to load.")
+                return "timeout"
+
+            # Extra buffer to ensure the chat input field is ready
+            time.sleep(2)
             print("[WhatsApp] Pressing enter to send...")
             pyautogui.press("enter")
-            
-            # Wait 3 seconds for the message to be transmitted
             time.sleep(3)
-            
-            # Close the tab to prevent browser clutter
+
             print("[WhatsApp] Closing WhatsApp Web tab...")
             pyautogui.hotkey("ctrl", "w")
-            
-            return True
+            return "sent"
+
         except Exception as e:
             print(f"[WhatsApp] Failed to send message: {e}")
-            return False
+            return f"error:{e}"
 
     def _extract_contact_from_text(self, original: str) -> Optional[str]:
         """
@@ -182,10 +198,12 @@ class WhatsAppModule:
         confirmation = confirmation.lower()
         if any(word in confirmation for word in ("yes", "send", "sure", "yeah", "ok", "go ahead", "do it")):
             speak_func(f"Sending message to {target_name} on WhatsApp. Please wait.")
-            success = self.send_message(phone, message_content)
-            if success:
-                return f"Message sent to {target_name} successfully!"
+            status = self.send_message(phone, message_content)
+            if status == "sent":
+                return f"Message sent to {target_name}."
+            elif status == "timeout":
+                return "WhatsApp Web took too long to load. Please make sure you're logged in and try again."
             else:
-                return "Failed to send the message. Make sure WhatsApp Web is open and logged in to your browser."
+                return f"Failed to send the message. {status.replace('error:', '')}".strip()
         else:
             return "WhatsApp message cancelled."

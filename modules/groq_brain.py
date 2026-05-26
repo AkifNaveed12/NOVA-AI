@@ -73,11 +73,12 @@ class GroqBrain:
             fresh_prompt += f"\n\nKnown facts about the user:\n{facts_text}"
         self.system_prompt = fresh_prompt
 
-        self.conversation_history.append({"role": "user", "content": user_message})
+        # Rolling window — trim BEFORE appending so the new user message is always last
+        # and the first message in history is always a user turn (Groq requires this).
+        if len(self.conversation_history) >= 10:
+            self.conversation_history = self.conversation_history[-9:]
 
-        # Rolling window — keep only last 10 messages
-        if len(self.conversation_history) > 10:
-            self.conversation_history = self.conversation_history[-10:]
+        self.conversation_history.append({"role": "user", "content": user_message})
 
         messages = [{"role": "system", "content": self.system_prompt}] + self.conversation_history
 

@@ -189,16 +189,16 @@ class SystemControls:
     # ── Power Controls ────────────────────────────────────────────────
 
     def shutdown(self) -> str:
-        """Shuts down the computer after a 10-second delay."""
+        """Shuts down the computer after a 10-second delay. Call only after confirmation."""
         os.system("shutdown /s /t 10")
-        return "Shutting down in 10 seconds. Say cancel to abort."
+        return "Shutting down in 10 seconds. Say Hey NOVA cancel shutdown to abort."
 
     def cancel_shutdown(self) -> str:
         os.system("shutdown /a")
         return "Shutdown cancelled."
 
     def restart(self) -> str:
-        """Restarts the computer after a 10-second delay."""
+        """Restarts the computer after a 10-second delay. Call only after confirmation."""
         os.system("shutdown /r /t 10")
         return "Restarting in 10 seconds."
 

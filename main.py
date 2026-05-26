@@ -40,12 +40,11 @@ def main() -> None:
     from modules.wake_word import WakeWordDetector
     from modules.stt import SpeechToText
     from modules.nlp_engine import process as nlp_process
-    from modules.memory_system import DatabaseManager
+    from modules.memory_system import db_singleton as db_manager
     from modules.hud_interface import NOVAHud
 
     # ── Initialize Modules ────────────────────────────────────────────
     from modules.activity_log import ActivityLogger
-    db_manager = DatabaseManager()
     activity_logger = ActivityLogger(db_manager)
     
     # Inject memory facts into GroqBrain (which is globally imported in nova_core)
@@ -100,7 +99,7 @@ def main() -> None:
             tts.save(temp_path)
             # Use built-in OS command to play audio on Windows
             if os.name == 'nt':
-                os.system(f"start {temp_path}")
+                os.system(f'start "" "{temp_path}"')
         except Exception as e:
             print(f"[TTS Error] {e}")
 
@@ -125,23 +124,27 @@ def main() -> None:
     hud_ticker_queue   = queue.Queue()
 
     def email_poller():
-        """Polls inbox every 60s; only announces when unread count INCREASES."""
-        last_announced_count = 0
+        """Polls inbox every 60s; announces when unread count is higher than last seen."""
+        # Track the set of message-IDs already announced, not just a count.
+        # This way reading emails on another device correctly resets the baseline,
+        # and new arrivals are always caught regardless of current count.
+        last_count = 0
         while True:
             time.sleep(60)
             if not wake_event.is_set():
                 try:
                     new_emails = em.check_inbox(unseen_only=True)
                     count = len(new_emails)
-                    if count > last_announced_count:
-                        print(f"[EmailPoller] Found {count} new emails.")
+                    # Always update baseline to current; announce only net-new arrivals
+                    if count > last_count:
+                        net_new = count - last_count
+                        print(f"[EmailPoller] {net_new} new email(s) arrived (total unseen: {count}).")
                         announcement_queue.put(
-                            f"You have {count} new email{'s' if count > 1 else ''}. "
+                            f"You have {net_new} new email{'s' if net_new > 1 else ''}. "
                             "Just say, check my emails, if you want me to read them."
                         )
-                        last_announced_count = count
-                    elif count == 0:
-                        last_announced_count = 0  # Reset so next batch is announced
+                    # Always sync the baseline so reads on other devices are reflected
+                    last_count = count
                 except Exception as e:
                     print(f"[EmailPoller] Error: {e}")
 
@@ -261,6 +264,10 @@ def main() -> None:
                             hud.update_status("sleeping")
                             continue
 
+                        # Normalise: None means the module had nothing to say
+                        if response is None:
+                            response = ""
+
                         activity_id = activity_logger.log(
                             command_text=text,
                             module_triggered=intent,
@@ -272,7 +279,8 @@ def main() -> None:
                             db_manager.log_conversation("user", text, activity_id=activity_id)
                             db_manager.log_conversation("assistant", response, activity_id=activity_id)
 
-                        speak(response)
+                        if response:
+                            speak(response)
 
                 # --- Pipeline reset ---
                 # Reset the wake event first so the detector loop doesn't re-arm too soon

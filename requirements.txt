@@ -6,7 +6,7 @@
 SpeechRecognition==3.10.4
 pyaudio==0.2.14
 pvporcupine==3.0.2
-openai-whisper==20231117
+openai-whisper
 
 # ── NLP & Intent Engine ───────────────────────────────────────────
 spacy==3.7.4
@@ -14,7 +14,7 @@ nltk==3.8.1
 dateparser==1.2.0
 
 # ── LLM / Groq API ───────────────────────────────────────────────
-groq==0.8.0
+groq==1.2.0
 
 # ── TTS (Text-to-Speech) ─────────────────────────────────────────
 pyttsx3==2.90
@@ -28,7 +28,7 @@ deep-translator==1.11.4
 
 # ── OS Automation & System Control ───────────────────────────────
 pyautogui==0.9.54
-pycaw==20230625
+pycaw
 psutil==5.9.8
 screen-brightness-control==0.23.0
 pyperclip==1.8.2
@@ -42,14 +42,14 @@ pygame==2.5.2
 # ── Computer Vision / Gesture ────────────────────────────────────
 opencv-python==4.9.0.80
 opencv-contrib-python==4.9.0.80
-mediapipe==0.10.11
+mediapipe==0.10.14
 numpy==1.26.4
 jax==0.4.26
 jaxlib==0.4.26
 
 # ── Fuzzy Matching ────────────────────────────────────────────────
 fuzzywuzzy==0.18.0
-rapidfuzz==3.6.2
+rapidfuzz
 python-Levenshtein==0.25.1
 
 # ── UI / Visualization ────────────────────────────────────────────
