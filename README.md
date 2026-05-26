@@ -358,12 +358,31 @@ Documentation includes:
 
 ---
 
-# 👨‍💻 Developer
+# 🤝 Contributors & Contributions
 
-## Muhammad Akif Naveed
+## 👨‍💻 Muhammad Akif Naveed (Lead Developer)
+BS Software Engineering, COMSATS University Islamabad — Wah Campus
 
-BS Software Engineering
-COMSATS University Islamabad — Wah Campus
+*Designed and implemented the core foundations of NOVA AI, including the multi-threaded wake-word engine, NLP intent routing, pywebview cinematic HUD, and modular local execution pipelines.*
+
+---
+
+## 👨‍🚀 Muhammad Alyan ([@Alyan-khattak](https://github.com/Alyan-khattak))
+GitHub: [Alyan-khattak](https://github.com/Alyan-khattak)
+
+*Pioneered the transition of NOVA AI from a standalone desktop software into a distributed, local-first cross-platform ecosystem by executing the specifications in `EXPANSION_PLAN.md` and `FEATURES_PLAN.md`.*
+
+### Key Features Developed (Desktop-to-App & API Bridge):
+- **FastAPI Bridge Server:** Designed the backend API framework (`modules/api_server.py`) executing safe multithreaded command routing utilizing a `threading.Lock` around `nova_core.route()`.
+- **Real-Time WebSocket Status Bridge:** Created `/ws/status` and `/ws/interactive` WebSocket protocols enabling real-time status syncing and fluid multi-turn voice/text flows.
+- **Cross-Platform Flutter Companion App:** Engineered the mobile/web Flutter application (`nova_app`) featuring setup wizards, real-time status dashboards, remote voice/text command shell, and terminal interface.
+- **PC File Browser API & Interface:** Created the endpoints and Flutter interface allowing users to securely browse, list, read, and open PC files remotely.
+- **UDP Auto-Discovery Broadcaster:** Developed a local network UDP broadcaster permitting companion devices to discover the PC server automatically.
+- **Onboarding Setup Wizard:** Designed a secure on-device configuration flow validating Groq/API credentials on the first run.
+- **Agentic Coding Assistant:** Upgraded the Dev module (`modules/coding_assistant.py`) into an autonomous terminal agent with local filesystem tools (list, read, write, delete) and console command execution.
+- **Self-Healing API Fallback Parser:** Engineered an XML-to-JSON fallback extraction algorithm to intercept and recover from Groq API `tool_use_failed` errors during code writing tasks.
+- **System Diagnostics & Clipboard Sync:** Built real-time PC diagnostic metrics (CPU, RAM, Disk, Network) and two-way clipboard synchronization.
+- **Google & YouTube Search Shortcuts:** Added dashboard search integration shortcuts to execute immediate web automations and searches on the PC browser from the mobile client.
 
 ---
 
@@ -371,17 +390,13 @@ COMSATS University Islamabad — Wah Campus
 
 Current Version:
 
-## Week 3 Complete ✅
-
-Week 4 Stabilization & Demo Preparation In Progress 🔄
+## Week 4 Local-First Distributed System Complete ✅
 
 ---
 
 # ⭐ Future Scope
 
 - Local offline LLM support
-- Cross-platform support
-- Mobile companion app
 - Voice cloning
 - Smart home integration
 - Vision-based object detection
