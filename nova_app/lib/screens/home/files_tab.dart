@@ -16,10 +16,44 @@ class _FilesTabState extends State<FilesTab> {
   bool _loading = false;
   String _error = '';
 
+  // Search variables
+  bool _showSearch = false;
+  bool _searching = false;
+  final TextEditingController _searchCtrl = TextEditingController();
+  List<Map<String, dynamic>> _searchResults = [];
+
   @override
   void initState() {
     super.initState();
     _loadDir('');
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _doSearch(String query) async {
+    if (query.trim().length < 2) {
+      setState(() {
+        _searchResults = [];
+        _searching = false;
+      });
+      return;
+    }
+    setState(() { _searching = true; _error = ''; });
+    try {
+      final result = await searchFiles(query);
+      if (!mounted) return;
+      setState(() {
+        _searchResults = (result['entries'] as List? ?? []).cast<Map<String, dynamic>>();
+        _searching = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = e.toString(); _searching = false; });
+    }
   }
 
   Future<void> _loadDir(String path) async {
@@ -361,6 +395,20 @@ class _FilesTabState extends State<FilesTab> {
                   overflow: TextOverflow.ellipsis),
               ),
               IconButton(
+                icon: Icon(_showSearch ? Icons.search_off : Icons.search,
+                  color: const Color(0xFF7B6CF6), size: 20),
+                onPressed: () {
+                  setState(() {
+                    _showSearch = !_showSearch;
+                    if (!_showSearch) {
+                      _searchCtrl.clear();
+                      _searchResults = [];
+                    }
+                  });
+                },
+                tooltip: 'Search',
+              ),
+              IconButton(
                 icon: const Icon(Icons.refresh,
                   color: Color(0xFF555577), size: 20),
                 onPressed: () => _loadDir(_currentPath),
@@ -376,8 +424,50 @@ class _FilesTabState extends State<FilesTab> {
             ]),
           ),
 
-          // Breadcrumb path
-          if (_currentPath.isNotEmpty)
+          // Search Input Bar
+          if (_showSearch)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: TextField(
+                controller: _searchCtrl,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                autofocus: true,
+                onChanged: _doSearch,
+                decoration: InputDecoration(
+                  hintText: 'Search files on PC...',
+                  hintStyle: const TextStyle(color: Color(0xFF444466), fontSize: 12),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF7B6CF6), size: 16),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.close, color: Color(0xFF555577), size: 16),
+                    onPressed: () {
+                      setState(() {
+                        _searchCtrl.clear();
+                        _searchResults = [];
+                        _showSearch = false;
+                      });
+                    },
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xFF080812),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF3D35A8)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF1A1A2E)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF7B6CF6)),
+                  ),
+                ),
+              ),
+            ),
+
+          // Breadcrumb path (only show if not searching or if search is empty)
+          if (_currentPath.isNotEmpty && (!_showSearch || _searchCtrl.text.isEmpty))
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
@@ -391,7 +481,7 @@ class _FilesTabState extends State<FilesTab> {
 
           // Body
           Expanded(
-            child: _loading
+            child: (_loading || _searching)
               ? const Center(child: CircularProgressIndicator(
                   color: Color(0xFF7B6CF6)))
               : _error.isNotEmpty
@@ -409,7 +499,9 @@ class _FilesTabState extends State<FilesTab> {
                             color: Color(0xFF888899), fontSize: 12)),
                         const SizedBox(height: 20),
                         ElevatedButton(
-                          onPressed: () => _loadDir(_currentPath),
+                          onPressed: () => _showSearch && _searchCtrl.text.isNotEmpty
+                            ? _doSearch(_searchCtrl.text)
+                            : _loadDir(_currentPath),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF7B6CF6),
                             foregroundColor: Colors.black),
@@ -417,54 +509,95 @@ class _FilesTabState extends State<FilesTab> {
                         ),
                       ],
                     )))
-                : _entries.isEmpty
-                  ? const Center(child: Text('Empty',
-                      style: TextStyle(color: Color(0xFF555577))))
-                  : ListView.builder(
-                      itemCount: _entries.length,
-                      itemBuilder: (_, i) {
-                        final e = _entries[i];
-                        final isDir = e['type'] == 'directory';
-                        return Dismissible(
-                          key: Key(e['path'] as String),
-                          direction: DismissDirection.endToStart,
-                          confirmDismiss: (_) async {
-                            await _confirmDelete(e);
-                            return false;
+                : (_showSearch && _searchCtrl.text.isNotEmpty)
+                  ? (_searchResults.isEmpty
+                      ? const Center(child: Text('No matching files found',
+                          style: TextStyle(color: Color(0xFF555577))))
+                      : ListView.builder(
+                          itemCount: _searchResults.length,
+                          itemBuilder: (_, i) {
+                            final e = _searchResults[i];
+                            final isDir = e['type'] == 'directory';
+                            return ListTile(
+                              dense: true,
+                              leading: Icon(_entryIcon(e),
+                                color: _entryColor(e), size: 22),
+                              title: Text(e['name'] as String,
+                                style: const TextStyle(
+                                  color: Color(0xFFCCCCDD),
+                                  fontSize: 14)),
+                              subtitle: Text(e['path'] as String,
+                                style: const TextStyle(
+                                  color: Color(0xFF444466), fontSize: 10),
+                                overflow: TextOverflow.ellipsis),
+                              trailing: e['size'] != null
+                                ? Text(_formatSize(e['size']),
+                                    style: const TextStyle(
+                                      color: Color(0xFF444466), fontSize: 11))
+                                : null,
+                              onTap: () {
+                                if (isDir) {
+                                  setState(() {
+                                    _showSearch = false;
+                                    _searchCtrl.clear();
+                                    _searchResults = [];
+                                  });
+                                  _navigate(e['path'] as String);
+                                } else {
+                                  _openFile(e);
+                                }
+                              },
+                            );
                           },
-                          background: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 24),
-                            color: const Color(0xFF3A0000),
-                            child: const Icon(Icons.delete_outline,
-                              color: Color(0xFFFF4444)),
-                          ),
-                          child: ListTile(
-                            dense: true,
-                            leading: Icon(_entryIcon(e),
-                              color: _entryColor(e), size: 22),
-                            title: Text(e['name'] as String,
-                              style: TextStyle(
-                                color: isDir
-                                  ? Colors.white
-                                  : const Color(0xFFCCCCDD),
-                                fontSize: 14,
-                                fontWeight: isDir
-                                  ? FontWeight.w500
-                                  : FontWeight.normal)),
-                            trailing: e['size'] != null
-                              ? Text(_formatSize(e['size']),
-                                  style: const TextStyle(
-                                    color: Color(0xFF444466), fontSize: 11))
-                              : null,
-                            onTap: () => isDir
-                              ? _navigate(e['path'] as String)
-                              : _openFile(e),
-                            onLongPress: () => _confirmDelete(e),
-                          ),
-                        );
-                      },
-                    ),
+                        ))
+                  : _entries.isEmpty
+                    ? const Center(child: Text('Empty',
+                        style: TextStyle(color: Color(0xFF555577))))
+                    : ListView.builder(
+                        itemCount: _entries.length,
+                        itemBuilder: (_, i) {
+                          final e = _entries[i];
+                          final isDir = e['type'] == 'directory';
+                          return Dismissible(
+                            key: Key(e['path'] as String),
+                            direction: DismissDirection.endToStart,
+                            confirmDismiss: (_) async {
+                              await _confirmDelete(e);
+                              return false;
+                            },
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 24),
+                              color: const Color(0xFF3A0000),
+                              child: const Icon(Icons.delete_outline,
+                                color: Color(0xFFFF4444)),
+                            ),
+                            child: ListTile(
+                              dense: true,
+                              leading: Icon(_entryIcon(e),
+                                color: _entryColor(e), size: 22),
+                              title: Text(e['name'] as String,
+                                style: TextStyle(
+                                  color: isDir
+                                    ? Colors.white
+                                    : const Color(0xFFCCCCDD),
+                                  fontSize: 14,
+                                  fontWeight: isDir
+                                    ? FontWeight.w500
+                                    : FontWeight.normal)),
+                              trailing: e['size'] != null
+                                ? Text(_formatSize(e['size']),
+                                    style: const TextStyle(
+                                      color: Color(0xFF444466), fontSize: 11))
+                                : null,
+                              onTap: () => isDir
+                                ? _navigate(e['path'] as String)
+                                : _openFile(e),
+                              onLongPress: () => _confirmDelete(e),
+                            ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),

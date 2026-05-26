@@ -4,6 +4,7 @@ import 'remote_tab.dart';
 import 'system_tab.dart';
 import 'files_tab.dart';
 import 'code_tab.dart';
+import 'trackpad_tab.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,6 +20,7 @@ class _MainScreenState extends State<MainScreen> {
     DashboardTab(),
     RemoteTab(),
     SystemTab(),
+    TrackpadTab(),
     FilesTab(),
     CodeTab(),
   ];
@@ -37,9 +39,9 @@ class _MainScreenState extends State<MainScreen> {
         selectedItemColor: const Color(0xFF7B6CF6),
         unselectedItemColor: const Color(0xFF444466),
         type: BottomNavigationBarType.fixed,
-        selectedFontSize: 11,
-        unselectedFontSize: 10,
-        iconSize: 22,
+        selectedFontSize: 10,
+        unselectedFontSize: 9,
+        iconSize: 20,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -53,6 +55,10 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.monitor_outlined),
             activeIcon: Icon(Icons.monitor),
             label: 'System'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.mouse_outlined),
+            activeIcon: Icon(Icons.mouse),
+            label: 'Trackpad'),
           BottomNavigationBarItem(
             icon: Icon(Icons.folder_outlined),
             activeIcon: Icon(Icons.folder),

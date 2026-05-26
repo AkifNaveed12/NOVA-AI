@@ -150,6 +150,15 @@ Future<Map<String, dynamic>> listFiles(String path) async {
   return jsonDecode(res.body) as Map<String, dynamic>;
 }
 
+Future<Map<String, dynamic>> searchFiles(String query) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/files/search')
+      .replace(queryParameters: {'query': query});
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 15));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
 Future<Map<String, dynamic>> readFile(String path) async {
   final config = await getServerConfig();
   final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/files/read')

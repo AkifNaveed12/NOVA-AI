@@ -205,6 +205,29 @@ async def interactive_socket(websocket: WebSocket):
         except Exception:
             pass
 
+@app.websocket("/ws/mouse")
+async def mouse_socket(websocket: WebSocket):
+    """
+    Low-latency WebSocket channel for mouse coordinates, clicks, and scroll.
+    """
+    await websocket.accept()
+    from modules.mouse_control import move_mouse_relative, click_mouse, scroll_mouse
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            data = _json.loads(raw)
+            msg_type = data.get("type")
+            if msg_type == "move":
+                move_mouse_relative(data.get("dx", 0.0), data.get("dy", 0.0))
+            elif msg_type == "click":
+                click_mouse(data.get("button", "left"))
+            elif msg_type == "scroll":
+                scroll_mouse(data.get("amount", 0))
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        print(f"[API] Mouse WS error: {e}")
+
 # ── UDP auto-discovery broadcaster (T5) ──────────────────────────
 _udp_stop = threading.Event()
 
@@ -442,6 +465,96 @@ _TEXT_EXTENSIONS = {
     '.scss', '.xml', '.json', '.yaml', '.yml', '.toml', '.ini', '.cfg',
     '.env', '.txt', '.md', '.csv', '.sh', '.bat', '.ps1', '.sql',
 }
+
+@app.get("/api/files/search")
+def search_files(query: str = "", _auth: str = Depends(_require_auth)):
+    """Search for files in safe directory trees instantly using Indexer or manual walk."""
+    if not query or len(query.strip()) < 2:
+        return {"entries": []}
+    
+    query = query.strip()
+    results = []
+    
+    # 1. Try Windows Search Indexer
+    try:
+        import win32com.client
+        connection = win32com.client.Dispatch("ADODB.Connection")
+        recordset = win32com.client.Dispatch("ADODB.Recordset")
+        
+        connection.Open("Provider=Search.CollatorDSO;Extended Properties='Application=Windows';")
+        
+        scope_clauses = []
+        for r in _SAFE_ROOTS:
+            if r.exists():
+                scope_clauses.append(f"SCOPE='file:{r}'")
+        
+        if scope_clauses:
+            scope_query = " OR ".join(scope_clauses)
+            sql = (
+                f"SELECT System.ItemName, System.ItemPathDisplay, System.ItemSize, System.DateModified "
+                f"FROM SystemIndex WHERE ({scope_query}) "
+                f"AND System.ItemName LIKE '%{query}%'"
+            )
+            
+            recordset.Open(sql, connection)
+            
+            count = 0
+            while not recordset.EOF and count < 100:
+                name = recordset.Fields("System.ItemName").Value
+                path_str = recordset.Fields("System.ItemPathDisplay").Value
+                size = recordset.Fields("System.ItemSize").Value
+                modified = recordset.Fields("System.DateModified").Value
+                
+                if name and path_str and _is_safe_path(path_str):
+                    p = Path(path_str)
+                    results.append({
+                        "name": name,
+                        "path": path_str,
+                        "type": "directory" if p.is_dir() else "file",
+                        "size": size,
+                        "modified": float(modified) if modified else None,
+                        "extension": p.suffix.lower() if p.is_file() else None,
+                    })
+                    count += 1
+                recordset.MoveNext()
+            
+            recordset.Close()
+        connection.Close()
+    except Exception as e:
+        print(f"[API Search] Windows Indexer failed: {e}. Falling back to manual walk.")
+        
+    # 2. Fallback to manual directory walk
+    if not results:
+        count = 0
+        query_lower = query.lower()
+        for r in _SAFE_ROOTS:
+            if not r.exists():
+                continue
+            for root, dirs, files in os.walk(str(r)):
+                dirs[:] = [d for d in dirs if not d.startswith('.') and d.lower() not in {'node_modules', 'build', 'venv', '.git'}]
+                for name in dirs + files:
+                    if query_lower in name.lower():
+                        item = Path(root) / name
+                        try:
+                            stat = item.stat()
+                            results.append({
+                                "name": name,
+                                "path": str(item),
+                                "type": "directory" if item.is_dir() else "file",
+                                "size": stat.st_size if item.is_file() else None,
+                                "modified": stat.st_mtime,
+                                "extension": item.suffix.lower() if item.is_file() else None,
+                            })
+                            count += 1
+                        except Exception:
+                            pass
+                        if count >= 100:
+                            break
+                if count >= 100:
+                    break
+                    
+    results.sort(key=lambda x: (x["type"] == "file", x["name"].lower()))
+    return {"entries": results}
 
 @app.get("/api/files/list")
 def list_files(path: str = "", _auth: str = Depends(_require_auth)):
