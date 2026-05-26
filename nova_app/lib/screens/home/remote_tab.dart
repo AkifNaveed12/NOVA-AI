@@ -39,7 +39,7 @@ class _RemoteTabState extends State<RemoteTab> {
     'sleeping':    Color(0xFF555577),
     'listening':   Color(0xFF00FF88),
     'processing':  Color(0xFFFFAA00),
-    'speaking':    Color(0xFF00D4FF),
+    'speaking':    Color(0xFF7B6CF6),
     'offline':     Color(0xFF444444),
   };
 
@@ -347,17 +347,17 @@ class _RemoteTabState extends State<RemoteTab> {
                       maxWidth: MediaQuery.of(context).size.width * 0.75),
                     decoration: BoxDecoration(
                       color: isUser
-                        ? const Color(0xFF00D4FF22)
-                        : const Color(0xFF111122),
+                        ? const Color(0x227B6CF6)
+                        : const Color(0xFF1B163B),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isUser
-                          ? const Color(0xFF00D4FF44)
-                          : const Color(0xFF222244)),
+                          ? const Color(0x447B6CF6)
+                          : const Color(0xFF3D35A8)),
                     ),
                     child: Text(msg['text']!,
                       style: TextStyle(
-                        color: isUser ? const Color(0xFF00D4FF) : Colors.white,
+                        color: isUser ? const Color(0xFF7B6CF6) : Colors.white,
                         fontSize: 14)),
                   ),
                 );
@@ -385,7 +385,7 @@ class _RemoteTabState extends State<RemoteTab> {
           // Input row
           Container(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            color: const Color(0xFF0A0A1A),
+            color: const Color(0xFF0E0B1F),
             child: Row(
               children: [
                 // Mic button
@@ -405,7 +405,7 @@ class _RemoteTabState extends State<RemoteTab> {
                     ),
                     child: Icon(
                       _isListening ? Icons.stop : Icons.mic,
-                      color: _isListening ? Colors.white : const Color(0xFF00D4FF),
+                      color: _isListening ? Colors.white : const Color(0xFF7B6CF6),
                       size: 20),
                   ),
                 ),
@@ -442,7 +442,7 @@ class _RemoteTabState extends State<RemoteTab> {
                     decoration: BoxDecoration(
                       color: _sending
                         ? const Color(0xFF333355)
-                        : const Color(0xFF00D4FF),
+                        : const Color(0xFF7B6CF6),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: _sending

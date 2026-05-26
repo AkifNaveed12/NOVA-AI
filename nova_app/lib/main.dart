@@ -5,6 +5,8 @@ import 'screens/connect_screen.dart';
 import 'screens/setup/step1_screen.dart';
 import 'screens/home/main_screen.dart';
 
+import 'widgets/nova_logo.dart';
+
 void main() {
   runApp(const NovaApp());
 }
@@ -20,30 +22,30 @@ class NovaApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: ColorScheme.dark(
-          primary: const Color(0xFF00D4FF),
-          surface: const Color(0xFF0A0A1A),
-          background: const Color(0xFF0A0A1A),
+          primary: const Color(0xFF7B6CF6),
+          surface: const Color(0xFF0E0B1F),
+          background: const Color(0xFF0E0B1F),
         ),
-        scaffoldBackgroundColor: const Color(0xFF0A0A1A),
+        scaffoldBackgroundColor: const Color(0xFF0E0B1F),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0A0A1A),
-          foregroundColor: Color(0xFF00D4FF),
+          backgroundColor: Color(0xFF0E0B1F),
+          foregroundColor: Color(0xFF7B6CF6),
           elevation: 0,
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF111122),
+          fillColor: const Color(0xFF1B163B),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF222244)),
+            borderSide: const BorderSide(color: Color(0xFF3D35A8)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF222244)),
+            borderSide: const BorderSide(color: Color(0xFF3D35A8)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Color(0xFF00D4FF)),
+            borderSide: const BorderSide(color: Color(0xFF7B6CF6)),
           ),
           hintStyle: const TextStyle(color: Color(0xFF555577)),
         ),
@@ -87,16 +89,20 @@ class _SplashState extends State<_Splash> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('NOVA AI', style: TextStyle(
-              color: Color(0xFF00D4FF), fontSize: 36, fontWeight: FontWeight.bold,
-              letterSpacing: 4)),
-            SizedBox(height: 16),
-            CircularProgressIndicator(color: Color(0xFF00D4FF)),
+            const NovaLogo(size: 180),
+            const SizedBox(height: 32),
+            const Text('NOVA', style: TextStyle(
+              color: Color(0xFFA89AF8), fontSize: 32, fontWeight: FontWeight.bold,
+              letterSpacing: 8)),
+            const SizedBox(height: 8),
+            Text('NEURAL ORCHESTRATED VOICE ASSISTANT', style: TextStyle(
+              color: const Color(0xFF7B6CF6).withOpacity(0.7), fontSize: 10,
+              letterSpacing: 2)),
           ],
         ),
       ),

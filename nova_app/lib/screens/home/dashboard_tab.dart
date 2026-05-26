@@ -188,7 +188,7 @@ class _DashboardTabState extends State<DashboardTab> {
     final saved = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF111122),
+        backgroundColor: const Color(0xFF1B163B),
         title: const Text('New Note', style: TextStyle(color: Colors.white)),
         content: TextField(
           controller: ctrl,
@@ -197,14 +197,14 @@ class _DashboardTabState extends State<DashboardTab> {
           decoration: const InputDecoration(
             hintText: 'Write your note...',
             labelText: 'Note',
-            labelStyle: TextStyle(color: Color(0xFF00D4FF))),
+            labelStyle: TextStyle(color: Color(0xFF7B6CF6))),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00D4FF),
+              backgroundColor: const Color(0xFF7B6CF6),
               foregroundColor: Colors.black),
             child: const Text('Save'),
           ),
@@ -245,7 +245,7 @@ class _DashboardTabState extends State<DashboardTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, ss) => AlertDialog(
-          backgroundColor: const Color(0xFF111122),
+          backgroundColor: const Color(0xFF1B163B),
           title: const Text('New Task', style: TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -256,7 +256,7 @@ class _DashboardTabState extends State<DashboardTab> {
                 decoration: const InputDecoration(
                   hintText: 'What needs to be done?',
                   labelText: 'Task',
-                  labelStyle: TextStyle(color: Color(0xFF00D4FF))),
+                  labelStyle: TextStyle(color: Color(0xFF7B6CF6))),
               ),
               const SizedBox(height: 12),
               Row(
@@ -286,7 +286,7 @@ class _DashboardTabState extends State<DashboardTab> {
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, {'title': ctrl.text.trim(), 'priority': priority}),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00D4FF), foregroundColor: Colors.black),
+                backgroundColor: const Color(0xFF7B6CF6), foregroundColor: Colors.black),
               child: const Text('Add'),
             ),
           ],
@@ -341,7 +341,7 @@ class _DashboardTabState extends State<DashboardTab> {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _loadAll,
-        color: const Color(0xFF00D4FF),
+        color: const Color(0xFF7B6CF6),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
@@ -351,7 +351,7 @@ class _DashboardTabState extends State<DashboardTab> {
 
               // ── Header ─────────────────────────────────────────
               const Text('NOVA AI',
-                style: TextStyle(color: Color(0xFF00D4FF), fontSize: 22,
+                style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 22,
                   fontWeight: FontWeight.bold, letterSpacing: 2)),
               const SizedBox(height: 2),
               const Text('Your AI assistant',
@@ -391,12 +391,12 @@ class _DashboardTabState extends State<DashboardTab> {
                   GestureDetector(
                     onTap: _showAllNotes,
                     child: const Text('See all',
-                      style: TextStyle(color: Color(0xFF00D4FF), fontSize: 12))),
+                      style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 12))),
                   const SizedBox(width: 12),
                   GestureDetector(
                     onTap: _showAddNoteDialog,
                     child: const Icon(Icons.add,
-                      color: Color(0xFF00D4FF), size: 18)),
+                      color: Color(0xFF7B6CF6), size: 18)),
                 ])),
               _buildNotes(),
               const SizedBox(height: 20),
@@ -407,12 +407,12 @@ class _DashboardTabState extends State<DashboardTab> {
                   GestureDetector(
                     onTap: _showAllTasks,
                     child: const Text('See all',
-                      style: TextStyle(color: Color(0xFF00D4FF), fontSize: 12))),
+                      style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 12))),
                   const SizedBox(width: 12),
                   GestureDetector(
                     onTap: _showAddTaskDialog,
                     child: const Icon(Icons.add,
-                      color: Color(0xFF00D4FF), size: 18)),
+                      color: Color(0xFF7B6CF6), size: 18)),
                 ])),
               _buildTasks(),
               const SizedBox(height: 20),
@@ -441,9 +441,9 @@ class _DashboardTabState extends State<DashboardTab> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF111122),
+        color: const Color(0xFF1B163B),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF222244)),
+        border: Border.all(color: const Color(0xFF3D35A8)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,18 +457,18 @@ class _DashboardTabState extends State<DashboardTab> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: _searchPlatform == p
-                    ? const Color(0xFF00D4FF22)
+                    ? const Color(0x227B6CF6)
                     : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: _searchPlatform == p
-                      ? const Color(0xFF00D4FF)
+                      ? const Color(0xFF7B6CF6)
                       : const Color(0xFF333355)),
                 ),
                 child: Text(p,
                   style: TextStyle(
                     color: _searchPlatform == p
-                      ? const Color(0xFF00D4FF)
+                      ? const Color(0xFF7B6CF6)
                       : const Color(0xFF666688),
                     fontSize: 12)),
               ),
@@ -494,7 +494,7 @@ class _DashboardTabState extends State<DashboardTab> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF00D4FF),
+                  color: const Color(0xFF7B6CF6),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: _searchLoading
@@ -528,15 +528,15 @@ class _DashboardTabState extends State<DashboardTab> {
           onTap: _actionLoading ? null : () => _runAction(a.command),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF111122),
+              color: const Color(0xFF1B163B),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF222244)),
+              border: Border.all(color: const Color(0xFF3D35A8)),
             ),
             padding: const EdgeInsets.all(8),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(a.icon, color: const Color(0xFF00D4FF), size: 22),
+                Icon(a.icon, color: const Color(0xFF7B6CF6), size: 22),
                 const SizedBox(height: 6),
                 Text(a.label,
                   textAlign: TextAlign.center,
@@ -558,15 +558,15 @@ class _DashboardTabState extends State<DashboardTab> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0A0A1A),
+        color: const Color(0xFF0E0B1F),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF00D4FF22)),
+        border: Border.all(color: const Color(0x227B6CF6)),
       ),
       child: _actionLoading
         ? const Row(children: [
             SizedBox(height: 14, width: 14,
               child: CircularProgressIndicator(
-                color: Color(0xFF00D4FF), strokeWidth: 2)),
+                color: Color(0xFF7B6CF6), strokeWidth: 2)),
             SizedBox(width: 10),
             Text('Running...', style: TextStyle(color: Color(0xFF666688), fontSize: 13)),
           ])
@@ -581,9 +581,9 @@ class _DashboardTabState extends State<DashboardTab> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF111122),
+        color: const Color(0xFF1B163B),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF222244)),
+        border: Border.all(color: const Color(0xFF3D35A8)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -669,9 +669,9 @@ class _DashboardTabState extends State<DashboardTab> {
         margin: const EdgeInsets.only(bottom: 6),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFF111122),
+          color: const Color(0xFF1B163B),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF222244)),
+          border: Border.all(color: const Color(0xFF3D35A8)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,9 +714,9 @@ class _DashboardTabState extends State<DashboardTab> {
         return Container(
           margin: const EdgeInsets.only(bottom: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFF111122),
+            color: const Color(0xFF1B163B),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF222244)),
+            border: Border.all(color: const Color(0xFF3D35A8)),
           ),
           child: ListTile(
             dense: true,
@@ -883,24 +883,24 @@ class _NotesSheetState extends State<_NotesSheet> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
             child: Row(children: [
-              const Icon(Icons.note_outlined, color: Color(0xFF00D4FF), size: 18),
+              const Icon(Icons.note_outlined, color: Color(0xFF7B6CF6), size: 18),
               const SizedBox(width: 8),
               const Text('All Notes',
                 style: TextStyle(color: Colors.white, fontSize: 16,
                   fontWeight: FontWeight.bold)),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.add, color: Color(0xFF00D4FF)),
+                icon: const Icon(Icons.add, color: Color(0xFF7B6CF6)),
                 onPressed: () async {
                   Navigator.pop(context);
                 },
               ),
             ]),
           ),
-          const Divider(color: Color(0xFF222244), height: 1),
+          const Divider(color: Color(0xFF3D35A8), height: 1),
           Expanded(
             child: _loading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF00D4FF)))
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF7B6CF6)))
               : _notes.isEmpty
                 ? const Center(child: Text('No notes yet',
                     style: TextStyle(color: Color(0xFF555577))))
@@ -1013,7 +1013,7 @@ class _TasksSheetState extends State<_TasksSheet> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
             child: Row(children: [
-              const Icon(Icons.checklist, color: Color(0xFF00D4FF), size: 18),
+              const Icon(Icons.checklist, color: Color(0xFF7B6CF6), size: 18),
               const SizedBox(width: 8),
               const Text('All Tasks',
                 style: TextStyle(color: Colors.white, fontSize: 16,
@@ -1025,10 +1025,10 @@ class _TasksSheetState extends State<_TasksSheet> {
               ),
             ]),
           ),
-          const Divider(color: Color(0xFF222244), height: 1),
+          const Divider(color: Color(0xFF3D35A8), height: 1),
           Expanded(
             child: _loading
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF00D4FF)))
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF7B6CF6)))
               : _tasks.isEmpty
                 ? const Center(child: Text('No pending tasks',
                     style: TextStyle(color: Color(0xFF555577))))
@@ -1117,7 +1117,7 @@ class _SmallButton extends StatelessWidget {
           Icon(icon, size: 14,
             color: onTap == null
               ? const Color(0xFF333355)
-              : const Color(0xFF00D4FF)),
+              : const Color(0xFF7B6CF6)),
           const SizedBox(width: 6),
           Text(label, style: TextStyle(
             fontSize: 11,
@@ -1140,7 +1140,7 @@ class _LoadingRow extends StatelessWidget {
       child: Row(children: [
         SizedBox(width: 14, height: 14,
           child: CircularProgressIndicator(
-            color: Color(0xFF00D4FF), strokeWidth: 2)),
+            color: Color(0xFF7B6CF6), strokeWidth: 2)),
         SizedBox(width: 10),
         Text('Loading...', style: TextStyle(color: Color(0xFF444466), fontSize: 12)),
       ]),
@@ -1174,12 +1174,12 @@ class _EmptyCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF00D4FF22),
+              color: const Color(0x227B6CF6),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF00D4FF44)),
+              border: Border.all(color: const Color(0x447B6CF6)),
             ),
             child: Text(addLabel,
-              style: const TextStyle(color: Color(0xFF00D4FF), fontSize: 11)),
+              style: const TextStyle(color: Color(0xFF7B6CF6), fontSize: 11)),
           ),
         ),
       ]),

@@ -45,7 +45,7 @@ class _SystemTabState extends State<SystemTab> {
 
   Color _ramColor(double v) => v > 85
       ? const Color(0xFFFF4444)
-      : v > 65 ? const Color(0xFFFFAA00) : const Color(0xFF00D4FF);
+      : v > 65 ? const Color(0xFFFFAA00) : const Color(0xFF7B6CF6);
 
   Color _battColor(double v) => v < 20
       ? const Color(0xFFFF4444)
@@ -62,9 +62,9 @@ class _SystemTabState extends State<SystemTab> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF111122),
+        color: const Color(0xFF1B163B),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF222244)),
+        border: Border.all(color: const Color(0xFF3D35A8)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,7 +104,7 @@ class _SystemTabState extends State<SystemTab> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00D4FF)));
+        child: CircularProgressIndicator(color: Color(0xFF7B6CF6)));
     }
 
     if (_error.isNotEmpty) {
@@ -123,7 +123,7 @@ class _SystemTabState extends State<SystemTab> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () { setState(() { _loading = true; _error = ''; }); _refresh(); },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00D4FF),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7B6CF6),
                 foregroundColor: Colors.black),
               child: const Text('Retry'),
             ),
@@ -148,7 +148,7 @@ class _SystemTabState extends State<SystemTab> {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _refresh,
-        color: const Color(0xFF00D4FF),
+        color: const Color(0xFF7B6CF6),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
@@ -157,10 +157,10 @@ class _SystemTabState extends State<SystemTab> {
             children: [
               // Header
               Row(children: [
-                const Icon(Icons.monitor, color: Color(0xFF00D4FF), size: 20),
+                const Icon(Icons.monitor, color: Color(0xFF7B6CF6), size: 20),
                 const SizedBox(width: 8),
                 const Text('System Monitor',
-                  style: TextStyle(color: Color(0xFF00D4FF), fontSize: 16,
+                  style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 16,
                     fontWeight: FontWeight.bold)),
                 const Spacer(),
                 Text('Live • 5s',
@@ -247,9 +247,9 @@ class _SystemTabState extends State<SystemTab> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF111122),
+                  color: const Color(0xFF1B163B),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF222244)),
+                  border: Border.all(color: const Color(0xFF3D35A8)),
                 ),
                 child: Row(children: [
                   const Icon(Icons.timer_outlined, color: Color(0xFF888899), size: 18),

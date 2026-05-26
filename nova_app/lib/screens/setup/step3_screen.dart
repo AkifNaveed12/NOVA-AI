@@ -42,7 +42,7 @@ class _Step3ScreenState extends State<Step3Screen> {
               Row(
                 children: [
                   const Text('Email',
-                    style: TextStyle(color: Color(0xFF00D4FF), fontSize: 26,
+                    style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 26,
                       fontWeight: FontWeight.bold)),
                   const SizedBox(width: 10),
                   Container(
@@ -168,7 +168,7 @@ class _Step3ScreenState extends State<Step3Screen> {
                 decoration: const InputDecoration(
                   hintText: 'you@gmail.com',
                   labelText: 'Gmail Address',
-                  labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+                  labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -178,7 +178,7 @@ class _Step3ScreenState extends State<Step3Screen> {
                 decoration: InputDecoration(
                   hintText: 'xxxx xxxx xxxx xxxx',
                   labelText: 'App Password (16 characters)',
-                  labelStyle: const TextStyle(color: Color(0xFF00D4FF)),
+                  labelStyle: const TextStyle(color: Color(0xFF7B6CF6)),
                   helperText: 'This is NOT your Gmail password — see guide above',
                   helperStyle: const TextStyle(color: Color(0xFF666688), fontSize: 11),
                   suffixIcon: IconButton(
@@ -213,7 +213,7 @@ class _Step3ScreenState extends State<Step3Screen> {
                     child: ElevatedButton(
                       onPressed: () => _next(),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00D4FF),
+                        backgroundColor: const Color(0xFF7B6CF6),
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

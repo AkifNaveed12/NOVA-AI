@@ -67,9 +67,9 @@ class _CodeTabState extends State<CodeTab> {
     final chosen = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF111122),
+        backgroundColor: const Color(0xFF1B163B),
         title: const Row(children: [
-          Icon(Icons.attach_file, color: Color(0xFF00D4FF), size: 18),
+          Icon(Icons.attach_file, color: Color(0xFF7B6CF6), size: 18),
           SizedBox(width: 8),
           Text('Load file from PC', style: TextStyle(color: Colors.white)),
         ]),
@@ -78,7 +78,7 @@ class _CodeTabState extends State<CodeTab> {
           autofocus: true,
           decoration: const InputDecoration(
             labelText: 'File path',
-            labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+            labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
             hintText: r'C:\Users\...\file.py'),
         ),
         actions: [
@@ -88,7 +88,7 @@ class _CodeTabState extends State<CodeTab> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, pathCtrl.text.trim()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00D4FF),
+              backgroundColor: const Color(0xFF7B6CF6),
               foregroundColor: Colors.black),
             child: const Text('Load'),
           ),
@@ -126,7 +126,7 @@ class _CodeTabState extends State<CodeTab> {
         builder: (ctx, ss) => AlertDialog(
           backgroundColor: const Color(0xFF0D0D1E),
           title: const Row(children: [
-            Icon(Icons.terminal, color: Color(0xFF00D4FF), size: 20),
+            Icon(Icons.terminal, color: Color(0xFF7B6CF6), size: 20),
             SizedBox(width: 8),
             Text('Terminal', style: TextStyle(color: Colors.white)),
           ]),
@@ -141,7 +141,7 @@ class _CodeTabState extends State<CodeTab> {
                   autofocus: true,
                   decoration: const InputDecoration(
                     labelText: 'Command',
-                    labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+                    labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
                     hintText: 'python --version',
                     prefixIcon: Icon(Icons.chevron_right,
                       color: Color(0xFF00FF88))),
@@ -165,7 +165,7 @@ class _CodeTabState extends State<CodeTab> {
                   const Padding(
                     padding: EdgeInsets.only(top: 16),
                     child: Center(child: CircularProgressIndicator(
-                      color: Color(0xFF00D4FF), strokeWidth: 2))),
+                      color: Color(0xFF7B6CF6), strokeWidth: 2))),
                 if (output.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -210,7 +210,7 @@ class _CodeTabState extends State<CodeTab> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00D4FF),
+                backgroundColor: const Color(0xFF7B6CF6),
                 foregroundColor: Colors.black),
               child: const Text('Run'),
             ),
@@ -249,10 +249,10 @@ class _CodeTabState extends State<CodeTab> {
             padding: const EdgeInsets.fromLTRB(16, 12, 4, 6),
             child: Row(
               children: [
-                const Icon(Icons.code, color: Color(0xFF00D4FF), size: 20),
+                const Icon(Icons.code, color: Color(0xFF7B6CF6), size: 20),
                 const SizedBox(width: 8),
                 const Text('Coding Assistant',
-                  style: TextStyle(color: Color(0xFF00D4FF), fontSize: 15,
+                  style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 15,
                     fontWeight: FontWeight.bold)),
                 const Spacer(),
                 IconButton(
@@ -301,13 +301,13 @@ class _CodeTabState extends State<CodeTab> {
                       constraints: BoxConstraints(
                         maxWidth: MediaQuery.of(context).size.width * 0.8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF00D4FF22),
+                        color: const Color(0x227B6CF6),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF00D4FF44)),
+                        border: Border.all(color: const Color(0x447B6CF6)),
                       ),
                       child: Text(msg.content,
                         style: const TextStyle(
-                          color: Color(0xFF00D4FF), fontSize: 14)),
+                          color: Color(0xFF7B6CF6), fontSize: 14)),
                     ),
                   );
                 }
@@ -316,9 +316,9 @@ class _CodeTabState extends State<CodeTab> {
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF111122),
+                    color: const Color(0xFF1B163B),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF222244)),
+                    border: Border.all(color: const Color(0xFF3D35A8)),
                   ),
                   child: MarkdownBody(
                     data: msg.content,
@@ -334,13 +334,13 @@ class _CodeTabState extends State<CodeTab> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: const Color(0xFF333344)),
                       ),
-                      h1: const TextStyle(color: Color(0xFF00D4FF),
+                      h1: const TextStyle(color: Color(0xFF7B6CF6),
                         fontWeight: FontWeight.bold, fontSize: 18),
-                      h2: const TextStyle(color: Color(0xFF00D4FF),
+                      h2: const TextStyle(color: Color(0xFF7B6CF6),
                         fontWeight: FontWeight.bold, fontSize: 16),
                       h3: const TextStyle(color: Color(0xFF00AACC),
                         fontWeight: FontWeight.bold, fontSize: 14),
-                      listBullet: const TextStyle(color: Color(0xFF00D4FF)),
+                      listBullet: const TextStyle(color: Color(0xFF7B6CF6)),
                       strong: const TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold),
                       em: const TextStyle(
@@ -361,7 +361,7 @@ class _CodeTabState extends State<CodeTab> {
                 children: [
                   SizedBox(height: 16, width: 16,
                     child: CircularProgressIndicator(
-                      color: Color(0xFF00D4FF), strokeWidth: 2)),
+                      color: Color(0xFF7B6CF6), strokeWidth: 2)),
                   SizedBox(width: 10),
                   Text('NOVA is thinking...',
                     style: TextStyle(color: Color(0xFF666688), fontSize: 13)),
@@ -372,7 +372,7 @@ class _CodeTabState extends State<CodeTab> {
           // Input row
           Container(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            color: const Color(0xFF0A0A1A),
+            color: const Color(0xFF0E0B1F),
             child: Row(
               children: [
                 Expanded(
@@ -396,7 +396,7 @@ class _CodeTabState extends State<CodeTab> {
                     decoration: BoxDecoration(
                       color: _loading
                         ? const Color(0xFF333355)
-                        : const Color(0xFF00D4FF),
+                        : const Color(0xFF7B6CF6),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: _loading

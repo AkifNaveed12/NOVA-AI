@@ -34,7 +34,7 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
         backgroundColor: const Color(0xFF080812),
-        selectedItemColor: const Color(0xFF00D4FF),
+        selectedItemColor: const Color(0xFF7B6CF6),
         unselectedItemColor: const Color(0xFF444466),
         type: BottomNavigationBarType.fixed,
         selectedFontSize: 11,

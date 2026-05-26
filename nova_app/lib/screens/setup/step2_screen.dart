@@ -42,7 +42,7 @@ class _Step2ScreenState extends State<Step2Screen> {
                 style: TextStyle(color: Color(0xFF666688), fontSize: 14)),
               const SizedBox(height: 6),
               const Text('Groq API Key',
-                style: TextStyle(color: Color(0xFF00D4FF), fontSize: 26,
+                style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 26,
                   fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               const Text(
@@ -60,22 +60,22 @@ class _Step2ScreenState extends State<Step2Screen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF0D1117),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF00D4FF44)),
+                    border: Border.all(color: const Color(0x447B6CF6)),
                   ),
                   child: Row(
                     children: [
                       const Icon(Icons.help_outline,
-                        color: Color(0xFF00D4FF), size: 18),
+                        color: Color(0xFF7B6CF6), size: 18),
                       const SizedBox(width: 10),
                       const Expanded(
                         child: Text('How to get your free Groq API key?',
-                          style: TextStyle(color: Color(0xFF00D4FF),
+                          style: TextStyle(color: Color(0xFF7B6CF6),
                             fontSize: 13, fontWeight: FontWeight.w500))),
                       Icon(
                         _showGuide
                           ? Icons.keyboard_arrow_up
                           : Icons.keyboard_arrow_down,
-                        color: const Color(0xFF00D4FF), size: 20),
+                        color: const Color(0xFF7B6CF6), size: 20),
                     ],
                   ),
                 ),
@@ -90,7 +90,7 @@ class _Step2ScreenState extends State<Step2Screen> {
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(10),
                       bottomRight: Radius.circular(10)),
-                    border: Border.all(color: const Color(0xFF00D4FF33)),
+                    border: Border.all(color: const Color(0x337B6CF6)),
                   ),
                   child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,7 +127,7 @@ class _Step2ScreenState extends State<Step2Screen> {
                 decoration: InputDecoration(
                   hintText: 'gsk_...',
                   labelText: 'Groq API Key',
-                  labelStyle: const TextStyle(color: Color(0xFF00D4FF)),
+                  labelStyle: const TextStyle(color: Color(0xFF7B6CF6)),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -150,7 +150,7 @@ class _Step2ScreenState extends State<Step2Screen> {
                 child: ElevatedButton(
                   onPressed: _next,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00D4FF),
+                    backgroundColor: const Color(0xFF7B6CF6),
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -185,14 +185,14 @@ class _GuideStep extends StatelessWidget {
             width: 22, height: 22,
             alignment: Alignment.center,
             decoration: const BoxDecoration(
-              color: Color(0xFF00D4FF22),
+              color: Color(0x227B6CF6),
               shape: BoxShape.circle,
               border: Border.fromBorderSide(
-                BorderSide(color: Color(0xFF00D4FF66))),
+                BorderSide(color: Color(0xFF7B6CF666))),
             ),
             child: Text(number,
               style: const TextStyle(
-                color: Color(0xFF00D4FF), fontSize: 11,
+                color: Color(0xFF7B6CF6), fontSize: 11,
                 fontWeight: FontWeight.bold)),
           ),
           const SizedBox(width: 12),

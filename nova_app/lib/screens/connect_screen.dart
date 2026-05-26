@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api/client.dart';
+import '../widgets/nova_logo.dart';
 import 'setup/step1_screen.dart';
 import 'home/main_screen.dart';
 
@@ -63,11 +64,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
               // Logo
               const Row(
                 children: [
-                  Icon(Icons.radio_button_checked,
-                    color: Color(0xFF00D4FF), size: 28),
-                  SizedBox(width: 10),
+                  NovaLogo(size: 36),
+                  SizedBox(width: 12),
                   Text('NOVA AI',
-                    style: TextStyle(color: Color(0xFF00D4FF), fontSize: 26,
+                    style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 26,
                       fontWeight: FontWeight.bold, letterSpacing: 3)),
                 ],
               ),
@@ -84,7 +84,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 decoration: const InputDecoration(
                   hintText: '192.168.1.x',
                   labelText: 'PC IP Address',
-                  labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+                  labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
                   prefixIcon: Icon(Icons.computer_outlined,
                     color: Color(0xFF444466)),
                 ),
@@ -156,7 +156,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 decoration: const InputDecoration(
                   hintText: 'nova-secret-change-this',
                   labelText: 'API Key',
-                  labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+                  labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
                   prefixIcon: Icon(Icons.key_outlined,
                     color: Color(0xFF444466)),
                 ),
@@ -202,7 +202,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         style: TextStyle(color: Color(0xFFCCCCDD), fontSize: 12,
                           height: 1.5)),
                       Text('nova-secret-change-this',
-                        style: TextStyle(color: Color(0xFF00D4FF),
+                        style: TextStyle(color: Color(0xFF7B6CF6),
                           fontFamily: 'monospace', fontSize: 13)),
                       SizedBox(height: 10),
                       Text(
@@ -248,7 +248,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 child: ElevatedButton(
                   onPressed: _testing ? null : _handleConnect,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00D4FF),
+                    backgroundColor: const Color(0xFF7B6CF6),
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -278,9 +278,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0A0A1A),
+                  color: const Color(0xFF0E0B1F),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF222244)),
+                  border: Border.all(color: const Color(0xFF3D35A8)),
                 ),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

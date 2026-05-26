@@ -79,7 +79,7 @@ class _Step5ScreenState extends State<Step5Screen> {
                 style: TextStyle(color: Color(0xFF666688), fontSize: 14)),
               const SizedBox(height: 8),
               const Text('Almost Done!',
-                style: TextStyle(color: Color(0xFF00D4FF), fontSize: 26,
+                style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 26,
                   fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Text('Set your default city for weather forecasts.',
@@ -90,7 +90,7 @@ class _Step5ScreenState extends State<Step5Screen> {
                 decoration: const InputDecoration(
                   hintText: 'e.g. Islamabad',
                   labelText: 'Default City',
-                  labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+                  labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
                 ),
               ),
               if (_error.isNotEmpty) ...[
@@ -112,7 +112,7 @@ class _Step5ScreenState extends State<Step5Screen> {
                 child: ElevatedButton(
                   onPressed: _submitting ? null : _finish,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00D4FF),
+                    backgroundColor: const Color(0xFF7B6CF6),
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

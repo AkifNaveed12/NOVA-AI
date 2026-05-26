@@ -68,7 +68,7 @@ class _Step4ScreenState extends State<Step4Screen> {
               Row(
                 children: [
                   const Text('WhatsApp Contacts',
-                    style: TextStyle(color: Color(0xFF00D4FF), fontSize: 22,
+                    style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 22,
                       fontWeight: FontWeight.bold)),
                   const SizedBox(width: 10),
                   Container(
@@ -164,7 +164,7 @@ class _Step4ScreenState extends State<Step4Screen> {
                       decoration: const InputDecoration(
                         hintText: 'Mama',
                         labelText: 'Name',
-                        labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+                        labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 12, vertical: 12),
                       ),
@@ -178,7 +178,7 @@ class _Step4ScreenState extends State<Step4Screen> {
                       decoration: const InputDecoration(
                         hintText: '+923001234567',
                         labelText: 'Phone',
-                        labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+                        labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 12, vertical: 12),
                       ),
@@ -190,7 +190,7 @@ class _Step4ScreenState extends State<Step4Screen> {
                     child: IconButton(
                       onPressed: _addContact,
                       icon: const Icon(Icons.add_circle_outline,
-                        color: Color(0xFF00D4FF), size: 28)),
+                        color: Color(0xFF7B6CF6), size: 28)),
                   ),
                 ],
               ),
@@ -215,15 +215,15 @@ class _Step4ScreenState extends State<Step4Screen> {
                       itemBuilder: (_, i) => Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF111122),
+                          color: const Color(0xFF1B163B),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFF222244)),
+                          border: Border.all(color: const Color(0xFF3D35A8)),
                         ),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF00D4FF22),
+                            backgroundColor: const Color(0x227B6CF6),
                             child: Text(_contacts[i]['name']![0].toUpperCase(),
-                              style: const TextStyle(color: Color(0xFF00D4FF),
+                              style: const TextStyle(color: Color(0xFF7B6CF6),
                                 fontWeight: FontWeight.bold)),
                           ),
                           title: Text(_contacts[i]['name']!,
@@ -262,7 +262,7 @@ class _Step4ScreenState extends State<Step4Screen> {
                     child: ElevatedButton(
                       onPressed: () => _next(),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00D4FF),
+                        backgroundColor: const Color(0xFF7B6CF6),
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

@@ -134,7 +134,7 @@ class _FilesTabState extends State<FilesTab> {
                   onPressed: () => Navigator.pop(ctx)),
               ]),
             ),
-            const Divider(color: Color(0xFF222244), height: 1),
+            const Divider(color: Color(0xFF3D35A8), height: 1),
             // Content
             Expanded(
               child: SingleChildScrollView(
@@ -166,7 +166,7 @@ class _FilesTabState extends State<FilesTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, ss) => AlertDialog(
-          backgroundColor: const Color(0xFF111122),
+          backgroundColor: const Color(0xFF1B163B),
           title: const Text('Create new', style: TextStyle(color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -178,7 +178,7 @@ class _FilesTabState extends State<FilesTab> {
                 Switch(
                   value: isFolder,
                   onChanged: (v) => ss(() => isFolder = v),
-                  activeColor: const Color(0xFF00D4FF)),
+                  activeColor: const Color(0xFF7B6CF6)),
                 const Text('Folder', style: TextStyle(color: Color(0xFF888899), fontSize: 13)),
               ]),
               const SizedBox(height: 8),
@@ -187,7 +187,7 @@ class _FilesTabState extends State<FilesTab> {
                 autofocus: true,
                 decoration: const InputDecoration(
                   labelText: 'Name',
-                  labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+                  labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
                   hintText: 'e.g. main.py or src'),
               ),
               if (!isFolder) ...[
@@ -197,7 +197,7 @@ class _FilesTabState extends State<FilesTab> {
                   maxLines: 3,
                   decoration: const InputDecoration(
                     labelText: 'Initial content (optional)',
-                    labelStyle: TextStyle(color: Color(0xFF00D4FF))),
+                    labelStyle: TextStyle(color: Color(0xFF7B6CF6))),
                 ),
               ],
             ],
@@ -229,7 +229,7 @@ class _FilesTabState extends State<FilesTab> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00D4FF),
+                backgroundColor: const Color(0xFF7B6CF6),
                 foregroundColor: Colors.black),
               child: const Text('Create'),
             ),
@@ -245,7 +245,7 @@ class _FilesTabState extends State<FilesTab> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF111122),
+        backgroundColor: const Color(0xFF1B163B),
         title: Text('Delete "$name"?',
           style: const TextStyle(color: Colors.white)),
         content: Text(
@@ -313,7 +313,7 @@ class _FilesTabState extends State<FilesTab> {
     if (e['type'] == 'directory') return const Color(0xFFFFAA00);
     switch ((e['extension'] as String? ?? '').toLowerCase()) {
       case '.py': return const Color(0xFF4488FF);
-      case '.dart': return const Color(0xFF00D4FF);
+      case '.dart': return const Color(0xFF7B6CF6);
       case '.js': case '.ts': return const Color(0xFFFFDD00);
       case '.json': return const Color(0xFF00FF88);
       case '.md': return const Color(0xFFCCCCFF);
@@ -342,21 +342,21 @@ class _FilesTabState extends State<FilesTab> {
               if (_history.isNotEmpty)
                 IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new,
-                    color: Color(0xFF00D4FF), size: 18),
+                    color: Color(0xFF7B6CF6), size: 18),
                   onPressed: _goBack,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 )
               else
                 const SizedBox(width: 4),
-              const Icon(Icons.folder_open, color: Color(0xFF00D4FF), size: 20),
+              const Icon(Icons.folder_open, color: Color(0xFF7B6CF6), size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _currentPath.isEmpty
                     ? 'Files'
                     : _currentPath.split('\\').last,
-                  style: const TextStyle(color: Color(0xFF00D4FF),
+                  style: const TextStyle(color: Color(0xFF7B6CF6),
                     fontSize: 16, fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis),
               ),
@@ -369,7 +369,7 @@ class _FilesTabState extends State<FilesTab> {
               if (_currentPath.isNotEmpty)
                 IconButton(
                   icon: const Icon(Icons.add,
-                    color: Color(0xFF00D4FF), size: 22),
+                    color: Color(0xFF7B6CF6), size: 22),
                   onPressed: _showNewItemDialog,
                   tooltip: 'New file/folder',
                 ),
@@ -393,7 +393,7 @@ class _FilesTabState extends State<FilesTab> {
           Expanded(
             child: _loading
               ? const Center(child: CircularProgressIndicator(
-                  color: Color(0xFF00D4FF)))
+                  color: Color(0xFF7B6CF6)))
               : _error.isNotEmpty
                 ? Center(child: Padding(
                     padding: const EdgeInsets.all(32),
@@ -411,7 +411,7 @@ class _FilesTabState extends State<FilesTab> {
                         ElevatedButton(
                           onPressed: () => _loadDir(_currentPath),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF00D4FF),
+                            backgroundColor: const Color(0xFF7B6CF6),
                             foregroundColor: Colors.black),
                           child: const Text('Retry'),
                         ),

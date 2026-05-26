@@ -40,7 +40,7 @@ class _Step1ScreenState extends State<Step1Screen> {
                 style: TextStyle(color: Color(0xFF666688), fontSize: 14)),
               const SizedBox(height: 8),
               const Text("What's your name?",
-                style: TextStyle(color: Color(0xFF00D4FF), fontSize: 26,
+                style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 26,
                   fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               const Text('NOVA will use this to greet you.',
@@ -53,7 +53,7 @@ class _Step1ScreenState extends State<Step1Screen> {
                 decoration: const InputDecoration(
                   hintText: 'Your name',
                   labelText: 'Name',
-                  labelStyle: TextStyle(color: Color(0xFF00D4FF)),
+                  labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
                 ),
                 onSubmitted: (_) => _next(),
               ),
@@ -68,7 +68,7 @@ class _Step1ScreenState extends State<Step1Screen> {
                 child: ElevatedButton(
                   onPressed: _next,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00D4FF),
+                    backgroundColor: const Color(0xFF7B6CF6),
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
