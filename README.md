@@ -411,6 +411,9 @@ GitHub: [Alyan-khattak](https://github.com/Alyan-khattak)
 - **Self-Healing API Fallback Parser:** Engineered an XML-to-JSON fallback extraction algorithm to intercept and recover from Groq API `tool_use_failed` errors during code writing tasks.
 - **System Diagnostics & Clipboard Sync:** Built real-time PC diagnostic metrics (CPU, RAM, Disk, Network) and two-way clipboard synchronization.
 - **Google & YouTube Search Shortcuts:** Added dashboard search integration shortcuts to execute immediate web automations and searches on the PC browser from the mobile client.
+- **Remote Mouse Trackpad Control:** Developed a low-latency `/ws/mouse` WebSocket pipeline and custom gesture/scroll tracking panel inside the Flutter app.
+- **Instant Windows Index Search:** Leveraged the native Windows Collator Search database to provide instant desktop file searches (<0.05s) across secure user directories.
+- **Pulsing Sci-Fi Launcher Icon:** Designed a custom orbital breathing geometry icon matching the system HUD and packaged it into Android mipmap assets.
 
 ---
 
