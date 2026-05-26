@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dashboard_tab.dart';
 import 'remote_tab.dart';
+import 'system_tab.dart';
+import 'files_tab.dart';
 import 'code_tab.dart';
 
 class MainScreen extends StatefulWidget {
@@ -16,29 +18,45 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _tabs = const [
     DashboardTab(),
     RemoteTab(),
+    SystemTab(),
+    FilesTab(),
     CodeTab(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _tabs[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _tabs,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
-        backgroundColor: const Color(0xFF0A0A1A),
+        backgroundColor: const Color(0xFF080812),
         selectedItemColor: const Color(0xFF00D4FF),
-        unselectedItemColor: const Color(0xFF555577),
+        unselectedItemColor: const Color(0xFF444466),
         type: BottomNavigationBarType.fixed,
+        selectedFontSize: 11,
+        unselectedFontSize: 10,
+        iconSize: 22,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
-            label: 'Dashboard'),
+            label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.mic_none),
             activeIcon: Icon(Icons.mic),
             label: 'Remote'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.monitor_outlined),
+            activeIcon: Icon(Icons.monitor),
+            label: 'System'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.folder_outlined),
+            activeIcon: Icon(Icons.folder),
+            label: 'Files'),
           BottomNavigationBarItem(
             icon: Icon(Icons.code_outlined),
             activeIcon: Icon(Icons.code),

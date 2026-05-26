@@ -629,6 +629,90 @@ def get_activity(limit: int = 50, _auth: str = Depends(_require_auth)):
     logs = logger.get_recent(limit)
     return {"logs": logs}
 
+# ── Notes API (F7) ───────────────────────────────────────────────
+class NoteRequest(BaseModel):
+    content: str
+    tags: str = ""
+
+def _db_conn():
+    import sqlite3
+    conn = sqlite3.connect("data/memory.db", check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+@app.get("/api/notes")
+def get_notes(limit: int = 20, _auth: str = Depends(_require_auth)):
+    try:
+        conn = _db_conn()
+        rows = conn.execute(
+            "SELECT id, content, tags, created_at FROM Notes "
+            "WHERE user_id = 1 ORDER BY created_at DESC LIMIT ?", (limit,)
+        ).fetchall()
+        conn.close()
+        return {"notes": [dict(r) for r in rows]}
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {e}")
+
+@app.post("/api/notes")
+def add_note_api(req: NoteRequest, _auth: str = Depends(_require_auth)):
+    from modules.notes_reminders import NotesModule
+    NotesModule().save_note(req.content, req.tags)
+    return {"status": "success"}
+
+@app.delete("/api/notes/{note_id}")
+def delete_note_api(note_id: int, _auth: str = Depends(_require_auth)):
+    try:
+        conn = _db_conn()
+        conn.execute("DELETE FROM Notes WHERE id = ? AND user_id = 1", (note_id,))
+        conn.commit()
+        conn.close()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {e}")
+
+# ── Tasks API (F7) ────────────────────────────────────────────────
+class TaskRequest(BaseModel):
+    title: str
+    priority: str = "medium"
+    due_date: str = ""
+
+@app.get("/api/tasks")
+def get_tasks(include_done: bool = False, _auth: str = Depends(_require_auth)):
+    try:
+        conn = _db_conn()
+        where = "user_id = 1" if include_done else "user_id = 1 AND is_done = 0"
+        rows = conn.execute(
+            f"SELECT id, title, priority, is_done, due_date, created_at "
+            f"FROM Tasks WHERE {where} ORDER BY priority DESC, created_at ASC LIMIT 50"
+        ).fetchall()
+        conn.close()
+        return {"tasks": [dict(r) for r in rows]}
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {e}")
+
+@app.post("/api/tasks")
+def add_task_api(req: TaskRequest, _auth: str = Depends(_require_auth)):
+    from modules.calendar_tasks import TasksModule
+    TasksModule().add_task(req.title, req.priority, req.due_date or None)
+    return {"status": "success"}
+
+@app.patch("/api/tasks/{task_id}/done")
+def mark_task_done_api(task_id: int, _auth: str = Depends(_require_auth)):
+    try:
+        conn = _db_conn()
+        conn.execute("UPDATE Tasks SET is_done = 1 WHERE id = ? AND user_id = 1", (task_id,))
+        conn.commit()
+        conn.close()
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(500, f"Database error: {e}")
+
+@app.delete("/api/tasks/{task_id}")
+def delete_task_api(task_id: int, _auth: str = Depends(_require_auth)):
+    from modules.calendar_tasks import TasksModule
+    TasksModule().delete_task(task_id)
+    return {"status": "success"}
+
 # ── Uvicorn server control ────────────────────────────────────────
 _server: Optional[uvicorn.Server] = None
 

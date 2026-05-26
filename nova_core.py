@@ -116,6 +116,26 @@ def route(
         # ── Strip STT noise prefix (wake word tail leaks into transcription) ──
         original = re.sub(r"^(?:innova|renuka|nova|nava|in nova)\s+", "", original, flags=re.IGNORECASE).strip()
 
+        # ── Early search intercept (catches "search X on Y" regardless of NLP intent) ──
+        _yt = re.search(r"search\s+(.+?)\s+on\s+youtube", original, re.IGNORECASE)
+        if not _yt:
+            _yt = re.search(r"search\s+(?:on\s+)?youtube\s+(?:for\s+)?(.+)", original, re.IGNORECASE)
+        if _yt:
+            from modules.web_automation import WebAutomation
+            return WebAutomation(_config).search_youtube(_yt.group(1).strip())
+
+        _goog = re.search(r"search\s+(.+?)\s+on\s+google", original, re.IGNORECASE)
+        if not _goog:
+            _goog = re.search(r"search\s+(?:on\s+)?google\s+(?:for\s+)?(.+)", original, re.IGNORECASE)
+        if _goog:
+            from modules.web_automation import WebAutomation
+            return WebAutomation(_config).search_google(_goog.group(1).strip())
+
+        _wiki_search = re.search(r"search\s+(.+?)\s+on\s+wikipedia", original, re.IGNORECASE)
+        if _wiki_search:
+            from modules.wikipedia_module import WikipediaModule
+            return WikipediaModule().search(_wiki_search.group(1).strip())
+
         # ── Multi-command detection: "open X and email Y" ─────────────────
         if intent in ("app", "web"):
             segments = _split_multi_commands(original)

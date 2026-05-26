@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -125,4 +126,214 @@ Future<WebSocketChannel> openInteractiveSocket() async {
   final config = await getServerConfig();
   final uri = Uri.parse('ws://${config['ip']}:$_kApiPort/ws/interactive');
   return WebSocketChannel.connect(uri);
+}
+
+// ── System info (F2) ──────────────────────────────────────────────
+
+Future<Map<String, dynamic>> fetchSystemInfo() async {
+  final config = await getServerConfig();
+  final res = await http.get(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/system/info'),
+    headers: {'X-API-Key': config['apiKey']!},
+  ).timeout(const Duration(seconds: 10));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+// ── File browser (F3/F4) ─────────────────────────────────────────
+
+Future<Map<String, dynamic>> listFiles(String path) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/files/list')
+      .replace(queryParameters: {'path': path});
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+Future<Map<String, dynamic>> readFile(String path) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/files/read')
+      .replace(queryParameters: {'path': path});
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+Future<Map<String, dynamic>> writeFile(String path, String content) async {
+  final config = await getServerConfig();
+  final res = await http.post(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/files/write'),
+    headers: {
+      'X-API-Key': config['apiKey']!,
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({'path': path, 'content': content}),
+  ).timeout(const Duration(seconds: 15));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+Future<Map<String, dynamic>> mkdirRemote(String path) async {
+  final config = await getServerConfig();
+  final res = await http.post(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/files/mkdir'),
+    headers: {
+      'X-API-Key': config['apiKey']!,
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({'path': path}),
+  ).timeout(const Duration(seconds: 10));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+Future<Map<String, dynamic>> deleteRemote(String path) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/files/delete')
+      .replace(queryParameters: {'path': path});
+  final res = await http.delete(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+Future<Map<String, dynamic>> openRemote(String path) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/files/open')
+      .replace(queryParameters: {'path': path});
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+// ── Terminal (F3) ─────────────────────────────────────────────────
+
+Future<Map<String, dynamic>> runTerminal(String cmd, {String? cwd}) async {
+  final config = await getServerConfig();
+  final body = <String, dynamic>{'command': cmd};
+  if (cwd != null) body['cwd'] = cwd;
+  final res = await http.post(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/terminal/run'),
+    headers: {
+      'X-API-Key': config['apiKey']!,
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode(body),
+  ).timeout(const Duration(seconds: 60));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+// ── Screenshot (F5) ───────────────────────────────────────────────
+
+Future<Uint8List?> fetchScreenshot() async {
+  final config = await getServerConfig();
+  final res = await http.get(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/screenshot/latest'),
+    headers: {'X-API-Key': config['apiKey']!},
+  ).timeout(const Duration(seconds: 10));
+  if (res.statusCode == 200) return res.bodyBytes;
+  return null;
+}
+
+// ── Clipboard (F6) ────────────────────────────────────────────────
+
+Future<String?> fetchClipboard() async {
+  final config = await getServerConfig();
+  final res = await http.get(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/clipboard'),
+    headers: {'X-API-Key': config['apiKey']!},
+  ).timeout(const Duration(seconds: 5));
+  final data = jsonDecode(res.body) as Map<String, dynamic>;
+  return data['content'] as String?;
+}
+
+Future<void> setClipboard(String text) async {
+  final config = await getServerConfig();
+  await http.post(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/clipboard'),
+    headers: {
+      'X-API-Key': config['apiKey']!,
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({'content': text}),
+  ).timeout(const Duration(seconds: 5));
+}
+
+// ── Activity log (F9) ─────────────────────────────────────────────
+
+// ── Notes (F7) ────────────────────────────────────────────────────
+
+Future<List<Map<String, dynamic>>> fetchNotes({int limit = 20}) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/notes')
+      .replace(queryParameters: {'limit': '$limit'});
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  final data = jsonDecode(res.body) as Map<String, dynamic>;
+  return (data['notes'] as List? ?? []).cast<Map<String, dynamic>>();
+}
+
+Future<void> addNote(String content, {String tags = ''}) async {
+  final config = await getServerConfig();
+  await http.post(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/notes'),
+    headers: {'X-API-Key': config['apiKey']!, 'Content-Type': 'application/json'},
+    body: jsonEncode({'content': content, 'tags': tags}),
+  ).timeout(const Duration(seconds: 10));
+}
+
+Future<void> deleteNote(int id) async {
+  final config = await getServerConfig();
+  await http.delete(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/notes/$id'),
+    headers: {'X-API-Key': config['apiKey']!},
+  ).timeout(const Duration(seconds: 10));
+}
+
+// ── Tasks (F7) ────────────────────────────────────────────────────
+
+Future<List<Map<String, dynamic>>> fetchTasks({bool includeDone = false}) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/tasks')
+      .replace(queryParameters: {'include_done': '$includeDone'});
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  final data = jsonDecode(res.body) as Map<String, dynamic>;
+  return (data['tasks'] as List? ?? []).cast<Map<String, dynamic>>();
+}
+
+Future<void> addTask(String title, {String priority = 'medium', String? dueDate}) async {
+  final config = await getServerConfig();
+  final body = <String, dynamic>{'title': title, 'priority': priority};
+  if (dueDate != null) body['due_date'] = dueDate;
+  await http.post(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/tasks'),
+    headers: {'X-API-Key': config['apiKey']!, 'Content-Type': 'application/json'},
+    body: jsonEncode(body),
+  ).timeout(const Duration(seconds: 10));
+}
+
+Future<void> markTaskDone(int id) async {
+  final config = await getServerConfig();
+  await http.patch(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/tasks/$id/done'),
+    headers: {'X-API-Key': config['apiKey']!},
+  ).timeout(const Duration(seconds: 10));
+}
+
+Future<void> deleteTask(int id) async {
+  final config = await getServerConfig();
+  await http.delete(
+    Uri.parse('${_baseUrl(config['ip']!)}/api/tasks/$id'),
+    headers: {'X-API-Key': config['apiKey']!},
+  ).timeout(const Duration(seconds: 10));
+}
+
+// ── Activity log (F9) ─────────────────────────────────────────────
+
+Future<List<Map<String, dynamic>>> fetchActivity({int limit = 30}) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/activity')
+      .replace(queryParameters: {'limit': '$limit'});
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  final data = jsonDecode(res.body) as Map<String, dynamic>;
+  return (data['logs'] as List? ?? []).cast<Map<String, dynamic>>();
 }

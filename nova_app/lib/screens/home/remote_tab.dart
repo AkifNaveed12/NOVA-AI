@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../api/client.dart';
 
@@ -25,6 +27,14 @@ class _RemoteTabState extends State<RemoteTab> {
   WebSocketChannel? _interactiveWs;
   bool _inInteractive = false;
 
+  // Voice (F1)
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechAvailable = false;
+  bool _isListening = false;
+
+  // Screenshot viewer (F5)
+  bool _screenshotLoading = false;
+
   static const _statusColors = {
     'sleeping':    Color(0xFF555577),
     'listening':   Color(0xFF00FF88),
@@ -43,6 +53,17 @@ class _RemoteTabState extends State<RemoteTab> {
     final prefs = await SharedPreferences.getInstance();
     _serverIp = prefs.getString('nova_server_ip') ?? '';
     _connectStatusWs();
+    _speechAvailable = await _speech.initialize(
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          if (mounted) setState(() => _isListening = false);
+        }
+      },
+      onError: (_) {
+        if (mounted) setState(() => _isListening = false);
+      },
+    );
+    if (mounted) setState(() {});
   }
 
   void _connectStatusWs() {
@@ -174,6 +195,78 @@ class _RemoteTabState extends State<RemoteTab> {
     _scrollToBottom();
   }
 
+  Future<void> _viewLastScreenshot() async {
+    setState(() => _screenshotLoading = true);
+    try {
+      final bytes = await fetchScreenshot();
+      if (!mounted) return;
+      setState(() => _screenshotLoading = false);
+      if (bytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No screenshot available yet. Try "take screenshot" first.')));
+        return;
+      }
+      _showScreenshotFullscreen(bytes);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _screenshotLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not load screenshot')));
+    }
+  }
+
+  void _showScreenshotFullscreen(Uint8List bytes) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              maxScale: 6,
+              child: SizedBox.expand(
+                child: Image.memory(bytes, fit: BoxFit.contain)),
+            ),
+            Positioned(
+              top: 48, right: 12,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleVoice() async {
+    if (!_speechAvailable) return;
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
+      return;
+    }
+    setState(() => _isListening = true);
+    await _speech.listen(
+      onResult: (result) {
+        setState(() => _cmdCtrl.text = result.recognizedWords);
+        if (result.finalResult && result.recognizedWords.isNotEmpty) {
+          setState(() => _isListening = false);
+          if (_inInteractive) {
+            _sendInteractiveReply(_cmdCtrl.text.trim());
+          } else {
+            _sendCommand();
+          }
+        }
+      },
+      listenMode: stt.ListenMode.confirmation,
+      pauseFor: const Duration(seconds: 3),
+    );
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
@@ -204,7 +297,7 @@ class _RemoteTabState extends State<RemoteTab> {
         children: [
           // Status bar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
                 Container(width: 10, height: 10,
@@ -218,6 +311,20 @@ class _RemoteTabState extends State<RemoteTab> {
                 Text('NOVA is $_novaStatus',
                   style: TextStyle(color: statusColor, fontSize: 14,
                     fontWeight: FontWeight.w500)),
+                const Spacer(),
+                // Screenshot viewer button (F5)
+                _screenshotLoading
+                  ? const SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF555577), strokeWidth: 2))
+                  : IconButton(
+                      icon: const Icon(Icons.photo_camera_outlined,
+                        color: Color(0xFF555577), size: 22),
+                      onPressed: _viewLastScreenshot,
+                      tooltip: 'View last screenshot',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    ),
               ],
             ),
           ),
@@ -258,12 +365,51 @@ class _RemoteTabState extends State<RemoteTab> {
             ),
           ),
 
+          // Voice listening banner
+          if (_isListening)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              color: const Color(0xFF1A0000),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.mic, color: Colors.red, size: 16),
+                  SizedBox(width: 8),
+                  Text('Listening... speak now',
+                    style: TextStyle(color: Colors.red, fontSize: 13)),
+                ],
+              ),
+            ),
+
           // Input row
           Container(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             color: const Color(0xFF0A0A1A),
             child: Row(
               children: [
+                // Mic button
+                GestureDetector(
+                  onTap: _speechAvailable ? _toggleVoice : null,
+                  child: Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: _isListening
+                        ? Colors.red
+                        : const Color(0xFF1A1A2E),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _isListening
+                          ? Colors.red
+                          : const Color(0xFF333355)),
+                    ),
+                    child: Icon(
+                      _isListening ? Icons.stop : Icons.mic,
+                      color: _isListening ? Colors.white : const Color(0xFF00D4FF),
+                      size: 20),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _cmdCtrl,

@@ -25,7 +25,12 @@ class SystemControls:
             from ctypes import cast, POINTER
             from comtypes import CLSCTX_ALL
             devices = AudioUtilities.GetSpeakers()
-            interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            # Newer pycaw wraps the device in AudioDevice; use EndpointVolume directly.
+            if hasattr(devices, 'EndpointVolume'):
+                return devices.EndpointVolume
+            # Legacy pycaw: call Activate on the raw COM device.
+            dev = getattr(devices, '_dev', devices)
+            interface = dev.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
             return cast(interface, POINTER(IAudioEndpointVolume))
         except Exception as e:
             print(f"[SystemControls] pycaw error: {e}")
