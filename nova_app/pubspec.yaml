@@ -21,7 +21,7 @@ dependencies:
   flutter_markdown: ^0.7.3
 
   # Voice input
-  speech_to_text: ^6.6.2
+  speech_to_text: ^7.4.0
   permission_handler: ^11.3.1
 
   # Icons
