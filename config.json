@@ -55,7 +55,7 @@
     "config_manager": true
   },
   "weather": {
-    "default_city": "IslamAbad",
+    "default_city": "islam Abad",
     "units": "metric"
   },
   "hud": {
@@ -85,6 +85,6 @@
   },
   "user": {
     "name": "Aizen",
-    "default_city": "IslamAbad"
+    "default_city": "islam Abad"
   }
 }

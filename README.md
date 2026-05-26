@@ -257,6 +257,34 @@ NOVA comes with a cross-platform companion app that acts as a remote control and
    - **API Key:** Enter your `NOVA_API_SECRET` from your `.env` file (Default: `nova-secret-change-this`). *Do NOT enter your Groq key here!*
 4. Hit Connect. You can now control your PC remotely!
 
+### 📶 Companion App Connection Troubleshooting
+
+If the app fails to connect and displays a `"Could not connect to NOVA"` error, follow these troubleshooting steps:
+
+#### A. Change Network Profile to "Private"
+By default, Windows blocks local network incoming connections if your Wi-Fi profile is set to **Public**. Change it to **Private**:
+* **PowerShell (Run as Administrator):**
+  ```powershell
+  Set-NetConnectionProfile -Name "YOUR_WIFI_NAME" -NetworkCategory Private
+  ```
+  *(Replace `YOUR_WIFI_NAME` with your actual Wi-Fi SSID name, e.g., `"Virusonly 2"`)*
+* **GUI Way:** Open Windows **Settings** → **Network & internet** → **Wi-Fi** → click on your active network → toggle **Network profile type** to **Private**.
+
+#### B. Allow Port 8000 in Windows Firewall
+You must explicitly allow incoming connections on port `8000` (FastAPI):
+1. Open **PowerShell (Run as Administrator)**.
+2. Run the following command:
+   ```powershell
+   New-NetFirewallRule -DisplayName "NOVA AI API Port 8000" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
+   ```
+3. *To remove this rule later:*
+   ```powershell
+   Remove-NetFirewallRule -DisplayName "NOVA AI API Port 8000"
+   ```
+
+#### C. Router AP Isolation
+Ensure both your PC and phone are on the same Wi-Fi subnet and your router does not have **AP Isolation** (Client Isolation) enabled, which prevents local wireless devices from communicating with each other.
+
 ---
 
 # 🧪 Testing
