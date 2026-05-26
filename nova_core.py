@@ -15,6 +15,7 @@
 import json
 import os
 import re
+import threading
 from typing import Optional
 
 
@@ -27,6 +28,9 @@ groq_brain = GroqBrain(_config)
 # Initialize PersonalityModule once at module level
 from modules.personality import PersonalityModule
 _personality = PersonalityModule()
+
+# Protects route() from concurrent calls by the voice pipeline and API server threads
+_route_lock = threading.Lock()
 
 
 # ── Intent routing tables ─────────────────────────────────────────
@@ -104,43 +108,44 @@ def route(
     Returns:
         Response string to be spoken by TTS engine
     """
-    intent   = nlp_result.get("intent", "conversation")
-    original = nlp_result.get("original", "")
-    entities = nlp_result.get("entities", {})
+    with _route_lock:
+        intent   = nlp_result.get("intent", "conversation")
+        original = nlp_result.get("original", "")
+        entities = nlp_result.get("entities", {})
 
-    # ── Strip STT noise prefix (wake word tail leaks into transcription) ──
-    original = re.sub(r"^(?:innova|renuka|nova|nava|in nova)\s+", "", original, flags=re.IGNORECASE).strip()
+        # ── Strip STT noise prefix (wake word tail leaks into transcription) ──
+        original = re.sub(r"^(?:innova|renuka|nova|nava|in nova)\s+", "", original, flags=re.IGNORECASE).strip()
 
-    # ── Multi-command detection: "open X and email Y" ─────────────────
-    if intent in ("app", "web"):
-        segments = _split_multi_commands(original)
-        if segments:
-            responses = []
-            for seg_intent, seg_text, seg_result in segments:
-                if seg_intent in LOCAL_INTENTS:
-                    r = dispatch_local(seg_intent, seg_result["entities"], seg_text,
-                                       speak_func=speak_func, listen_func=listen_func)
-                    if r:
-                        responses.append(r)
-                else:
-                    responses.append(groq_brain.chat(seg_text))
-            return " ".join(responses) if responses else "Done!"
+        # ── Multi-command detection: "open X and email Y" ─────────────────
+        if intent in ("app", "web"):
+            segments = _split_multi_commands(original)
+            if segments:
+                responses = []
+                for seg_intent, seg_text, seg_result in segments:
+                    if seg_intent in LOCAL_INTENTS:
+                        r = dispatch_local(seg_intent, seg_result["entities"], seg_text,
+                                           speak_func=speak_func, listen_func=listen_func)
+                        if r:
+                            responses.append(r)
+                    else:
+                        responses.append(groq_brain.chat(seg_text))
+                return " ".join(responses) if responses else "Done!"
 
-    if intent in LOCAL_INTENTS:
-        local_response = dispatch_local(
-            intent, entities, original,
-            speak_func=speak_func,
-            listen_func=listen_func,
-        )
-        if local_response is not None:
-            return local_response
+        if intent in LOCAL_INTENTS:
+            local_response = dispatch_local(
+                intent, entities, original,
+                speak_func=speak_func,
+                listen_func=listen_func,
+            )
+            if local_response is not None:
+                return local_response
+            else:
+                return f"The local module for {intent} is not yet implemented."
+
         else:
-            return f"The local module for {intent} is not yet implemented."
-
-    else:
-        # Route to Groq Brain for conversation, jokes, etc.
-        print(f"[Core] Routing to GroqBrain: '{original}'")
-        return groq_brain.chat(original)
+            # Route to Groq Brain for conversation, jokes, etc.
+            print(f"[Core] Routing to GroqBrain: '{original}'")
+            return groq_brain.chat(original)
 
 
 def dispatch_local(

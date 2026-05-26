@@ -242,6 +242,23 @@ python main.py
 
 ---
 
+## 6. Run the Companion App (Web / Android)
+
+NOVA comes with a cross-platform companion app that acts as a remote control and coding assistant. 
+
+1. Ensure your phone or browser is on the **same Wi-Fi network** as the PC.
+2. In a new terminal, navigate to the app folder and start it (we use Chrome for quick testing):
+   ```bash
+   cd nova_app
+   flutter run -d chrome
+   ```
+3. When the app opens, it will ask for your PC's IP and an API Key.
+   - **PC IP Address:** Enter your IPv4 address (e.g., `192.168.1.42` or `127.0.0.1`). *Do not append `:8000`, the app does this automatically!*
+   - **API Key:** Enter your `NOVA_API_SECRET` from your `.env` file (Default: `nova-secret-change-this`). *Do NOT enter your Groq key here!*
+4. Hit Connect. You can now control your PC remotely!
+
+---
+
 # 🧪 Testing
 
 Run all tests:

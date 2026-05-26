@@ -77,6 +77,11 @@ def main() -> None:
         hud.update_status("speaking")
         hud.log_message("nova", text)
         print(f"[NOVA] {text}")
+        try:
+            from modules.api_server import push_status as _push
+            _push("speaking", text[:60])
+        except Exception:
+            pass
         
         import subprocess, sys
         rate = tts_cfg.get("rate", 175)
@@ -89,6 +94,11 @@ def main() -> None:
         
         # Note: wake_word.resume() is called by voice_pipeline AFTER draining
         hud.update_status("sleeping")
+        try:
+            from modules.api_server import push_status as _push
+            _push("sleeping")
+        except Exception:
+            pass
 
     def speak_online(text: str):
         """Fallback TTS using gTTS."""
@@ -177,7 +187,9 @@ def main() -> None:
         """Background thread: wakes on event, listens, routes, speaks, loops."""
         import pythoncom
         pythoncom.CoInitialize()
-        
+
+        from modules.api_server import push_status
+
         from modules.personality import PersonalityModule
         _personality_startup = PersonalityModule()
         
@@ -224,6 +236,7 @@ def main() -> None:
                     hud.update_ticker(hud_ticker_queue.get())
                 
                 hud.update_status("sleeping")
+                push_status("sleeping")
 
                 # Block until wake word detector fires
                 triggered = wake_event.wait(timeout=1.0)
@@ -234,10 +247,12 @@ def main() -> None:
                 # before setting the event), so STT has exclusive mic access.
 
                 hud.update_status("listening")
+                push_status("listening")
                 audio = stt.listen()
 
                 if audio:
                     hud.update_status("processing")
+                    push_status("processing")
                     text = stt.transcribe(audio)
 
                     if text:
@@ -262,6 +277,7 @@ def main() -> None:
                             wake_event.clear()
                             wake_word.resume()
                             hud.update_status("sleeping")
+                            push_status("sleeping")
                             continue
 
                         # Normalise: None means the module had nothing to say
@@ -291,6 +307,7 @@ def main() -> None:
                 # stale mic buffer from triggering a false wake detection.
                 wake_word.resume()
                 hud.update_status("sleeping")
+                push_status("sleeping")
 
         except Exception as e:
             import traceback
@@ -301,7 +318,13 @@ def main() -> None:
     # ── Core start sequence ───────────────────────────────────────────
     # Start background threads
     wake_word.start()
-    
+
+    from modules.api_server import start_api_server, start_udp_broadcaster
+    api_thread = threading.Thread(target=start_api_server, daemon=True, name="APIServerThread")
+    api_thread.start()
+    start_udp_broadcaster(api_port=8000)
+    print("[API] Server starting on http://0.0.0.0:8000")
+
     pipeline_thread = threading.Thread(target=voice_pipeline, daemon=True)
     pipeline_thread.start()
 
@@ -314,6 +337,9 @@ def main() -> None:
         if gesture_engine:
             gesture_engine.stop()
         wake_word.stop()
+        from modules.api_server import stop_api_server, stop_udp_broadcaster
+        stop_api_server()
+        stop_udp_broadcaster()
         if getattr(shared_mic, 'stream', None) is not None:
             shared_mic.__exit__(None, None, None) # Close the PyAudio stream
     except OSError:
