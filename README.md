@@ -358,6 +358,8 @@ Current Version:
 
 Week 4 Stabilization & Demo Preparation In Progress 🔄
 
+new features someone soon mobile version under development.
+
 ---
 
 # ⭐ Future Scope
