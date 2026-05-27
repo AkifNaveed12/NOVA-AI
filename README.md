@@ -64,7 +64,7 @@ All integrated into a single local-first Python system.
 
 ## 🔄 Week 4 — Final Polish & Stability
 
-(Current Phase)
+(Current Phase):
 
 - Edge-case testing
 - Stability improvements
