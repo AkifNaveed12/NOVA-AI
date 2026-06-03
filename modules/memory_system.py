@@ -25,11 +25,24 @@ class DatabaseManager:
         if dirname:
             os.makedirs(dirname, exist_ok=True)
         
-        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        # Enable row access by column name
-        self.conn.row_factory = sqlite3.Row
-        self._create_tables()
-        self._ensure_default_user()
+        try:
+            self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            # Enable WAL mode for safe concurrent writes from multiple threads
+            self.conn.execute("PRAGMA journal_mode=WAL")
+            # Enable row access by column name
+            self.conn.row_factory = sqlite3.Row
+            self._create_tables()
+            self._ensure_default_user()
+        except sqlite3.DatabaseError as e:
+            print(f"[DatabaseManager] DB corrupted ({e}). Recreating schema...")
+            # If DB is corrupted, delete and recreate
+            if db_path != ":memory:" and os.path.exists(db_path):
+                os.remove(db_path)
+            self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            self.conn.execute("PRAGMA journal_mode=WAL")
+            self.conn.row_factory = sqlite3.Row
+            self._create_tables()
+            self._ensure_default_user()
 
     def _create_tables(self):
         """Creates the foundational 9 tables for all NOVA modules."""
