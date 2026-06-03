@@ -242,6 +242,51 @@ python main.py
 
 ---
 
+## 6. Run the Companion App (Web / Android)
+
+NOVA comes with a cross-platform companion app that acts as a remote control and coding assistant. 
+
+1. Ensure your phone or browser is on the **same Wi-Fi network** as the PC.
+2. In a new terminal, navigate to the app folder and start it (we use Chrome for quick testing):
+   ```bash
+   cd nova_app
+   flutter run -d chrome
+   ```
+3. When the app opens, it will ask for your PC's IP and an API Key.
+   - **PC IP Address:** Enter your IPv4 address (e.g., `192.168.1.42` or `127.0.0.1`). *Do not append `:8000`, the app does this automatically!*
+   - **API Key:** Enter your `NOVA_API_SECRET` from your `.env` file (Default: `nova-secret-change-this`). *Do NOT enter your Groq key here!*
+4. Hit Connect. You can now control your PC remotely!
+
+### 📶 Companion App Connection Troubleshooting
+
+If the app fails to connect and displays a `"Could not connect to NOVA"` error, follow these troubleshooting steps:
+
+#### A. Change Network Profile to "Private"
+By default, Windows blocks local network incoming connections if your Wi-Fi profile is set to **Public**. Change it to **Private**:
+* **PowerShell (Run as Administrator):**
+  ```powershell
+  Set-NetConnectionProfile -Name "YOUR_WIFI_NAME" -NetworkCategory Private
+  ```
+  *(Replace `YOUR_WIFI_NAME` with your actual Wi-Fi SSID name, e.g., `"Virusonly 2"`)*
+* **GUI Way:** Open Windows **Settings** → **Network & internet** → **Wi-Fi** → click on your active network → toggle **Network profile type** to **Private**.
+
+#### B. Allow Port 8000 in Windows Firewall
+You must explicitly allow incoming connections on port `8000` (FastAPI):
+1. Open **PowerShell (Run as Administrator)**.
+2. Run the following command:
+   ```powershell
+   New-NetFirewallRule -DisplayName "NOVA AI API Port 8000" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
+   ```
+3. *To remove this rule later:*
+   ```powershell
+   Remove-NetFirewallRule -DisplayName "NOVA AI API Port 8000"
+   ```
+
+#### C. Router AP Isolation
+Ensure both your PC and phone are on the same Wi-Fi subnet and your router does not have **AP Isolation** (Client Isolation) enabled, which prevents local wireless devices from communicating with each other.
+
+---
+
 # 🧪 Testing
 
 Run all tests:
@@ -341,12 +386,34 @@ Documentation includes:
 
 ---
 
-# 👨‍💻 Developer
+# 🤝 Contributors & Contributions
 
-## Muhammad Akif Naveed
+## 👨‍💻 Muhammad Akif Naveed (Lead Developer)
+BS Software Engineering, COMSATS University Islamabad — Wah Campus
 
-BS Software Engineering
-COMSATS University Islamabad — Wah Campus
+*Designed and implemented the core foundations of NOVA AI, including the multi-threaded wake-word engine, NLP intent routing, pywebview cinematic HUD, and modular local execution pipelines.*
+
+---
+
+## 👨‍🚀 Muhammad Alyan ([@Alyan-khattak](https://github.com/Alyan-khattak))
+GitHub: [Alyan-khattak](https://github.com/Alyan-khattak)
+
+*Pioneered the transition of NOVA AI from a standalone desktop software into a distributed, local-first cross-platform ecosystem by executing the specifications in `EXPANSION_PLAN.md` and `FEATURES_PLAN.md`.*
+
+### Key Features Developed (Desktop-to-App & API Bridge):
+- **FastAPI Bridge Server:** Designed the backend API framework (`modules/api_server.py`) executing safe multithreaded command routing utilizing a `threading.Lock` around `nova_core.route()`.
+- **Real-Time WebSocket Status Bridge:** Created `/ws/status` and `/ws/interactive` WebSocket protocols enabling real-time status syncing and fluid multi-turn voice/text flows.
+- **Cross-Platform Flutter Companion App:** Engineered the mobile/web Flutter application (`nova_app`) featuring setup wizards, real-time status dashboards, remote voice/text command shell, and terminal interface.
+- **PC File Browser API & Interface:** Created the endpoints and Flutter interface allowing users to securely browse, list, read, and open PC files remotely.
+- **UDP Auto-Discovery Broadcaster:** Developed a local network UDP broadcaster permitting companion devices to discover the PC server automatically.
+- **Onboarding Setup Wizard:** Designed a secure on-device configuration flow validating Groq/API credentials on the first run.
+- **Agentic Coding Assistant:** Upgraded the Dev module (`modules/coding_assistant.py`) into an autonomous terminal agent with local filesystem tools (list, read, write, delete) and console command execution.
+- **Self-Healing API Fallback Parser:** Engineered an XML-to-JSON fallback extraction algorithm to intercept and recover from Groq API `tool_use_failed` errors during code writing tasks.
+- **System Diagnostics & Clipboard Sync:** Built real-time PC diagnostic metrics (CPU, RAM, Disk, Network) and two-way clipboard synchronization.
+- **Google & YouTube Search Shortcuts:** Added dashboard search integration shortcuts to execute immediate web automations and searches on the PC browser from the mobile client.
+- **Remote Mouse Trackpad Control:** Developed a low-latency `/ws/mouse` WebSocket pipeline and custom gesture/scroll tracking panel inside the Flutter app.
+- **Instant Windows Index Search:** Leveraged the native Windows Collator Search database to provide instant desktop file searches (<0.05s) across secure user directories.
+- **Pulsing Sci-Fi Launcher Icon:** Designed a custom orbital breathing geometry icon matching the system HUD and packaged it into Android mipmap assets.
 
 ---
 
@@ -354,9 +421,7 @@ COMSATS University Islamabad — Wah Campus
 
 Current Version:
 
-## Week 3 Complete ✅
-
-Week 4 Stabilization & Demo Preparation In Progress 🔄
+## Week 4 Local-First Distributed System Complete ✅
 
 new features someone soon mobile version under development.
 
@@ -365,8 +430,6 @@ new features someone soon mobile version under development.
 # ⭐ Future Scope
 
 - Local offline LLM support
-- Cross-platform support
-- Mobile companion app
 - Voice cloning
 - Smart home integration
 - Vision-based object detection

@@ -15,6 +15,7 @@
 import json
 import os
 import re
+import threading
 from typing import Optional
 
 
@@ -27,6 +28,9 @@ groq_brain = GroqBrain(_config)
 # Initialize PersonalityModule once at module level
 from modules.personality import PersonalityModule
 _personality = PersonalityModule()
+
+# Protects route() from concurrent calls by the voice pipeline and API server threads
+_route_lock = threading.Lock()
 
 
 # ── Intent routing tables ─────────────────────────────────────────
@@ -104,43 +108,64 @@ def route(
     Returns:
         Response string to be spoken by TTS engine
     """
-    intent   = nlp_result.get("intent", "conversation")
-    original = nlp_result.get("original", "")
-    entities = nlp_result.get("entities", {})
+    with _route_lock:
+        intent   = nlp_result.get("intent", "conversation")
+        original = nlp_result.get("original", "")
+        entities = nlp_result.get("entities", {})
 
-    # ── Strip STT noise prefix (wake word tail leaks into transcription) ──
-    original = re.sub(r"^(?:innova|renuka|nova|nava|in nova)\s+", "", original, flags=re.IGNORECASE).strip()
+        # ── Strip STT noise prefix (wake word tail leaks into transcription) ──
+        original = re.sub(r"^(?:innova|renuka|nova|nava|in nova)\s+", "", original, flags=re.IGNORECASE).strip()
 
-    # ── Multi-command detection: "open X and email Y" ─────────────────
-    if intent in ("app", "web"):
-        segments = _split_multi_commands(original)
-        if segments:
-            responses = []
-            for seg_intent, seg_text, seg_result in segments:
-                if seg_intent in LOCAL_INTENTS:
-                    r = dispatch_local(seg_intent, seg_result["entities"], seg_text,
-                                       speak_func=speak_func, listen_func=listen_func)
-                    if r:
-                        responses.append(r)
-                else:
-                    responses.append(groq_brain.chat(seg_text))
-            return " ".join(responses) if responses else "Done!"
+        # ── Early search intercept (catches "search X on Y" regardless of NLP intent) ──
+        _yt = re.search(r"search\s+(.+?)\s+on\s+youtube", original, re.IGNORECASE)
+        if not _yt:
+            _yt = re.search(r"search\s+(?:on\s+)?youtube\s+(?:for\s+)?(.+)", original, re.IGNORECASE)
+        if _yt:
+            from modules.web_automation import WebAutomation
+            return WebAutomation(_config).search_youtube(_yt.group(1).strip())
 
-    if intent in LOCAL_INTENTS:
-        local_response = dispatch_local(
-            intent, entities, original,
-            speak_func=speak_func,
-            listen_func=listen_func,
-        )
-        if local_response is not None:
-            return local_response
+        _goog = re.search(r"search\s+(.+?)\s+on\s+google", original, re.IGNORECASE)
+        if not _goog:
+            _goog = re.search(r"search\s+(?:on\s+)?google\s+(?:for\s+)?(.+)", original, re.IGNORECASE)
+        if _goog:
+            from modules.web_automation import WebAutomation
+            return WebAutomation(_config).search_google(_goog.group(1).strip())
+
+        _wiki_search = re.search(r"search\s+(.+?)\s+on\s+wikipedia", original, re.IGNORECASE)
+        if _wiki_search:
+            from modules.wikipedia_module import WikipediaModule
+            return WikipediaModule().search(_wiki_search.group(1).strip())
+
+        # ── Multi-command detection: "open X and email Y" ─────────────────
+        if intent in ("app", "web"):
+            segments = _split_multi_commands(original)
+            if segments:
+                responses = []
+                for seg_intent, seg_text, seg_result in segments:
+                    if seg_intent in LOCAL_INTENTS:
+                        r = dispatch_local(seg_intent, seg_result["entities"], seg_text,
+                                           speak_func=speak_func, listen_func=listen_func)
+                        if r:
+                            responses.append(r)
+                    else:
+                        responses.append(groq_brain.chat(seg_text))
+                return " ".join(responses) if responses else "Done!"
+
+        if intent in LOCAL_INTENTS:
+            local_response = dispatch_local(
+                intent, entities, original,
+                speak_func=speak_func,
+                listen_func=listen_func,
+            )
+            if local_response is not None:
+                return local_response
+            else:
+                return f"The local module for {intent} is not yet implemented."
+
         else:
-            return f"The local module for {intent} is not yet implemented."
-
-    else:
-        # Route to Groq Brain for conversation, jokes, etc.
-        print(f"[Core] Routing to GroqBrain: '{original}'")
-        return groq_brain.chat(original)
+            # Route to Groq Brain for conversation, jokes, etc.
+            print(f"[Core] Routing to GroqBrain: '{original}'")
+            return groq_brain.chat(original)
 
 
 def dispatch_local(
@@ -219,7 +244,7 @@ def dispatch_local(
 
         google_match = re.search(r"(?:search|find|look up)\s+(?:for\s+)?(.+?)(?:\s+on\s+google)", original, re.IGNORECASE)
         if not google_match:
-            google_match = re.search(r"(?:google|search google for)\s+(.+)", original, re.IGNORECASE)
+            google_match = re.search(r"^(?:search google for|search for|google|search)\s+(.+)", original, re.IGNORECASE)
         if google_match:
             return wa.search_google(google_match.group(1).strip())
 
@@ -547,11 +572,25 @@ def dispatch_local(
             if any(k in lower for k in ("ram", "ram usage", "memory usage")):
                 return sc.get_ram_usage()
 
-            # Power
-            if "shutdown" in lower:
-                return sc.shutdown()
+            # Power — require spoken confirmation before executing destructive commands
+            if "cancel shutdown" in lower or "abort shutdown" in lower:
+                return sc.cancel_shutdown()
+            if "shutdown" in lower or "shut down" in lower:
+                if speak_func and listen_func:
+                    speak_func("Are you sure you want to shut down? Say yes to confirm.")
+                    confirm = listen_func().lower().strip()
+                    if any(w in confirm for w in ("yes", "confirm", "sure", "do it", "yeah")):
+                        return sc.shutdown()
+                    return "Shutdown cancelled."
+                return "Please confirm: say yes to shut down."
             if "restart" in lower or "reboot" in lower:
-                return sc.restart()
+                if speak_func and listen_func:
+                    speak_func("Are you sure you want to restart? Say yes to confirm.")
+                    confirm = listen_func().lower().strip()
+                    if any(w in confirm for w in ("yes", "confirm", "sure", "do it", "yeah")):
+                        return sc.restart()
+                    return "Restart cancelled."
+                return "Please confirm: say yes to restart."
             if "sleep" in lower:
                 return sc.sleep()
             if any(k in lower for k in ("lock screen", "lock the screen", "lock computer")):
@@ -576,7 +615,8 @@ def dispatch_local(
 
     if intent == "activity_log":
         from modules.activity_log import ActivityLogger
-        logger = ActivityLogger()
+        from modules.memory_system import db_singleton
+        logger = ActivityLogger(db_singleton)
         if "today" in original.lower() or "log" in original.lower():
             logs = logger.get_today()
             if not logs:

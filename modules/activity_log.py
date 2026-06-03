@@ -20,13 +20,11 @@ class ActivityLogger:
             self.db = DatabaseManager()
         else:
             self.db = db_manager
+        # Run cleanup once at startup, not on every log call
+        self.cleanup_old(30)
 
     def log(self, command_text, module_triggered, response_summary, success=True, user_id=1):
-        """Logs a voice command and its outcome. Automatically triggers a 30-day cleanup."""
-        # Clean up entries older than 30 days
-        self.cleanup_old(30)
-        
-        # Log to the DatabaseManager
+        """Logs a voice command and its outcome."""
         return self.db.log_activity(
             command=command_text,
             module=module_triggered,

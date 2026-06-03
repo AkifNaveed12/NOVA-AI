@@ -25,7 +25,12 @@ class SystemControls:
             from ctypes import cast, POINTER
             from comtypes import CLSCTX_ALL
             devices = AudioUtilities.GetSpeakers()
-            interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            # Newer pycaw wraps the device in AudioDevice; use EndpointVolume directly.
+            if hasattr(devices, 'EndpointVolume'):
+                return devices.EndpointVolume
+            # Legacy pycaw: call Activate on the raw COM device.
+            dev = getattr(devices, '_dev', devices)
+            interface = dev.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
             return cast(interface, POINTER(IAudioEndpointVolume))
         except Exception as e:
             print(f"[SystemControls] pycaw error: {e}")
@@ -189,16 +194,16 @@ class SystemControls:
     # ── Power Controls ────────────────────────────────────────────────
 
     def shutdown(self) -> str:
-        """Shuts down the computer after a 10-second delay."""
+        """Shuts down the computer after a 10-second delay. Call only after confirmation."""
         os.system("shutdown /s /t 10")
-        return "Shutting down in 10 seconds. Say cancel to abort."
+        return "Shutting down in 10 seconds. Say Hey NOVA cancel shutdown to abort."
 
     def cancel_shutdown(self) -> str:
         os.system("shutdown /a")
         return "Shutdown cancelled."
 
     def restart(self) -> str:
-        """Restarts the computer after a 10-second delay."""
+        """Restarts the computer after a 10-second delay. Call only after confirmation."""
         os.system("shutdown /r /t 10")
         return "Restarting in 10 seconds."
 

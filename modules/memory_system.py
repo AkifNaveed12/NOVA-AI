@@ -235,3 +235,7 @@ class DatabaseManager:
             VALUES (?, ?, ?, ?, ?)
         ''', (user_id, activity_id, role, content, session_id))
         self.conn.commit()
+
+
+# Module-level singleton — imported by nova_core and activity_log to share one connection
+db_singleton = DatabaseManager()
