@@ -35,9 +35,22 @@ class DatabaseManager:
             self._ensure_default_user()
         except sqlite3.DatabaseError as e:
             print(f"[DatabaseManager] DB corrupted ({e}). Recreating schema...")
-            # If DB is corrupted, delete and recreate
             if db_path != ":memory:" and os.path.exists(db_path):
-                os.remove(db_path)
+                # CRITICAL: close the connection BEFORE deleting on Windows
+                # (Windows locks open file handles — os.remove() will fail otherwise)
+                try:
+                    self.conn.close()
+                except Exception:
+                    pass
+                # Remove the corrupted DB and its WAL/SHM journal files
+                for suffix in ["", "-wal", "-shm"]:
+                    fpath = db_path + suffix
+                    if os.path.exists(fpath):
+                        try:
+                            os.remove(fpath)
+                        except OSError as rm_err:
+                            print(f"[DatabaseManager] Could not remove {fpath}: {rm_err}")
+            # Recreate from scratch
             self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
             self.conn.execute("PRAGMA journal_mode=WAL")
             self.conn.row_factory = sqlite3.Row
