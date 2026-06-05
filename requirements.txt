@@ -64,3 +64,15 @@ python-dotenv==1.0.1
 
 # ── Testing ──────────────────────────────────────────────────────
 pytest==8.1.1
+
+# ── Face & Assignment Pipeline  ──────────────────────────────────────────────────────
+watchdog==4.0.1
+PyMuPDF==1.24.3
+python-docx==1.1.2
+pytesseract==0.3.10
+fpdf2==2.7.9
+reportlab==4.2.0
+beautifulsoup4==4.12.3
+langdetect==1.0.9
+deepface==0.0.93
+tf-keras==2.16.0

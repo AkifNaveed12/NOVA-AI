@@ -188,6 +188,43 @@ class DatabaseManager:
         )
         ''')
         
+        # 10. face_identities (Feature B: Face Login)
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS face_identities (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_name   TEXT NOT NULL,
+            embedding   BLOB NOT NULL,
+            model       TEXT DEFAULT 'Facenet',
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+
+        # 11. assignments (Feature A: Assignment Pipeline)
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS assignments (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            source          TEXT,
+            raw_text        TEXT,
+            subject         TEXT,
+            deadline        TEXT,
+            output_format   TEXT,
+            output_path     TEXT,
+            status          TEXT DEFAULT 'pending',
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+
+        # 12. face_sessions (Feature B: Session management)
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS face_sessions (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            token       TEXT NOT NULL,
+            user_name   TEXT NOT NULL,
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            expires_at  TIMESTAMP NOT NULL
+        )
+        ''')
+
         self.conn.commit()
 
     def _ensure_default_user(self):

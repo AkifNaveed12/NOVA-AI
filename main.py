@@ -22,6 +22,11 @@ load_dotenv()
 def main() -> None:
     """Entry point — initialises all threads and launches HUD."""
     print("NOVA AI — Initializing...")
+    
+    # Initialize assignment pipeline folders
+    from pathlib import Path
+    Path("nova_inbox").mkdir(exist_ok=True)
+    Path("nova_outbox").mkdir(exist_ok=True)
 
     from modules.config_manager import config_proxy
     config = config_proxy
@@ -315,6 +320,37 @@ def main() -> None:
             traceback.print_exc()
             wake_word.stop()
 
+    # Initialize and start assignment pipeline components
+    from modules.assignment_manager import AssignmentManager
+    from modules.folder_watcher import FolderWatcher
+
+    assignment_manager = AssignmentManager(
+        db_manager=db_manager,
+        speak_func=speak,
+        listen_func=_listen_once
+    )
+    folder_watcher = FolderWatcher(
+        inbox_path=config.get("assignment_pipeline", {}).get("inbox_folder", "nova_inbox"),
+        assignment_manager=assignment_manager
+    )
+    folder_watcher.start()
+
+    # Startup Face Login check
+    from modules.face_auth import FaceAuth
+    face_auth_module = FaceAuth(db_manager)
+    user_name = config.get("user", {}).get("name", "Akif")
+
+    if face_auth_module.is_registered(user_name):
+        print("[FaceLogin] Scanning for registered face...")
+        auth_result = face_auth_module.verify_from_webcam(user_name)
+        if auth_result.get("authenticated"):
+            print(f"[FaceLogin] ✅ Welcome back, {user_name}! (similarity: {auth_result['similarity']})")
+            hud.log_message("nova", f"Welcome back, {user_name} (Face Verified)!")
+        else:
+            print("[FaceLogin] ❌ Face not recognized. Continuing with standard startup.")
+    else:
+        print("[FaceLogin] No face registered. Run registration via app or voice command.")
+
     # ── Core start sequence ───────────────────────────────────────────
     # Start background threads
     wake_word.start()
@@ -334,6 +370,7 @@ def main() -> None:
     
     print("\nNOVA AI — Shutting down gracefully...")
     try:
+        folder_watcher.stop()
         if gesture_engine:
             gesture_engine.stop()
         wake_word.stop()

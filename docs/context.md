@@ -340,16 +340,16 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 
 ### Test coverage added (8 new tests)
 
-| Test | Coverage |
-|---|---|
-| `test_email_module_importable` | API surface / public methods |
-| `test_email_module_has_credentials_false` | Env var detection |
-| `test_email_send_no_credentials` | Graceful error path |
-| `test_email_draft_parsing` | Groq draft + subject extraction (live, skipped without key) |
-| `test_email_handle_command_cancel` | Multi-turn cancel path (mocked speak/listen) |
-| `test_email_handle_command_send_flow` | Multi-turn send path (SMTP mocked) |
-| `test_nlp_classifies_email_intent` | NLP pattern matching for email commands |
-| `test_nova_core_email_route_no_callbacks` | Graceful degradation without callbacks |
+| Test                                        | Coverage                                                    |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| `test_email_module_importable`            | API surface / public methods                                |
+| `test_email_module_has_credentials_false` | Env var detection                                           |
+| `test_email_send_no_credentials`          | Graceful error path                                         |
+| `test_email_draft_parsing`                | Groq draft + subject extraction (live, skipped without key) |
+| `test_email_handle_command_cancel`        | Multi-turn cancel path (mocked speak/listen)                |
+| `test_email_handle_command_send_flow`     | Multi-turn send path (SMTP mocked)                          |
+| `test_nlp_classifies_email_intent`        | NLP pattern matching for email commands                     |
+| `test_nova_core_email_route_no_callbacks` | Graceful degradation without callbacks                      |
 
 ### Total test count: 54 (46 passed offline, 8 API-skipped on CI)
 
@@ -362,19 +362,24 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 ### What was done
 
 **Music Module (`modules/music_module.py`)**:
+
 - Implemented robust Spotify control using PyAutoGUI to type search queries and press `Down` + `Enter` to guarantee playback of the top result.
 - Added intelligent intent extraction to strip verbs (e.g. removing "play " from "play my playlist").
 
 **YouTube Autoplay (`modules/web_automation.py`)**:
+
 - Modified `search_youtube()` to optionally extract the first video ID from the search results page and load it directly, achieving instant playback via the `music` intent.
 
 **Background Email Polling (`main.py`)**:
+
 - Added an `EmailPollerThread` that safely wakes NOVA and speaks announcements via the `announcement_queue` without blocking the main voice thread or entering continuous STT loops.
 
 **Multi-App Parsing (`nova_core.py`)**:
+
 - Upgraded the `"app"` and `"web"` intent handlers to split compound target strings (using commas and `" and "`), allowing NOVA to launch multiple apps sequentially in a single command.
 
 **Task Dictation & Priority Engine (`modules/task_manager.py`)**:
+
 - Implemented interactive multi-turn dictation loop (triggered by `"note down the tasks"`).
 - Integrated `GroqBrain` to logically sort the dictated tasks based on chronological urgency and category (e.g., communications first).
 - Sequentially executes the sorted task strings through the `nova_core` pipeline.
@@ -388,6 +393,7 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 ### What was done
 
 **`modules/whatsapp_module.py`**:
+
 - Implemented `WhatsAppModule` with `pywhatkit` integration.
 - `find_contact(name)` — Loads `config/contacts.json` and uses `rapidfuzz` to robustly match spoken names to phone numbers with a 70% confidence threshold.
 - `send_message(phone, message)` — Triggers Chrome to open `web.whatsapp.com`, waits 15 seconds for the DOM to load, types the message, and hits Enter automatically. Closes the tab afterwards.
@@ -399,6 +405,7 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
   5. Upon `"yes"`, triggers the `send_message` automation.
 
 **`nova_core.py`** changes:
+
 - Routed the `"whatsapp"` intent to `whatsapp_module.handle_whatsapp_command`.
 - Maintains the same callback-injection architecture as Email for smooth multi-turn flow.
 
@@ -411,6 +418,7 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 ### What was done
 
 **`tests/test_all.py`**:
+
 - Added `test_weather_islamabad` to verify the Weather API integration and response formatting.
 - Added `test_news_nasa_apod` to verify the NASA API returns the space news string.
 - Added `test_wikipedia_python` to ensure Wikipedia summary extraction works.
@@ -420,6 +428,7 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 - Added WhatsApp import and intent classification tests.
 
 **Bug Fixes**:
+
 - Discovered and implemented the missing `TranslationModule` for Day 9 which was an empty stub.
 - Restored the `"reminder"` and `"calendar"` intent classifications in `nlp_engine.py` which were accidentally shadowed by `task_queue`.
 - Re-formatted `WebAutomation` testing to iterate correctly over the new `sites.json` structure.
@@ -429,10 +438,12 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 ---
 
 ## Pre-Day-15 Addition — Module 21 personality.py (Dramatic Introduction)
+
 **Date:** 2026-05-10
 **Status:** Complete
 
 ### Files created:
+
 - `modules/personality.py` — Full Module 21 implementation
   - `MusicManager`: pygame.mixer wrapper, plays/switches/fades 4 background tracks
   - `PersonalitySpeaker`: pyttsx3 wrapper with rate/volume presets per emotional state
@@ -443,6 +454,7 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 - `nova_core_personality_patch.py` — Reference patch file (applied, now safe to delete)
 
 ### Files modified:
+
 - `modules/nlp_engine.py`: Added "introduce" to INTENT_PATTERNS; added introduce_phrases check in classify_intent() before conversation fallback
 - `nova_core.py`: Added PersonalityModule import + `_personality` instance; added introduce/joke/motivate/roast cases to dispatch_local(); added "introduce", "joke", "motivate", "roast" to LOCAL_INTENTS
 - `main.py`: Added empty-response guard for "introduce" intent in voice_pipeline(); startup greeting now uses `_personality_startup.get_greeting()`
@@ -450,19 +462,21 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 - `planning.md`: Module 21 row updated to reflect dramatic intro feature
 
 ### Tests:
+
 - Say "Hey NOVA, introduce yourself" → 5-act intro plays with music transitions
 - Say "Hey NOVA, tell me a joke" → offline pyjoke returned
 - Say "Hey NOVA, who are you" → same intro triggers
 - After intro completes → NOVA returns to sleeping state cleanly, wake word re-arms
 
-
 ---
 
 ## Days 15-17 — Core Systems Stabilization & Bug Fixes
+
 **Date:** 2026-05-18
 **Status:** Complete
 
 ### What was done
+
 - **Routing Priority Fix**: Swapped NLP routing priority in `nova_core.py` to check `sites` before `apps`, fixing the issue where University Portal opened File Explorer instead of the browser.
 - **Email Fetch Limit**: Fixed the EmailModule returning too many failed delivery notifications by capping `unseen` fetches to 5.
 - **Fuzzy Note Search**: Improved `NotesModule.search_notes()` to use prefix matching and stem expansion so that 'groceries' successfully matches 'grocery store'.
@@ -475,10 +489,12 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 ---
 
 ## Days 18-19 — Module 22 (Hand Gesture Engine)
+
 **Date:** 2026-05-20
 **Status:** Complete
 
 ### What was done
+
 - **GestureEngine (`modules/gesture_engine.py`)**: Implemented always-on background hand gesture recognition using OpenCV and MediaPipe Hands.
 - **Landmark Tracking & Debouncing**: Maps 21 landmarks to 9 specific gestures (open palm, fist, index up, index+middle up, 3 fingers up, pinch, ok sign, and swipe left/right). Added a 0.4s debounce timer to prevent misfires.
 - **Action Dispatcher**: Translates gestures directly into OS actions using `pyautogui` (media play/pause, scroll up/down, volume up, next/previous track, zoom in, and switch tabs).
@@ -488,10 +504,12 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 ---
 
 ## Day 20 (Part 1) — Core Automation Hardening & API Fixes
+
 **Date:** 2026-05-20
 **Status:** Complete
 
 ### What was done
+
 - **Fuzzy Match Precision**: Replaced `fuzz.WRatio` with `fuzz.token_set_ratio` in both `AppLauncher` and `WebAutomation` modules. This ensures noisy voice commands containing website names (like "my linkedin nova") no longer trigger false matches against short app names (like "my computer" / File Explorer).
 - **Windows URL Opening Reliability**: Replaced Python's standard `webbrowser.open` with a native `os.startfile` helper on Windows (with browser fallback on other platforms). This guarantees that links like LinkedIn open in the default browser every time without silent failures.
 - **Wikipedia JSON Parse Error Fixed**: Fixed a crash in the Wikipedia search feature where queries like "my teacher" threw `Expecting value: line 1 column 1 (char 0)` because the Wikipedia API blocked bot requests without a custom user agent. Added `wikipedia.set_user_agent("NOVA-AI/1.0 (contact: uzma.naveed18@gmail.com)")` to fix the API handshake.
@@ -502,10 +520,12 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 ---
 
 ## Day 20 (Part 2) — Module 24 (Activity Log) & Module 25 (Config Manager)
+
 **Date:** 2026-05-20
 **Status:** Complete
 
 ### What was done
+
 - **ConfigManager (`modules/config_manager.py`)**: Implemented dynamic central configuration management with thread-safe file reloading. Added methods to get, set, reload configurations and add new applications, sites, and contacts directly to the JSON configuration registries.
 - **ConfigProxy (`modules/config_manager.py`)**: Implemented a dynamic dictionary proxy that delegates all key lookups and path fetches to `ConfigManager` to allow live config hot-reloads without restarting.
 - **ActivityLogger (`modules/activity_log.py`)**: Implemented centralized command and action logging via the existing SQLite database. Includes an automated database cleanup task that removes logs older than 30 days.
@@ -515,22 +535,41 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 ---
 
 ## Day 21 — Module 15 (Date, Time & Math) + Personality Roast + Week 3 Integration
+
 **Date:** 2026-05-20
 **Status:** Complete
 
 ### What was done
+
 - **DateTimeCalc (`modules/datetime_calc.py`)**: Implemented local date, time, and arithmetic handlers.
 - **SafeMathEvaluator**: Created a safe, sandboxed AST-based mathematical evaluator (avoiding dangerous `eval()` and `exec()`). Normalizes text prepositions (plus, minus, percent of) and filters alphanumeric tokens to prevent code injection.
 - **Personality Module Roast (`modules/personality.py`)**: Enhanced `PersonalityModule` with a new `roast(name)` method that calls `groq_brain.chat(prompt)` using the friendly roast prompt.
 - **NLP Engine Upgrades (`modules/nlp_engine.py`)**:
+
   - Added robust regex entity extraction for `math_expr` and `target_date`.
   - Added early classification overrides for math queries (containing "percent") and date queries ("what's today's date") to prevent them from being intercepted by the general Wikipedia intent check.
 - **System Integration (`nova_core.py`)**:
+
   - Routed `"datetime"` intent to local date, time, and days_until handlers.
   - Routed `"math"` intent to safe local AST math evaluator.
   - Updated `"roast"` routing to call the new `roast()` method in `PersonalityModule`.
 - **E2E Integration Testing (`tests/test_day21.py`)**:
+
   - Wrote 29 comprehensive unit and integration tests covering Module 15, Personality roast, NLP extraction, Notes, Reminders, Calendar, Tasks, system controls, screenshot, gestures, activity log, and config manager.
   - Configured file-based temporary databases for DB-related tests to ensure correct isolated schema initialization.
   - Confirmed all tests passed with a 100% pass rate.
 
+  ## Hackathon Sprint — feature/hackathon-sprint branch
+
+  BRANCH: feature/hackathon-sprint (from akif/week4-dev)
+  ACTION: New features added
+
+  IMPLEMENTATION_PLAN.md — Created at project root
+    WHAT: Full implementation plan for Feature A (Assignment Pipeline)
+          and Feature B (Face Login). Includes feasibility analysis,
+          DB schema additions, 14 sub-tasks, testing protocol, risk register.
+    WHY: Hackathon contribution — agentic assignment generation + biometric login.
+
+  NOTE: SQLite is sufficient for both features. No vector DB required.
+        deepface (Facenet) model downloads ~90MB on first B-T1 run.
+        Tesseract binary must be installed separately for OCR (A-T1).

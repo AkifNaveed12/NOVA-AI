@@ -826,6 +826,113 @@ def delete_task_api(task_id: int, _auth: str = Depends(_require_auth)):
     TasksModule().delete_task(task_id)
     return {"status": "success"}
 
+
+# ── Assignment Pipeline Endpoints (Feature A) ────────────────────
+from fastapi import UploadFile, File
+from fastapi.responses import FileResponse
+import shutil
+
+@app.post("/api/assignment/upload")
+def upload_assignment(file: UploadFile = File(...),
+                      _auth: str = Depends(_require_auth)):
+    """Mobile upload path — user uploads assignment file from phone."""
+    inbox = Path("nova_inbox")
+    inbox.mkdir(exist_ok=True)
+    dest = inbox / file.filename
+    with open(dest, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    # FolderWatcher will pick this up automatically
+    return {"status": "received", "message": f"File {file.filename} queued for processing."}
+
+@app.get("/api/assignment/status")
+def get_assignment_status(_auth: str = Depends(_require_auth)):
+    """Returns the last 5 assignment records from DB."""
+    try:
+        from modules.memory_system import db_singleton
+        rows = db_singleton.conn.execute(
+            "SELECT id, subject, title, status, output_path, created_at "
+            "FROM assignments ORDER BY created_at DESC LIMIT 5"
+        ).fetchall()
+        results = [dict(r) for r in rows]
+        return {"assignments": results}
+    except Exception as e:
+        return {"assignments": [], "error": str(e)}
+
+@app.get("/api/assignment/download/{assignment_id}")
+def download_assignment(assignment_id: int, _auth: str = Depends(_require_auth)):
+    """Download a completed assignment file."""
+    try:
+        from modules.memory_system import db_singleton
+        row = db_singleton.conn.execute(
+            "SELECT output_path, output_format FROM assignments WHERE id = ?",
+            (assignment_id,)
+        ).fetchone()
+        if not row or not row["output_path"]:
+            raise HTTPException(404, "Assignment not found or not yet complete.")
+        path = Path(row["output_path"])
+        if not path.exists():
+            raise HTTPException(404, "Output file missing from disk.")
+        media_type = "application/pdf" if str(path).endswith(".pdf") else \
+                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        return FileResponse(str(path), media_type=media_type, filename=path.name)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+# ── Face Auth Endpoints (Feature B) ──────────────────────────────
+import base64
+import cv2
+import numpy as np
+
+class FaceFrameRequest(BaseModel):
+    user_name: str
+    frame_b64: str     # base64-encoded JPEG frame from phone camera
+
+def _decode_frame(frame_b64: str) -> np.ndarray:
+    """Decode base64 image to numpy array."""
+    img_bytes = base64.b64decode(frame_b64)
+    np_arr = np.frombuffer(img_bytes, dtype=np.uint8)
+    return cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+@app.post("/api/auth/face/register")
+def face_register(req: FaceFrameRequest, _auth: str = Depends(_require_auth)):
+    """Register a face from a phone/browser camera frame."""
+    from modules.memory_system import db_singleton
+    from modules.face_auth import FaceAuth
+    auth = FaceAuth(db_singleton)
+    frame = _decode_frame(req.frame_b64)
+    result = auth.register_from_frame(req.user_name, frame)
+    return result
+
+@app.post("/api/auth/face/verify")
+def face_verify(req: FaceFrameRequest):
+    """
+    Verify a face. No API key required — this IS the authentication.
+    Returns a session token on success.
+    """
+    from modules.memory_system import db_singleton
+    from modules.face_auth import FaceAuth
+    auth = FaceAuth(db_singleton)
+    frame = _decode_frame(req.frame_b64)
+    result = auth.verify_from_frame(req.user_name, frame)
+    if result.get("authenticated"):
+        token = auth.create_session(req.user_name)
+        return {"authenticated": True, "session_token": token,
+                "user_name": req.user_name}
+    return {"authenticated": False, "similarity": result.get("similarity", 0),
+            "message": result.get("error", "Face not recognized.")}
+
+@app.get("/api/auth/face/status")
+def face_status(user_name: str, _auth: str = Depends(_require_auth)):
+    """Check if a user has a registered face."""
+    from modules.memory_system import db_singleton
+    from modules.face_auth import FaceAuth
+    auth = FaceAuth(db_singleton)
+    return {"registered": auth.is_registered(user_name), "user_name": user_name}
+
+
 # ── Uvicorn server control ────────────────────────────────────────
 _server: Optional[uvicorn.Server] = None
 

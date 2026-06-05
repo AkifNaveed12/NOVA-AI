@@ -41,7 +41,7 @@ LOCAL_INTENTS = {
     "reminder", "calendar", "task", "datetime", "math",
     "translate", "whatsapp", "email", "check_email",
     "task_queue", "introduce", "joke", "motivate", "roast",
-    "config_manager", "activity_log",
+    "config_manager", "activity_log", "face_auth",
 }
 
 GROQ_INTENTS = {
@@ -673,6 +673,32 @@ def dispatch_local(
             else:
                 expr = original
         return dt.calculate(expr)
+
+    if intent == "face_auth":
+        from modules.face_auth import FaceAuth
+        from modules.memory_system import db_singleton
+        auth = FaceAuth(db_singleton)
+        lower = original.lower()
+        user_name = _config.get("user", {}).get("name", "Akif")
+        
+        if "register" in lower or "enable" in lower:
+            if speak_func:
+                speak_func("Okay, look at the camera. I will capture five face samples.")
+            result = auth.register_from_webcam(user_name, progress_callback=speak_func)
+            if result.get("success"):
+                return f"Face registered successfully for {user_name}!"
+            else:
+                return f"Registration failed: {result.get('error')}"
+        elif "who am i" in lower or "verify" in lower or "identify" in lower or "login" in lower:
+            if speak_func:
+                speak_func("Let me see your face.")
+            result = auth.verify_from_webcam(user_name)
+            if result.get("authenticated"):
+                return f"I recognize you! You are {user_name}."
+            else:
+                return f"I couldn't recognize your face. Error: {result.get('error', 'Authentication failed.')}"
+        
+        return "I didn't understand the face command. Try saying: register my face, or, who am I."
 
     return None
 

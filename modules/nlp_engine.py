@@ -47,6 +47,10 @@ INTENT_PATTERNS = {
         "reload config", "reload settings", "reload configuration", "refresh settings",
         "update settings", "reload apps", "reload sites", "reload contacts",
     ],
+    "face_auth": [
+        "register my face", "enable face login", "who am i", "verify my face",
+        "register face", "login with face", "face login"
+    ],
     "activity_log": [
         "what did i ask you earlier", "what did i ask earlier", "show today's log",
         "show today's logs", "show my activity log", "show command history",

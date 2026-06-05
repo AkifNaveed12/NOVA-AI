@@ -55,7 +55,7 @@
     "config_manager": true
   },
   "weather": {
-    "default_city": "islam Abad",
+    "default_city": "Wah Cantt",
     "units": "metric"
   },
   "hud": {
@@ -84,7 +84,7 @@
     "conversation_window": 20
   },
   "user": {
-    "name": "Aizen",
-    "default_city": "islam Abad"
+    "name": "Akif Naveed",
+    "default_city": "Wah Cantt"
   }
 }
