@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../api/client.dart';
@@ -311,6 +313,17 @@ class _FilesTabState extends State<FilesTab> {
     }
   }
 
+  void _showAssignmentsHub() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0D0D1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => const _AssignmentsHubSheet(),
+    );
+  }
+
   String _formatSize(dynamic size) {
     if (size == null) return '';
     final b = (size as num).toInt();
@@ -413,6 +426,12 @@ class _FilesTabState extends State<FilesTab> {
                   color: Color(0xFF555577), size: 20),
                 onPressed: () => _loadDir(_currentPath),
                 tooltip: 'Refresh',
+              ),
+              IconButton(
+                icon: const Icon(Icons.school_outlined,
+                  color: Color(0xFF7B6CF6), size: 20),
+                onPressed: _showAssignmentsHub,
+                tooltip: 'Assignments Hub',
               ),
               if (_currentPath.isNotEmpty)
                 IconButton(
@@ -600,6 +619,292 @@ class _FilesTabState extends State<FilesTab> {
                       ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AssignmentsHubSheet extends StatefulWidget {
+  const _AssignmentsHubSheet();
+
+  @override
+  State<_AssignmentsHubSheet> createState() => _AssignmentsHubSheetState();
+}
+
+class _AssignmentsHubSheetState extends State<_AssignmentsHubSheet> {
+  final _topicCtrl = TextEditingController();
+  final _guidelinesCtrl = TextEditingController();
+  bool _loading = false;
+  bool _submitting = false;
+  String _error = '';
+  List<Map<String, dynamic>> _assignments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAssignments();
+  }
+
+  @override
+  void dispose() {
+    _topicCtrl.dispose();
+    _guidelinesCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAssignments() async {
+    setState(() { _loading = true; _error = ''; });
+    try {
+      final list = await fetchAssignmentStatus();
+      if (!mounted) return;
+      setState(() {
+        _assignments = list;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Failed to load assignments: $e';
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    final topic = _topicCtrl.text.trim();
+    final guidelines = _guidelinesCtrl.text.trim();
+    if (topic.isEmpty || guidelines.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please enter both topic and guidelines.'),
+        backgroundColor: Color(0xFFFF4444),
+      ));
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      final content = "Topic: $topic\nGuidelines: $guidelines\n";
+      final bytes = utf8.encode(content);
+      final filename = "${topic.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}_syllabus.txt";
+      
+      final res = await uploadAssignment(Uint8List.fromList(bytes), filename);
+      if (!mounted) return;
+
+      if (res['status'] == 'received') {
+        _topicCtrl.clear();
+        _guidelinesCtrl.clear();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Syllabus uploaded! Processing: $topic'),
+          backgroundColor: const Color(0xFF00AA55),
+        ));
+        _loadAssignments();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Upload failed: ${res['message']}'),
+          backgroundColor: const Color(0xFFFF4444),
+        ));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error: $e'),
+        backgroundColor: const Color(0xFFFF4444),
+      ));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return const Color(0xFF00FF88);
+      case 'processing':
+        return const Color(0xFF4488FF);
+      default:
+        return const Color(0xFFFFAA00);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (_, scrollCtrl) => Container(
+        padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          controller: scrollCtrl,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Pull Bar
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF333355),
+                    borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+
+              // Title
+              Row(
+                children: [
+                  const Icon(Icons.school, color: Color(0xFF7B6CF6), size: 28),
+                  const SizedBox(width: 12),
+                  const Text('Assignments Hub',
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: Color(0xFF7B6CF6), size: 20),
+                    onPressed: _loadAssignments,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text('Provide a syllabus or topic to auto-compile professional research documents.',
+                style: TextStyle(color: Color(0xFF666688), fontSize: 13)),
+              
+              const SizedBox(height: 24),
+              const Text('CREATE NEW ASSIGNMENT',
+                style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              const SizedBox(height: 12),
+
+              // Form inputs
+              TextField(
+                controller: _topicCtrl,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: const InputDecoration(
+                  labelText: 'Assignment Topic / Title',
+                  labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
+                  hintText: 'e.g. Introduction to Neural Networks',
+                  hintStyle: TextStyle(color: Color(0xFF444466)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _guidelinesCtrl,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Syllabus / Detailed Guidelines',
+                  labelStyle: TextStyle(color: Color(0xFF7B6CF6)),
+                  hintText: 'e.g. 1. History of perceptrons\n2. Backpropagation math\n3. Deep learning architectures',
+                  hintStyle: TextStyle(color: Color(0xFF444466)),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7B6CF6),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 20, height: 20,
+                          child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                      : const Text('Compile Assignment', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+              const Text('RECENT ASSIGNMENTS',
+                style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              const SizedBox(height: 12),
+
+              // Assignments status list
+              if (_loading && _assignments.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: CircularProgressIndicator(color: Color(0xFF7B6CF6)),
+                  ),
+                )
+              else if (_assignments.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Text('No assignments registered yet.',
+                      style: TextStyle(color: Color(0xFF555577), fontSize: 13, fontStyle: FontStyle.italic)),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _assignments.length,
+                  itemBuilder: (_, i) {
+                    final item = _assignments[i];
+                    final status = item['status'] as String? ?? 'pending';
+                    final isComplete = status.toLowerCase() == 'completed';
+                    final title = item['title'] as String? ?? item['subject'] as String? ?? 'Untitled';
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1B163B),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF3D35A8)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(title,
+                                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: _statusColor(status).withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: _statusColor(status).withOpacity(0.5)),
+                                      ),
+                                      child: Text(status.toUpperCase(),
+                                        style: TextStyle(color: _statusColor(status), fontSize: 9, fontWeight: FontWeight.bold)),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(item['created_at'] != null ? item['created_at'].toString().split(' ').first : '',
+                                      style: const TextStyle(color: Color(0xFF555577), fontSize: 11)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isComplete)
+                            IconButton(
+                              icon: const Icon(Icons.download_for_offline, color: Color(0xFF00FF88), size: 26),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Text('Saved! Compiled assignment file is ready on your PC in "nova_outbox/".'),
+                                  backgroundColor: const Color(0xFF00AA55),
+                                ));
+                              },
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

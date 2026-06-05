@@ -850,7 +850,7 @@ def get_assignment_status(_auth: str = Depends(_require_auth)):
     try:
         from modules.memory_system import db_singleton
         rows = db_singleton.conn.execute(
-            "SELECT id, subject, title, status, output_path, created_at "
+            "SELECT id, subject, status, output_path, created_at "
             "FROM assignments ORDER BY created_at DESC LIMIT 5"
         ).fetchall()
         results = [dict(r) for r in rows]
@@ -931,6 +931,30 @@ def face_status(user_name: str, _auth: str = Depends(_require_auth)):
     from modules.face_auth import FaceAuth
     auth = FaceAuth(db_singleton)
     return {"registered": auth.is_registered(user_name), "user_name": user_name}
+
+class FaceWebcamRequest(BaseModel):
+    user_name: str
+
+@app.post("/api/auth/face/register/webcam")
+def face_register_webcam(req: FaceWebcamRequest, _auth: str = Depends(_require_auth)):
+    """Trigger the PC webcam to register the user's face."""
+    from modules.memory_system import db_singleton
+    from modules.face_auth import FaceAuth
+    auth = FaceAuth(db_singleton)
+    result = auth.register_from_webcam(req.user_name)
+    return result
+
+@app.post("/api/auth/face/verify/webcam")
+def face_verify_webcam(req: FaceWebcamRequest):
+    """Trigger the PC webcam to verify the user's face and return a session token."""
+    from modules.memory_system import db_singleton
+    from modules.face_auth import FaceAuth
+    auth = FaceAuth(db_singleton)
+    result = auth.verify_from_webcam(req.user_name)
+    if result.get("authenticated"):
+        token = auth.create_session(req.user_name)
+        return {"authenticated": True, "session_token": token, "user_name": req.user_name}
+    return {"authenticated": False, "message": result.get("error", "Webcam authentication failed.")}
 
 
 # ── Uvicorn server control ────────────────────────────────────────

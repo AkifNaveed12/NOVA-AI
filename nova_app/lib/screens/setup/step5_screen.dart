@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../api/client.dart';
-import '../home/main_screen.dart';
+import 'step6_screen.dart';
 
 class Step5Screen extends StatefulWidget {
   const Step5Screen({super.key});
@@ -43,14 +43,13 @@ class _Step5ScreenState extends State<Step5Screen> {
       if (!mounted) return;
 
       if (result['status'] == 'success') {
-        await markSetupComplete();
         // Clean up temp setup keys
         for (final k in ['setup_user_name', 'setup_groq_key', 'setup_email',
                           'setup_email_pass', 'setup_contacts']) {
           await prefs.remove(k);
         }
         Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => const MainScreen()));
+          context, MaterialPageRoute(builder: (_) => Step6Screen(userName: userName)));
       } else {
         setState(() {
           _error = result['message'] ?? result['reply'] ?? 'Setup failed. Check server logs.';

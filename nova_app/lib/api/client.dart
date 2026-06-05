@@ -346,3 +346,71 @@ Future<List<Map<String, dynamic>>> fetchActivity({int limit = 30}) async {
   final data = jsonDecode(res.body) as Map<String, dynamic>;
   return (data['logs'] as List? ?? []).cast<Map<String, dynamic>>();
 }
+
+// ── Assignment & Face Auth (Phase 4 Additions) ────────────────────
+
+Future<Map<String, dynamic>> uploadAssignment(Uint8List fileBytes, String filename) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/assignment/upload');
+  final request = http.MultipartRequest('POST', uri)
+    ..headers['X-API-Key'] = config['apiKey']!
+    ..files.add(http.MultipartFile.fromBytes('file', fileBytes, filename: filename));
+  final response = await request.send().timeout(const Duration(seconds: 30));
+  final responseBody = await response.stream.bytesToString();
+  return jsonDecode(responseBody) as Map<String, dynamic>;
+}
+
+Future<List<Map<String, dynamic>>> fetchAssignmentStatus() async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/assignment/status');
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  final data = jsonDecode(res.body) as Map<String, dynamic>;
+  return (data['assignments'] as List? ?? []).cast<Map<String, dynamic>>();
+}
+
+Future<Uint8List?> downloadAssignment(int id) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/assignment/download/$id');
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 30));
+  if (res.statusCode == 200) return res.bodyBytes;
+  return null;
+}
+
+Future<Map<String, dynamic>> registerFaceWebcam(String userName) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/auth/face/register/webcam');
+  final res = await http.post(
+    uri,
+    headers: {
+      'X-API-Key': config['apiKey']!,
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({'user_name': userName}),
+  ).timeout(const Duration(seconds: 40));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+Future<Map<String, dynamic>> verifyFaceWebcam(String userName) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/auth/face/verify/webcam');
+  final res = await http.post(
+    uri,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({'user_name': userName}),
+  ).timeout(const Duration(seconds: 40));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+Future<Map<String, dynamic>> fetchFaceStatus(String userName) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/auth/face/status')
+      .replace(queryParameters: {'user_name': userName});
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
