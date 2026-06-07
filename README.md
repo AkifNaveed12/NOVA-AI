@@ -9,19 +9,22 @@
 # 📖 Table of Contents
 1. [✨ Features](#-features)
 2. [📱 Companion App Access & Installation](#-companion-app-access--installation)
-3. [🚀 Current Development Status](#-current-development-status)
-4. [🏗️ System Architecture & Diagrams](#-system-architecture--diagrams)
-   - [System Architecture](#system-architecture)
-   - [NLP vs Groq Routing Logic](#nlp-vs-groq-routing-logic)
-   - [Multi-turn WebSocket Interactive Sequence](#multi-turn-websocket-interactive-sequence)
-   - [Database Entity-Relationship Diagram (ERD)](#database-entity-relationship-diagram-erd)
-5. [🔌 FastAPI Bridge Server & API Contracts](#-fastapi-bridge-server--api-contracts)
-6. [⚡ Quick Start](#-quick-start)
-7. [🧪 Testing](#-testing)
-8. [🎨 HUD UI System](#-hud-ui-system)
-9. [✋ Gesture Controls](#-gesture-controls)
-10. [🤝 Contributors & Contributions](#-contributors--contributions)
-11. [⭐ Future Scope & License](#-future-scope--license)
+3. [🏗️ System Architecture & Diagrams](#-system-architecture--diagrams)
+   - [Complete System Module Interaction Map](#1-complete-system-module-interaction-map)
+   - [High-Level System Architecture](#2-high-level-system-architecture-hardware--network-topology)
+   - [NLP vs Groq Routing Logic](#3-nlp-vs-groq-routing-logic)
+   - [Multi-turn WebSocket Interactive Sequence](#4-multi-turn-websocket-interactive-sequence)
+   - [Autonomous Coding Agent Loop](#5-autonomous-coding-agent-dev-module-execution--self-healing-loop)
+   - [MediaPipe Hand Gesture Recognition Pipeline](#6-mediapipe-hand-gesture-recognition--debounce-pipeline)
+   - [Local Subnet Auto-Discovery Lifecycle](#7-local-subnet-auto-discovery--connection-lifecycle)
+   - [Database Entity-Relationship Diagram](#8-database-entity-relationship-diagram-erd)
+4. [🔌 FastAPI Bridge Server & API Contracts](#-fastapi-bridge-server--api-contracts)
+5. [⚡ Quick Start](#-quick-start)
+6. [🧪 Testing](#-testing)
+7. [🎨 HUD UI System](#-hud-ui-system)
+8. [✋ Gesture Controls](#-gesture-controls)
+9. [🤝 Contributors & Contributions](#-contributors--contributions)
+10. [⭐ Future Scope & License](#-future-scope--license)
 
 ---
 
@@ -91,50 +94,6 @@ The Flutter companion app is structured as a modular controller dashboard contai
 
 ---
 
-# 🚀 Current Development Status
-
-## ✅ Week 1 — Foundation & Core Voice Pipeline
-*   Wake Word Detection (pvporcupine / Energy Threshold scanner)
-*   Speech-to-Text (SpeechRecognition + Google Speech Web API)
-*   NLP Intent Router (NLTK + spaCy entity extraction)
-*   Groq LLM Brain (Fast LLaMA inference)
-*   SQLite Memory System & Core Database
-*   Cinematic HUD & Waveform Canvas
-*   End-to-End Voice pipeline loop integration
-
-## ✅ Week 2 — Information & Automation
-*   Weather Module (OpenWeatherMap API integration)
-*   Science & NASA News (APOD NASA API)
-*   Wikipedia Search Integration
-*   Language Translation (deep-translator backend)
-*   Web Automation (Selenium site interaction)
-*   Application Launcher (Fuzzy matching app registry)
-*   Clipboard Manager (pyperclip reading/writing)
-*   Email Compose & Send Workflow (smtplib SMTP)
-*   WhatsApp Automation (PyWhatKit Web browser automation)
-*   Music & Media Playback Controls (VLC / YouTube autoplay)
-
-## ✅ Week 3 — Productivity, Gestures & System
-*   Notes & Timed Reminders System (Daemon polling thread)
-*   Calendar & Task Manager (SQLite backed scheduler)
-*   System Controls (Audio level control, brightness, CPU/RAM stats)
-*   Screenshot Tools (Desktop capture utility)
-*   Gesture Engine (OpenCV + MediaPipe Hands daemon thread)
-*   Activity Logging System (`activity_log.db` audit logging)
-*   Plugin & Configuration Manager (JSON hot-reload parser)
-*   Personality & Chit-Chat System (Custom system prompts + offline jokes)
-
-## ✅ Week 4 — Local-First Distributed System Complete
-*   FastAPI Bridge Server implementation
-*   Real-Time WebSocket bridges for status, mouse, and interactive flows
-*   Cross-Platform Flutter Companion App
-*   Windows Indexer-based instant desktop file search
-*   Secure remote file explorer and terminal runner
-*   Onboarding credentials configuration wizard
-*   Autonomous Coding Assistant console agent
-
----
-
 # 🏗️ System Architecture & Diagrams
 
 ### 1. Complete System Module Interaction Map
@@ -143,71 +102,71 @@ The following diagram showcases how each individual module (M1 to M25) fits toge
 ```mermaid
 flowchart TB
     subgraph UI ["User Interfaces"]
-        Companion["Flutter App (nova_app)\n- Status Dashboard\n- File Browser\n- Diagnostics\n- Trackpad\n- Terminal\n- Chat Screen"]
-        HUD["pywebview HUD\n- Webview Engine\n- HTML/JS Waveform\n- Logs Ticker"]
+        Companion["Flutter Companion App"]
+        HUD["pywebview HUD Waveform & Logs"]
     end
 
     subgraph Core ["Orchestration Core"]
-        Main["main.py\n- Multithread Manager\n- Pipeline Coordinator\n- TTS Runner"]
-        NC["nova_core.py\n- local_dispatch()\n- NLP/Groq Routing\n- State Manager"]
-        API["api_server.py\n- FastAPI REST API\n- WebSocket Streams\n- UDP Discovery"]
+        Main["main.py (Orchestrator & TTS)"]
+        NC["nova_core.py (NLP/LLM Routing)"]
+        API["api_server.py (FastAPI Server)"]
     end
 
     subgraph Inputs ["Input Capture Engines"]
-        M1["M1: Wake Word\n(pvporcupine)"]
-        M2["M2: Speech-to-Text\n(Whisper / Google)"]
-        M3["M3: NLP Intent Engine\n(spaCy / NLTK)"]
-        M22["M22: Gesture Control\n(OpenCV + MediaPipe)"]
+        M1["M1: Wake Word (pvporcupine)"]
+        M2["M2: Speech-to-Text (Whisper/Google)"]
+        M3["M3: NLP Intent Engine (spaCy/NLTK)"]
+        M22["M22: Gesture Control (MediaPipe)"]
     end
 
     subgraph Brains ["Reasoning Engines"]
-        M4["M4: Groq LLM Brain\n(LLaMA 3 70B)"]
-        M21["M21: Personality\n(pyjokes / prompts)"]
+        M4["M4: Groq LLM (LLaMA 3 70B)"]
+        M21["M21: Personality (Offline Jokes)"]
     end
 
     subgraph LocalModules ["Local Feature Modules"]
         subgraph Info ["Information Modules"]
-            M5["M5: Weather\n(OpenWeatherMap)"]
-            M6["M6: Science News\n(NASA APOD)"]
-            M7["M7: Wikipedia\n(Quick summaries)"]
-            M15["M15: DateTime/Math\n(Calculations)"]
-            M19["M19: Translation\n(deep-translator)"]
+            M5["M5: Weather (OpenWeatherMap)"]
+            M6["M6: Science News (NASA APOD)"]
+            M7["M7: Wikipedia Search"]
+            M15["M15: DateTime & Math"]
+            M19["M19: Language Translation"]
         end
 
         subgraph Auto ["Automation Modules"]
-            M8["M8: Web Automation\n(Selenium)"]
-            M9["M9: App Launcher\n(fuzzy matching)"]
-            M10["M10: Email Sending\n(smtplib SMTP)"]
-            M11["M11: WhatsApp Msg\n(PyWhatKit)"]
-            M12["M12: Music & Media\n(VLC / YT Play)"]
-            M16["M16: System Controls\n(pycaw / brightness)"]
-            M17["M17: Screenshot\n(pyautogui)"]
-            M18["M18: Clipboard Mgr\n(pyperclip)"]
+            M8["M8: Web Automation (Selenium)"]
+            M9["M9: App Launcher (Fuzzy Match)"]
+            M10["M10: Email Sending (SMTP)"]
+            M11["M11: WhatsApp Automation"]
+            M12["M12: Music & Media Playback"]
+            M16["M16: System Controls"]
+            M17["M17: Screenshot Tool"]
+            M18["M18: Clipboard Sync"]
         end
 
         subgraph Prod ["Productivity Modules"]
-            M13["M13: Notes & Reminders\n(polling alerts)"]
-            M14["M14: Calendar & Tasks\n(schedulers)"]
+            M13["M13: Notes & Reminders"]
+            M14["M14: Calendar & Tasks"]
         end
     end
 
     subgraph Storage ["State & Persistence"]
-        M20["M20: Memory System\n(Fact extraction)"]
-        M24["M24: Activity Logger\n(Audit logging)"]
-        M25["M25: Config Manager\n(config.json reload)"]
-        DB[("SQLite Databases\n- memory.db\n- activity_log.db")]
+        M20["M20: Memory facts extractor"]
+        M24["M24: Activity Logger"]
+        M25["M25: Config Manager"]
+        DB["SQLite memory.db & activity_log.db"]
     end
 
     %% Wiring it all up
-    Companion <-->|FastAPI REST & WebSockets| API
-    HUD <-->|evaluate_js() / events| Main
+    Companion <-->|"FastAPI REST & WebSockets"| API
+    HUD <-->|"evaluate_js() / events"| Main
     API <-->|Thread-safe calls| NC
     Main <-->|Coordinates| NC
 
     M1 -->|Fires Wake event| Main
     Main --> M2 --> M3
     M3 -->|Routes to local modules| LocalModules
-    M3 -->|Escalates to Groq| M4
+    M3 -->|"Escalates to Groq"| M4
     M22 -->|Thread-safe queue| OS_Control[Windows OS Control]
 
     M4 --> M20
@@ -229,31 +188,31 @@ The system diagram below shows the hardware-level runtime connections between th
 ```mermaid
 flowchart TB
     %% Nodes
-    subgraph Client["Frontend Interfaces"]
-        HUD["pywebview HUD\n(HTML/CSS/JS Overlay)"]
-        Flutter["Flutter Companion App\n(Mobile/Web/Desktop)"]
+    subgraph Client ["Frontend Interfaces"]
+        HUD["pywebview HUD Overlay"]
+        Flutter["Flutter Companion App"]
     end
 
-    subgraph Backend["Python 3.11 Backend (Concurrent Threads)"]
-        MainThread["Main Thread\n(Orchestration & Event Loop)"]
-        WakeThread["Wake Word Thread\n(pvporcupine / Energy Threshold)"]
-        VoiceThread["Voice Pipeline Thread\n(Speech-to-Text / Intent Routing)"]
-        GestureThread["Gesture Engine Thread\n(OpenCV + MediaPipe Hands)"]
-        ReminderThread["Reminder Engine Thread\n(SQLite Poll Daemon)"]
-        FastAPI["FastAPI Bridge Server\n(Uvicorn Daemon Thread)"]
+    subgraph Backend ["Python 3.11 Backend (Concurrent Threads)"]
+        MainThread["Main Thread Orchestrator"]
+        WakeThread["Wake Word Thread"]
+        VoiceThread["Voice Pipeline Thread"]
+        GestureThread["Gesture Engine Thread"]
+        ReminderThread["Reminder Engine Thread"]
+        FastAPI["FastAPI Bridge Server"]
     end
 
-    subgraph Data["Storage Layer"]
-        DB["SQLite: memory.db\n(User facts, Notes, Tasks, Reminders)"]
-        LogDB["SQLite: activity_log.db\n(Command log history)"]
-        Config["JSON Config Registry\n(config.json, apps.json, sites.json)"]
+    subgraph Data ["Storage Layer"]
+        DB["SQLite Database"]
+        LogDB["SQLite Activity Log"]
+        Config["JSON Config Registry"]
     end
 
-    subgraph Targets["Target Action Services"]
-        OS["Windows OS Control\n(pycaw, pyautogui, psutil)"]
-        Selenium["Web Automation\n(Selenium WebDriver)"]
-        APIs["Web APIs\n(OpenWeatherMap, NASA APOD, Wikipedia)"]
-        LLM["Groq Cloud LLM\n(LLaMA 3 70B Brain)"]
+    subgraph Targets ["Target Action Services"]
+        OS["Windows OS Control"]
+        Selenium["Web Automation"]
+        APIs["Web APIs"]
+        LLM["Groq Cloud LLM"]
     end
 
     %% Connections
@@ -262,11 +221,11 @@ flowchart TB
     ReminderThread -->|Queries Reminders| DB
     ReminderThread -->|Pushes alerts to Ticker| HUD
     
-    FastAPI <-->|WebSockets (Status, Interactive, Mouse)\nHTTP REST APIs (Files, Chat, SysInfo)| Flutter
-    MainThread <-->|evaluate_js() / JS Bridge| HUD
+    FastAPI <-->|"WebSockets & HTTP APIs"| Flutter
+    MainThread <-->|"evaluate_js() / JS Bridge"| HUD
     
-    VoiceThread -->|Queries & Updates| DB
-    VoiceThread -->|Reads/Writes| Config
+    VoiceThread -->|"Queries & Updates"| DB
+    VoiceThread -->|"Reads/Writes"| Config
     VoiceThread -->|Writes Logs| LogDB
     
     VoiceThread -->|Escalates query| LLM
@@ -276,7 +235,7 @@ flowchart TB
     
     FastAPI -->|Executes commands| VoiceThread
     FastAPI -->|Direct DB Queries| DB
-    FastAPI -->|Direct Disk / Terminal Ops| OS
+    FastAPI -->|"Direct Disk & Terminal Ops"| OS
 ```
 
 ---
@@ -286,14 +245,17 @@ A dual-brain layout that ensures local, offline execution for deterministic inte
 
 ```mermaid
 flowchart TD
-    Input([User Input: Voice or Companion Text]) --> STT[Speech-to-Text conversion]
+    Input(["User Input (Voice or Companion Text)"]) --> STT[Speech-to-Text conversion]
     STT --> NLP[NLP Intent Engine]
-    NLP --> NER[spaCy NER: Extract Entities\n(Apps, Cities, Contacts, Dates)]
-    NER --> Stopwords[NLTK Tokenization & Stopwords Clean]
-    Stopwords --> Match{Rule-Based Keyword Match\nConfidence >= 0.75?}
+    NER["spaCy NER (Entity Extraction)"]
+    NLP --> NER
+    Stopwords["NLTK Tokenization & Stopwords Clean"]
+    NER --> Stopwords
+    Match{"Rule-Based Keyword Match (Confidence >= 0.75?)"}
+    Stopwords --> Match
     
-    Match -->|Yes & Local Intent| Local[Local Module Router\n(System, Web Open, Translation, Weather)]
-    Match -->|No / Low Confidence / Complex Query| Groq[Groq LLM LLaMA 3 70B Brain]
+    Match -->|"Yes & Local Intent"| Local["Local Module Router (System, Web, Weather, etc.)"]
+    Match -->|"No / Low Confidence / Complex Query"| Groq["Groq LLM LLaMA 3 70B Brain"]
     
     Local --> Exec[Execute Action & Generate Response]
     Groq --> Context[Inject Top 10 SQLite User Facts]
@@ -302,8 +264,8 @@ flowchart TD
     Extract --> SaveMemory[Save New Facts to SQLite]
     GroqAPI --> Exec
     
-    Exec --> TTS[TTS Speech Output\n(pyttsx3 / gTTS)]
-    Exec --> UI[Update HUD Logs & Companion App Status]
+    Exec --> TTS["TTS Speech Output (pyttsx3 / gTTS)"]
+    Exec --> UI["Update HUD Logs & Companion App Status"]
     Exec --> DBLog[Write to SQLite Activity Log]
 ```
 
