@@ -668,6 +668,8 @@ BS Software Engineering, COMSATS University Islamabad — Wah Campus
 
 *Designed and implemented the core foundations of NOVA AI, including the multi-threaded wake-word engine, NLP intent routing, pywebview cinematic HUD, and modular local execution pipelines.*
 
+new features someone soon mobile version under development.
+
 ---
 
 ## 👨‍🚀 Muhammad Alyan ([@Alyan-khattak](https://github.com/Alyan-khattak))
