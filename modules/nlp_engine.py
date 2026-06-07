@@ -23,7 +23,7 @@ try:
     nltk.data.find('tokenizers/punkt')
     nltk.data.find('tokenizers/punkt_tab')
     nltk.data.find('corpora/stopwords')
-except LookupError:
+except (LookupError, OSError):
     nltk.download('punkt', quiet=True)
     nltk.download('punkt_tab', quiet=True)
     nltk.download('stopwords', quiet=True)
@@ -143,12 +143,20 @@ def classify_intent(text: str) -> str:
     """
     text_lower = text.lower()
     
-    # Check strict math expressions via regex first
+    # Check math expressions before any other pattern — catches both digit and word forms
     if re.search(r'\d+\s*[\+\-\*\/]\s*\d+', text_lower):
         return "math"
-
     if "percent" in text_lower:
         return "math"
+    # Word-form arithmetic: "five plus three", "what is twelve divided by four"
+    _MATH_WORDS = ("plus", "minus", "times", "divided by", "multiplied by", "squared", "cubed")
+    if any(w in text_lower for w in _MATH_WORDS):
+        # Only treat as math if there's also a number word or digit nearby
+        _NUM_WORDS = ("zero","one","two","three","four","five","six","seven","eight","nine","ten",
+                      "eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen",
+                      "eighteen","nineteen","twenty","thirty","forty","fifty","hundred","thousand")
+        if re.search(r'\d', text_lower) or any(n in text_lower for n in _NUM_WORDS):
+            return "math"
 
     if "what is the date" in text_lower or "what's the date" in text_lower or "what is today's date" in text_lower:
         return "datetime"

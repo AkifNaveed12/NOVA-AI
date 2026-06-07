@@ -10,4 +10,6 @@ env/
 *.log
 PyWhatKit_DB.txt
 scratch/
+.claude/
+.vscode/
 

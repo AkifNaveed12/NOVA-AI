@@ -7,7 +7,7 @@ Uses Groq API with LLaMA 3 70B model (free tier, ~1s response).
 Maintains rolling conversation history (last 10 messages).
 Injects top-10 memory facts from SQLite into each system prompt.
 
-Tech: groq Python SDK, LLaMA 3 70B (llama3-70b-8192)
+Tech: groq Python SDK, LLaMA 3.3 70B (llama-3.3-70b-versatile)
 API Key: GROQ_API_KEY from .env
 Output: response text string → TTS engine
 """
@@ -29,8 +29,8 @@ class GroqBrain:
         self.client = Groq(api_key=api_key)
         self.conversation_history = []
         
-        user_name = self.config.get("nova", {}).get("user_name", "Akif")
-        
+        user_name = self.config.get("user", {}).get("name", "Akif")
+
         # System prompt defines NOVA's personality
         self.base_system_prompt = (
             f"You are NOVA (Neural Orchestrated Voice Assistant with Autonomous Intelligence). "
@@ -62,7 +62,7 @@ class GroqBrain:
         fresh_prompt = (
             f"You are NOVA (Neural Orchestrated Voice Assistant with Autonomous Intelligence). "
             f"You are a professional, helpful, and friendly AI assistant. "
-            f"You are speaking to your creator/user, {self.config.get('nova', {}).get('user_name', 'Akif')}, "
+            f"You are speaking to your creator/user, {self.config.get('user', {}).get('name', 'Akif')}, "
             f"who is a Software Engineering student at a university in Wah Cantt, Pakistan. "
             f"Always provide concise, conversational answers because they are spoken aloud via Text-to-Speech. "
             f"Do not use markdown formatting like asterisks or bold text, just plain conversational English. "
@@ -73,11 +73,12 @@ class GroqBrain:
             fresh_prompt += f"\n\nKnown facts about the user:\n{facts_text}"
         self.system_prompt = fresh_prompt
 
-        self.conversation_history.append({"role": "user", "content": user_message})
+        # Rolling window — trim BEFORE appending so the new user message is always last
+        # and the first message in history is always a user turn (Groq requires this).
+        if len(self.conversation_history) >= 10:
+            self.conversation_history = self.conversation_history[-9:]
 
-        # Rolling window — keep only last 10 messages
-        if len(self.conversation_history) > 10:
-            self.conversation_history = self.conversation_history[-10:]
+        self.conversation_history.append({"role": "user", "content": user_message})
 
         messages = [{"role": "system", "content": self.system_prompt}] + self.conversation_history
 

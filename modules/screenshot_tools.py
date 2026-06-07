@@ -36,6 +36,15 @@ class ScreenshotTools:
 
             screenshot = pyautogui.screenshot()
             screenshot.save(filepath)
+
+            # Also save to data/screenshots/ so the API can serve the latest one
+            api_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                'data', 'screenshots'
+            )
+            os.makedirs(api_dir, exist_ok=True)
+            screenshot.save(os.path.join(api_dir, filename))
+
             print(f"[Screenshot] Saved: {filepath}")
             return f"Screenshot saved to your Desktop as {filename}."
 
