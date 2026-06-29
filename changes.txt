@@ -1,0 +1,1 @@
+// changed the groq model from llama3-70b-8192 to llama-3.3-70b-versatile in config.json
