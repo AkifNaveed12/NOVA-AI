@@ -89,6 +89,33 @@ async def _capture_event_loop():
 def health():
     return {"status": "online", "service": "NOVA API"}
 
+# ── Module 1: PC Context endpoint ─────────────────────────────────
+@app.get("/api/context/current")
+def get_context(auth: str = Depends(_require_auth)):
+    """Return the latest PC context snapshot from context_scanner.
+
+    Used by Flutter dashboard to display:
+    - Active window title (currently working on: VS Code — main.py)
+    - Top CPU processes
+    - Recently modified files
+    - System stats (CPU %, RAM %)
+    - Battery status
+    Also includes a pre-formatted Groq injection string.
+    """
+    try:
+        from modules.context_scanner import context_scanner
+        snap = context_scanner.get_latest_snapshot()
+        summary = context_scanner.get_context_summary()
+        return {
+            "status": "success",
+            "summary": summary,
+            "snapshot": snap,
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
+
 # ── WebSocket: real-time NOVA status ─────────────────────────────
 @app.websocket("/ws/status")
 async def status_socket(websocket: WebSocket):

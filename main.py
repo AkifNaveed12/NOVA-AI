@@ -47,6 +47,8 @@ def main() -> None:
     from modules.nlp_engine import process as nlp_process
     from modules.memory_system import db_singleton as db_manager
     from modules.hud_interface import NOVAHud
+    # Module 1: Context Scanner — Flagship PC awareness feature
+    from modules.context_scanner import context_scanner
 
     # ── Initialize Modules ────────────────────────────────────────────
     from modules.activity_log import ActivityLogger
@@ -355,6 +357,10 @@ def main() -> None:
     # Start background threads
     wake_word.start()
 
+    # Module 1: Start context scanner daemon (10s polling, PC awareness)
+    context_scanner.start()
+    print("[ContextScanner] Started — building PC context for Groq injection.")
+
     from modules.api_server import start_api_server, start_udp_broadcaster
     api_thread = threading.Thread(target=start_api_server, daemon=True, name="APIServerThread")
     api_thread.start()
@@ -371,6 +377,7 @@ def main() -> None:
     print("\nNOVA AI — Shutting down gracefully...")
     try:
         folder_watcher.stop()
+        context_scanner.stop()  # Module 1: Stop PC context scanner
         if gesture_engine:
             gesture_engine.stop()
         wake_word.stop()

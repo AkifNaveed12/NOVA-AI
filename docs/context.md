@@ -670,3 +670,48 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 | modules/local_llm.py | NEW FILE — LocalLLM class wrapping Ollama API |
 | tests/test_all.py | Fixed 2 pre-existing test drift assertions |
 
+
+## MODULE 1 — Sprint 1: Context Scanner
+
+**Date:** 2026-06-29
+**Branch:** akif/hackathon-sprint/final-features
+**Status:** Complete
+
+### T0-T2 — Context Scanner implementation
+- FILE CREATED: `modules/context_scanner.py`
+- DAEMON OPERATION: Lightweight 10s background daemon thread `ContextScannerThread` that gathers PC context (active window, clipboard contents, top processes sorted by CPU, recently modified files from Desktop/Documents/Downloads, battery and system RAM/CPU metrics).
+- SINGLETON: `context_scanner` is exposed and started in `main.py`'s thread startup block, with graceful teardown triggered at shutdown.
+
+### T3 — Groq Prompt Injection
+- FILE MODIFIED: `modules/groq_brain.py`
+- IMPLEMENTATION: Safe lazy-import of `context_scanner`. Added dynamic user message prefix formatting context info inside `groq_brain.chat()`. User queries automatically contain:
+  `[Current PC context: Active window: <win> | Clipboard: <clip> | ...]`
+  This enables NOVA to naturally answer "what was I doing?", "troubleshoot this exception", or "suggest next steps for my file".
+
+### T4 — REST Endpoint
+- FILE MODIFIED: `modules/api_server.py`
+- IMPLEMENTATION: Expose `GET /api/context/current` protected by `X-API-Key` auth. Returns JSON containing both a compiled text summary and raw snapshot structure.
+
+### T5 — Flutter Integration
+- FILES MODIFIED:
+  - `nova_app/lib/api/client.dart`: Added `fetchPCContext()` REST API client function.
+  - `nova_app/lib/screens/home/dashboard_tab.dart`: Added timer-based periodic polling (10s) and manual refresh for `_pcContext`. Integrated the new `_buildPCContext()` visual component in the primary build column. This card presents the active window title, system stats (CPU, RAM, Battery status/charging indicator), and top processes.
+
+### T6-T8 — Verification
+- TEST SUITE: Added `test_context_scanner()` inside `tests/test_all.py`.
+- RESULT: 102/102 tests pass successfully.
+- INTEGRATION: Confirmed endpoint `/api/context/current` behaves correctly under load.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| modules/context_scanner.py | NEW FILE — ContextScanner daemon and API |
+| modules/groq_brain.py | Prefixed user prompt with live context summary |
+| main.py | Integrated context_scanner thread lifecycle |
+| modules/api_server.py | Exposed GET /api/context/current endpoint |
+| nova_app/lib/api/client.dart | Added fetchPCContext() helper |
+| nova_app/lib/screens/home/dashboard_tab.dart | Added PC Live Context dashboard widget & timer |
+| tests/test_all.py | Added automated test_context_scanner test case |
+
+

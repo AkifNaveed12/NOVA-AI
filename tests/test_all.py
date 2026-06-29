@@ -830,3 +830,20 @@ def test_clipboard_rw():
     assert "nova_test_clipboard_123" in cm.read()
     if original:
         cm.write(original)
+
+
+# ── Module 1: Context Scanner Test ──────────────────────────────────
+def test_context_scanner():
+    """Verify context_scanner produces a summary and captures process/system state."""
+    from modules.context_scanner import context_scanner
+    # Call _scan() synchronously to populate context instantly and avoid timing races
+    snap = context_scanner._scan()
+    assert isinstance(snap, dict)
+    assert "active_window" in snap
+    assert "system" in snap
+    assert "top_processes" in snap
+    
+    summary = context_scanner.get_context_summary()
+    assert isinstance(summary, str)
+
+

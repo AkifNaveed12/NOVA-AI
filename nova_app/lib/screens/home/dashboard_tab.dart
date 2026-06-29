@@ -48,6 +48,11 @@ class _DashboardTabState extends State<DashboardTab> {
   bool _clipboardLoading = false;
   Timer? _clipboardTimer;
 
+  // PC Context (Module 1)
+  Map<String, dynamic> _pcContext = {};
+  bool _contextLoading = false;
+  Timer? _contextTimer;
+
   // Notes (F7)
   List<Map<String, dynamic>> _notes = [];
   bool _notesLoading = false;
@@ -67,11 +72,14 @@ class _DashboardTabState extends State<DashboardTab> {
     _loadAll();
     _clipboardTimer = Timer.periodic(
       const Duration(seconds: 10), (_) => _refreshClipboard());
+    _contextTimer = Timer.periodic(
+      const Duration(seconds: 10), (_) => _refreshContext());
   }
 
   @override
   void dispose() {
     _clipboardTimer?.cancel();
+    _contextTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -79,10 +87,27 @@ class _DashboardTabState extends State<DashboardTab> {
   Future<void> _loadAll() async {
     await Future.wait([
       _refreshClipboard(),
+      _refreshContext(),
       _refreshNotes(),
       _refreshTasks(),
       _refreshActivity(),
     ]);
+  }
+
+  Future<void> _refreshContext() async {
+    if (!mounted) return;
+    setState(() => _contextLoading = true);
+    try {
+      final contextData = await fetchPCContext();
+      if (!mounted) return;
+      setState(() {
+        _pcContext = contextData;
+        _contextLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _contextLoading = false);
+    }
   }
 
   Future<void> _refreshClipboard() async {
@@ -97,6 +122,7 @@ class _DashboardTabState extends State<DashboardTab> {
       setState(() => _clipboardLoading = false);
     }
   }
+
 
   Future<void> _refreshNotes() async {
     setState(() => _notesLoading = true);
@@ -373,6 +399,18 @@ class _DashboardTabState extends State<DashboardTab> {
               ],
               const SizedBox(height: 20),
 
+              // ── PC Live Context (Module 1) ──────────────────────
+              _sectionHeader('PC LIVE CONTEXT',
+                trailing: IconButton(
+                  icon: const Icon(Icons.refresh,
+                    color: Color(0xFF555577), size: 16),
+                  onPressed: _refreshContext,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                )),
+              _buildPCContext(),
+              const SizedBox(height: 20),
+
               // ── Clipboard (F6) ─────────────────────────────────
               _sectionHeader('CLIPBOARD SYNC',
                 trailing: IconButton(
@@ -574,6 +612,161 @@ class _DashboardTabState extends State<DashboardTab> {
             style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
     );
   }
+
+  // ── PC Live Context Widget (Module 1) ─────────────────────────────
+
+  Widget _buildPCContext() {
+    final snap = _pcContext['snapshot'] as Map<String, dynamic>?;
+    final activeWin = snap?['active_window'] as Map<String, dynamic>?;
+    final activeTitle = activeWin?['title'] as String? ?? 'No active window';
+
+    final system = snap?['system'] as Map<String, dynamic>?;
+    final cpu = system?['cpu_percent'] ?? 0.0;
+    final ram = system?['ram_percent'] ?? 0.0;
+
+    final battery = snap?['battery'] as Map<String, dynamic>?;
+    final batPercent = battery?['percent'] ?? 0;
+    final plugged = battery?['plugged'] ?? false;
+
+    final topProcs = snap?['top_processes'] as List? ?? [];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B163B),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF3D35A8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Active Window info
+          Row(
+            children: [
+              const Icon(Icons.desktop_windows, color: Color(0xFF7B6CF6), size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  activeTitle,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Stats Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: _buildContextStatItem(
+                  'CPU Usage',
+                  '$cpu%',
+                  Icons.developer_board,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildContextStatItem(
+                  'RAM Usage',
+                  '$ram%',
+                  Icons.memory,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildContextStatItem(
+                  'Battery',
+                  batPercent > 0 ? '$batPercent%${plugged ? " ⚡" : ""}' : 'N/A',
+                  Icons.battery_std,
+                ),
+              ),
+            ],
+          ),
+          if (topProcs.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'TOP PROCESSES',
+              style: TextStyle(
+                color: Color(0xFF666688),
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ...topProcs.take(3).map((p) {
+              final proc = p as Map<String, dynamic>;
+              final name = proc['name'] ?? 'Unknown';
+              final procCpu = proc['cpu_percent'] ?? 0.0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: const TextStyle(color: Color(0xFFCCCCCC), fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      '$procCpu% CPU',
+                      style: const TextStyle(color: Color(0xFF7B6CF6), fontSize: 11),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContextStatItem(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E0B1F),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x227B6CF6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: const Color(0xFF666688), size: 12),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(color: Color(0xFF666688), fontSize: 9),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   // ── Clipboard ─────────────────────────────────────────────────────
 

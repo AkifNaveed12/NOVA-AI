@@ -414,3 +414,14 @@ Future<Map<String, dynamic>> fetchFaceStatus(String userName) async {
   return jsonDecode(res.body) as Map<String, dynamic>;
 }
 
+// ── Module 1: PC Context ──────────────────────────────────────────
+
+Future<Map<String, dynamic>> fetchPCContext() async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/context/current');
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 10));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
+
+

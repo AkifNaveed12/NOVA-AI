@@ -25,6 +25,15 @@ except ImportError:
     _local_llm = None
     _LOCAL_LLM_AVAILABLE = False
 
+# Module 1: Context Scanner — inject PC awareness into every Groq call
+# Import is lazy-safe — if scanner not started yet, get_context_summary() returns ""
+try:
+    from modules.context_scanner import context_scanner as _ctx_scanner
+    _CTX_SCANNER_AVAILABLE = True
+except ImportError:
+    _ctx_scanner = None
+    _CTX_SCANNER_AVAILABLE = False
+
 class GroqBrain:
     def __init__(self, config: dict):
         self.config = config
@@ -81,6 +90,18 @@ class GroqBrain:
             facts_text = "\n".join([f"  - {k}: {v}" for k, v in self._cached_facts])
             fresh_prompt += f"\n\nKnown facts about the user:\n{facts_text}"
         self.system_prompt = fresh_prompt
+
+        # Module 1: Inject PC context into user message if available
+        # This is NOVA's flagship differentiator — proactive PC awareness
+        if _CTX_SCANNER_AVAILABLE and _ctx_scanner is not None:
+            try:
+                ctx_str = _ctx_scanner.get_context_summary()
+                if ctx_str:
+                    user_message = (
+                        f"[Current PC context: {ctx_str}]\n\nUser says: {user_message}"
+                    )
+            except Exception as ctx_err:
+                print(f"[GroqBrain] Context injection error (non-fatal): {ctx_err}")
 
         # Rolling window — trim BEFORE appending so the new user message is always last
         # and the first message in history is always a user turn (Groq requires this).
