@@ -425,3 +425,29 @@ Future<Map<String, dynamic>> fetchPCContext() async {
 }
 
 
+// ── Module 3: Multilingual config ──────────────────────────────────
+
+Future<bool> fetchMultilingualEnabled() async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/config/multilingual');
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 5));
+  final data = jsonDecode(res.body) as Map<String, dynamic>;
+  return data['enabled'] ?? true;
+}
+
+Future<void> updateMultilingualEnabled(bool enabled) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/config/multilingual');
+  await http.post(
+    uri,
+    headers: {
+      'X-API-Key': config['apiKey']!,
+      'Content-Type': 'application/json',
+    },
+    body: jsonEncode({'enabled': enabled}),
+  ).timeout(const Duration(seconds: 5));
+}
+
+
+

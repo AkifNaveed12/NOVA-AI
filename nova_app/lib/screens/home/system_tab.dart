@@ -15,11 +15,47 @@ class _SystemTabState extends State<SystemTab> {
   String _error = '';
   Timer? _timer;
 
+  bool _multilingualEnabled = true;
+  bool _multilingualLoading = false;
+
   @override
   void initState() {
     super.initState();
     _refresh();
+    _loadMultilingual();
     _timer = Timer.periodic(const Duration(seconds: 5), (_) => _refresh());
+  }
+
+  Future<void> _loadMultilingual() async {
+    try {
+      final enabled = await fetchMultilingualEnabled();
+      if (!mounted) return;
+      setState(() {
+        _multilingualEnabled = enabled;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _toggleMultilingual(bool value) async {
+    setState(() {
+      _multilingualLoading = true;
+    });
+    try {
+      await updateMultilingualEnabled(value);
+      if (!mounted) return;
+      setState(() {
+        _multilingualEnabled = value;
+        _multilingualLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _multilingualLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
@@ -156,15 +192,15 @@ class _SystemTabState extends State<SystemTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Row(children: [
-                const Icon(Icons.monitor, color: Color(0xFF7B6CF6), size: 20),
-                const SizedBox(width: 8),
-                const Text('System Monitor',
+              const Row(children: [
+                Icon(Icons.monitor, color: Color(0xFF7B6CF6), size: 20),
+                SizedBox(width: 8),
+                Text('System Monitor',
                   style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 16,
                     fontWeight: FontWeight.bold)),
-                const Spacer(),
+                Spacer(),
                 Text('Live • 5s',
-                  style: const TextStyle(color: Color(0xFF555577), fontSize: 11)),
+                  style: TextStyle(color: Color(0xFF555577), fontSize: 11)),
               ]),
               const SizedBox(height: 16),
 
@@ -262,7 +298,57 @@ class _SystemTabState extends State<SystemTab> {
                       fontWeight: FontWeight.w500)),
                 ]),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+
+              // Assistant Settings
+              const Row(children: [
+                Icon(Icons.settings_outlined, color: Color(0xFF7B6CF6), size: 20),
+                SizedBox(width: 8),
+                Text('Assistant Settings',
+                  style: TextStyle(color: Color(0xFF7B6CF6), fontSize: 16,
+                    fontWeight: FontWeight.bold)),
+              ]),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B163B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF3D35A8)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Urdu Multilingual Mode',
+                            style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text('Auto-detect Urdu speech and speak responses in Urdu.',
+                            style: TextStyle(color: Color(0xFF888899), fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    _multilingualLoading
+                      ? const SizedBox(
+                          width: 24, height: 24,
+                          child: CircularProgressIndicator(color: Color(0xFF7B6CF6), strokeWidth: 2),
+                        )
+                      : Switch(
+                          value: _multilingualEnabled,
+                          activeThumbColor: const Color(0xFF7B6CF6),
+                          activeTrackColor: const Color(0xFF3D35A8),
+                          inactiveThumbColor: const Color(0xFF888899),
+                          inactiveTrackColor: const Color(0xFF222233),
+                          onChanged: _toggleMultilingual,
+                        ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),

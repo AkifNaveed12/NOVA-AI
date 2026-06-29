@@ -740,5 +740,39 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 | modules/api_server.py | Exposed GET /api/memory/search REST endpoint |
 | tests/test_all.py | Added test_semantic_memory and test_api_endpoints |
 
+---
+
+## Sprint 3 — Urdu Multilingual Pipeline (Module 3)
+
+**Date:** 2026-06-29
+**Status:** Complete
+
+### What was done:
+
+- **Created `modules/multilingual.py`**: Wraps `faster-whisper` auto language detection, `deep-translator` Google Translation bridge for Urdu ↔ English bidirectional translation, and `gTTS` speech generation for high-quality Urdu voice synthesis.
+- **Modified `main.py`**: Replaced standard voice input-output loops to support bilingual flows. If Urdu speech is detected, transcribe it, translate it to English for NLP routing, translate the resulting English response back to Urdu, speak it using `gTTS`, and log both translation pairs in HUD.
+- **Modified `modules/nova_hud.html`**: Loaded Google Fonts (Noto Nastaliq Urdu) and updated `appendLog()` in JavaScript to dynamically detect Urdu character ranges and format them with beautiful, right-to-left Nastaliq script styling.
+- **Modified `modules/api_server.py`**: Exposed GET/POST `/api/config/multilingual` endpoints to dynamically fetch and update the Urdu Multilingual Mode setting.
+- **Modified Flutter Mobile App (`nova_app`)**:
+  - `lib/api/client.dart`: Added `fetchMultilingualEnabled()` and `updateMultilingualEnabled(bool)` API helper methods.
+  - `lib/screens/home/system_tab.dart`: Added a gorgeous "Assistant Settings" section containing an "Urdu Multilingual Mode" Switch. This switch allows the user to turn Urdu auto-detection and speech synthesis on or off in real-time, fetching/saving the value directly to the desktop server's configuration database.
+- **Added Automated Tests**:
+  - `test_multilingual_translation`: Verifies deep-translator's bidirectional mapping to and from Urdu.
+  - `test_multilingual_api_endpoints`: Verifies GET/POST `/api/config/multilingual` endpoints with security and settings updates.
+- **Regression Checks**: Verified that all 106/106 tests pass successfully.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| modules/multilingual.py | NEW FILE — Urdu language detection, translation, and speech synthesis |
+| modules/nova_hud.html | Styled logs dynamically with RTL Noto Nastaliq Urdu fonts |
+| main.py | Integrated multilingual translation into voice pipeline and gTTS voice output |
+| modules/api_server.py | Exposed GET/POST /api/config/multilingual endpoints |
+| tests/test_all.py | Added test_multilingual_translation and test_multilingual_api_endpoints |
+| nova_app/lib/api/client.dart | Added API helpers for multilingual config |
+| nova_app/lib/screens/home/system_tab.dart | Implemented Urdu Multilingual Mode Switch UI and state |
+
+
 
 

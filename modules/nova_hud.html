@@ -4,6 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>NOVA AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400..700&display=swap" rel="stylesheet">
 <style>
   /* ── Reset & Base ─────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -433,12 +436,44 @@ function appendLog(role, text) {
   if (role === 'user') {
     const cmd = document.createElement('div');
     cmd.className = 'log-command';
+    if (/[\u0600-\u06FF]/.test(text)) {
+      cmd.setAttribute('dir', 'rtl');
+      cmd.style.fontFamily = "'Noto Nastaliq Urdu', 'Urdu Typesetting', sans-serif";
+      cmd.style.textAlign = 'right';
+    }
     cmd.textContent = text;
     entry.appendChild(cmd);
   } else {
     const res = document.createElement('div');
     res.className = 'log-response';
-    res.textContent = text;
+    
+    if (text.includes('\n')) {
+      const parts = text.split('\n');
+      parts.forEach(part => {
+        const line = document.createElement('div');
+        if (/[\u0600-\u06FF]/.test(part)) {
+          line.setAttribute('dir', 'rtl');
+          line.style.fontFamily = "'Noto Nastaliq Urdu', 'Urdu Typesetting', sans-serif";
+          line.style.textAlign = 'right';
+          line.style.fontSize = '14px';
+          line.style.lineHeight = '1.8';
+        } else {
+          line.style.fontSize = '10px';
+          line.style.opacity = '0.7';
+        }
+        line.textContent = part;
+        res.appendChild(line);
+      });
+    } else {
+      if (/[\u0600-\u06FF]/.test(text)) {
+        res.setAttribute('dir', 'rtl');
+        res.style.fontFamily = "'Noto Nastaliq Urdu', 'Urdu Typesetting', sans-serif";
+        res.style.textAlign = 'right';
+        res.style.fontSize = '14px';
+        res.style.lineHeight = '1.8';
+      }
+      res.textContent = text;
+    }
     entry.appendChild(res);
   }
 

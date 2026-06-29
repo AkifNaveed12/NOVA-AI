@@ -429,6 +429,30 @@ def save_setup(data: SetupData, _auth: str = Depends(_require_auth)):
 
     return {"status": "success", "message": f"Setup complete. Welcome, {data.user_name}!"}
 
+
+# ── Multilingual config endpoints (Module 3 - T6/T7) ────────────────
+@app.get("/api/config/multilingual")
+def get_multilingual_config(_auth: str = Depends(_require_auth)):
+    try:
+        from modules.config_manager import config_manager
+        enabled = config_manager.get("multilingual.enabled", True)
+        return {"status": "success", "enabled": enabled}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+class MultilingualConfigData(BaseModel):
+    enabled: bool
+
+@app.post("/api/config/multilingual")
+def update_multilingual_config(data: MultilingualConfigData, _auth: str = Depends(_require_auth)):
+    try:
+        from modules.config_manager import config_manager
+        config_manager.set("multilingual.enabled", data.enabled)
+        return {"status": "success", "message": f"Multilingual mode set to {data.enabled}."}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
 # ── Coding assistant endpoints (T7) ──────────────────────────────
 class ChatMessage(BaseModel):
     message: str

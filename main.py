@@ -79,30 +79,40 @@ def main() -> None:
 
     tts_cfg = config.get("tts", {})
 
-    def speak(text: str):
-        """Speaks the text aloud using pyttsx3. Pauses wake word during speech."""
+    def speak(text: str, lang: str = "en", english_translation: str = None):
+        """Speaks the text aloud using pyttsx3 (for English) or gTTS (for other languages)."""
         hud.update_status("speaking")
-        hud.log_message("nova", text)
-        print(f"[NOVA] {text}")
-        try:
-            from modules.api_server import push_status as _push
-            _push("speaking", text[:60])
-        except Exception:
-            pass
+        from modules.api_server import push_status as _push
         
-        import subprocess, sys
-        rate = tts_cfg.get("rate", 175)
-        volume = tts_cfg.get("volume", 0.9)
-        script = f"import pyttsx3, sys; e=pyttsx3.init(); e.setProperty('rate', {rate}); e.setProperty('volume', {volume}); e.say(sys.argv[1]); e.runAndWait()"
+        if lang != "en" and english_translation:
+            hud_log_text = f"{text}\nTranslation: {english_translation}"
+            hud.log_message("nova", hud_log_text)
+            print(f"[NOVA ({lang})] {text} (EN: {english_translation})")
+            try:
+                _push("speaking", text[:60])
+            except Exception:
+                pass
+        else:
+            hud.log_message("nova", text)
+            print(f"[NOVA] {text}")
+            try:
+                _push("speaking", text[:60])
+            except Exception:
+                pass
         
-        # Run TTS in a completely isolated process to bypass Windows SAPI5 background thread deadlocks
-        flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
-        subprocess.run([sys.executable, "-c", script, text], creationflags=flags)
-        
-        # Note: wake_word.resume() is called by voice_pipeline AFTER draining
+        if lang == "en":
+            import subprocess, sys
+            rate = tts_cfg.get("rate", 175)
+            volume = tts_cfg.get("volume", 0.9)
+            script = f"import pyttsx3, sys; e=pyttsx3.init(); e.setProperty('rate', {rate}); e.setProperty('volume', {volume}); e.say(sys.argv[1]); e.runAndWait()"
+            flags = getattr(subprocess, 'CREATE_NO_WINDOW', 0x08000000)
+            subprocess.run([sys.executable, "-c", script, text], creationflags=flags)
+        else:
+            from modules.multilingual import multilingual
+            multilingual.speak(text, lang=lang)
+            
         hud.update_status("sleeping")
         try:
-            from modules.api_server import push_status as _push
             _push("sleeping")
         except Exception:
             pass
@@ -126,7 +136,16 @@ def main() -> None:
         _audio = stt.listen()
         hud.update_status("processing")
         if _audio:
-            _text = stt.transcribe(_audio)
+            if config.get("multilingual", {}).get("enabled", True):
+                from modules.multilingual import multilingual
+                _text, _lang = multilingual.transcribe_audio_data(_audio)
+                if _lang != "en":
+                    _eng_text = multilingual.translate_to_english(_text, _lang)
+                    print(f"[USER follow-up ({_lang})] {_text} (EN: {_eng_text})")
+                    hud.log_message("user", _text)
+                    return _eng_text
+            else:
+                _text = stt.transcribe(_audio)
             if _text:
                 print(f"[USER follow-up] {_text}")
                 hud.log_message("user", _text)
@@ -257,16 +276,28 @@ def main() -> None:
                 push_status("listening")
                 audio = stt.listen()
 
-                if audio:
+                 if audio:
                     hud.update_status("processing")
                     push_status("processing")
-                    text = stt.transcribe(audio)
+                    
+                    if config.get("multilingual", {}).get("enabled", True):
+                        from modules.multilingual import multilingual
+                        text, detected_lang = multilingual.transcribe_audio_data(audio)
+                    else:
+                        text = stt.transcribe(audio)
+                        detected_lang = "en"
 
                     if text:
-                        print(f"\n[USER] {text}")
+                        if detected_lang != "en":
+                            english_text = multilingual.translate_to_english(text, detected_lang)
+                            print(f"\n[USER ({detected_lang})] {text} (EN: {english_text})")
+                        else:
+                            english_text = text
+                            print(f"\n[USER] {text}")
+                            
                         hud.log_message("user", text)
 
-                        result = nlp_process(text)
+                        result = nlp_process(english_text)
                         intent = result["intent"]
                         entities = result["entities"]
                         print(f"[NLP] Intent: {intent} | Entities: {entities}")
@@ -303,7 +334,11 @@ def main() -> None:
                             db_manager.log_conversation("assistant", response, activity_id=activity_id)
 
                         if response:
-                            speak(response)
+                            if detected_lang != "en":
+                                response_local = multilingual.translate_from_english(response, detected_lang)
+                                speak(response_local, lang=detected_lang, english_translation=response)
+                            else:
+                                speak(response)
 
                 # --- Pipeline reset ---
                 # Reset the wake event first so the detector loop doesn't re-arm too soon

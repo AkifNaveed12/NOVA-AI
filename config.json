@@ -49,6 +49,7 @@
     "translation": true,
     "memory": true,
     "semantic_memory": true,
+    "multilingual": true,
     "personality": true,
     "gesture_control": true,
     "hud": true,
@@ -81,6 +82,9 @@
   "semantic_memory": {
     "enabled": true,
     "model": "all-MiniLM-L6-v2"
+  },
+  "multilingual": {
+    "enabled": true
   },
   "groq": {
     "model": "llama-3.3-70b-versatile",

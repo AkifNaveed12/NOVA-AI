@@ -910,5 +910,55 @@ def test_api_endpoints():
     assert isinstance(resp.json()["results"], list)
 
 
+# ── Module 3: Multilingual Urdu Voice Pipeline Test ────────────────
+def test_multilingual_translation():
+    """Verify deep-translator translations to and from Urdu work correctly."""
+    from modules.multilingual import multilingual
+    
+    ur_text = multilingual.translate_from_english("Hello, how are you?", target_lang="ur")
+    assert isinstance(ur_text, str)
+    assert any(ord(char) >= 0x0600 and ord(char) <= 0x06FF for char in ur_text)
+    
+    en_text = multilingual.translate_to_english(ur_text, source_lang="ur")
+    assert isinstance(en_text, str)
+    assert "hello" in en_text.lower() or "how" in en_text.lower() or "you" in en_text.lower()
+
+
+def test_multilingual_api_endpoints():
+    """Verify GET/POST /api/config/multilingual endpoints require auth and get/update settings."""
+    from fastapi.testclient import TestClient
+    from modules.api_server import app
+    import os
+    
+    secret = os.getenv("NOVA_API_SECRET", "nova-secret-change-this")
+    client = TestClient(app)
+    
+    # Test unauthorized
+    resp = client.get("/api/config/multilingual")
+    assert resp.status_code == 403
+    
+    # Test authorized get
+    resp = client.get("/api/config/multilingual", headers={"X-API-Key": secret})
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "success"
+    assert "enabled" in resp.json()
+    
+    # Test authorized post
+    old_status = resp.json()["enabled"]
+    new_status = not old_status
+    resp = client.post("/api/config/multilingual", json={"enabled": new_status}, headers={"X-API-Key": secret})
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "success"
+    
+    # Verify change is persisted
+    resp = client.get("/api/config/multilingual", headers={"X-API-Key": secret})
+    assert resp.json()["enabled"] == new_status
+    
+    # Restore original status
+    client.post("/api/config/multilingual", json={"enabled": old_status}, headers={"X-API-Key": secret})
+
+
+
+
 
 
