@@ -673,7 +673,8 @@ def list_files(path: str = "", _auth: str = Depends(_require_auth)):
                 "modified": stat.st_mtime,
                 "extension": item.suffix.lower() if item.is_file() else None,
             })
-        except PermissionError:
+        except (PermissionError, FileNotFoundError, OSError):
+            # Skip unreadable, broken, or locked files/folders
             pass
     return {"entries": entries, "path": str(p)}
 

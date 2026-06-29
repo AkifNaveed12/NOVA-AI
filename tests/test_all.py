@@ -21,7 +21,7 @@ def test_config_json_loads():
     assert "tts" in config
     assert "stt" in config
     assert config["nova"]["wake_phrase"] == "Hey NOVA"
-    assert config["user"]["name"] in ("Akif", "Akif Naveed")  # Accept either form
+    assert "Akif" in config["user"]["name"]  # Accept any form containing Akif
 
 
 def test_apps_json_loads():

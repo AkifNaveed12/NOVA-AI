@@ -57,7 +57,7 @@
     "config_manager": true
   },
   "weather": {
-    "default_city": "Wah Cantt",
+    "default_city": "Lahore",
     "units": "metric"
   },
   "hud": {
@@ -93,7 +93,7 @@
     "conversation_window": 20
   },
   "user": {
-    "name": "Akif Naveed",
-    "default_city": "Wah Cantt"
+    "name": "Muhammad Akif Naveed",
+    "default_city": "Lahore"
   }
 }

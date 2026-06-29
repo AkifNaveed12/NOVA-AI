@@ -133,6 +133,19 @@ def route(
         Response string to be spoken by TTS engine
     """
     with _route_lock:
+        if speak_func is None:
+            def default_speak(text: str):
+                print(f"[NOVA] {text}")
+            speak_func = default_speak
+        if listen_func is None:
+            def default_listen() -> str:
+                # Fallback to console input
+                try:
+                    return input("[Console Input] ")
+                except Exception:
+                    return ""
+            listen_func = default_listen
+
         intent   = nlp_result.get("intent", "conversation")
         original = nlp_result.get("original", "")
         entities = nlp_result.get("entities", {})
@@ -219,6 +232,17 @@ def dispatch_local(
     Returns:
         Response string or None if module not yet implemented
     """
+    if speak_func is None:
+        def default_speak(text: str):
+            print(f"[NOVA] {text}")
+        speak_func = default_speak
+    if listen_func is None:
+        def default_listen() -> str:
+            try:
+                return input("[Console Input] ")
+            except Exception:
+                return ""
+        listen_func = default_listen
     # ── Day 8 ─────────────────────────────────────────────────────────
     if intent == "weather":
         from modules.weather import WeatherModule

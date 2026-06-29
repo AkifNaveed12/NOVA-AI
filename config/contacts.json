@@ -1,38 +1,68 @@
 {
   "contacts": [
     {
-      "name": "Mama",
-      "aliases": ["mama", "mom", "mother", "ammi"],
-      "phone": "+923294290722",
-      "email": "uzma.naveed18@gmail.com",
-      "platform": "whatsapp"
-    },
-    {
       "name": "Baba",
-      "aliases": ["baba", "dad", "father", "abu"],
+      "aliases": [
+        "baba",
+        "dad",
+        "father",
+        "abu"
+      ],
       "phone": "+923212888609",
       "email": "naveed_khalid2002@yahoo.com",
       "platform": "whatsapp"
     },
     {
       "name": "Obaid",
-      "aliases": ["obaid bhai", "obaid"],
+      "aliases": [
+        "obaid bhai",
+        "obaid"
+      ],
       "phone": "+923197062544",
       "email": "minhasobaid8@gmail.com",
       "platform": "whatsapp"
     },
     {
       "name": "Ibraheem",
-      "aliases": ["ibrahim", "ibraheem","ibi","motuu", "baby elephent"],
+      "aliases": [
+        "ibrahim",
+        "ibraheem",
+        "ibi",
+        "motuu",
+        "baby elephent"
+      ],
       "phone": "+923134763313",
       "email": "ibraheemnaveed00@gmail.com",
       "platform": "whatsapp"
     },
     {
       "name": "Hamza",
-      "aliases": ["hamza", "hamzi","khan","Abbasi"],
+      "aliases": [
+        "hamza",
+        "hamzi",
+        "khan",
+        "Abbasi"
+      ],
       "phone": "+923021437012",
       "email": "hamzatalwarali712@gmail.com",
+      "platform": "whatsapp"
+    },
+    {
+      "name": "Mama",
+      "aliases": [
+        "mama"
+      ],
+      "phone": "+92 3294290722",
+      "email": null,
+      "platform": "whatsapp"
+    },
+    {
+      "name": "Ibrahim",
+      "aliases": [
+        "ibrahim"
+      ],
+      "phone": "+92 3134763313",
+      "email": null,
       "platform": "whatsapp"
     }
   ]
