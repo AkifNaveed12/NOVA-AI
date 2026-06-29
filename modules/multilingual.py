@@ -26,6 +26,30 @@ class MultilingualEngine:
         self._current_lang = lang if lang in self.SUPPORTED else "en"
         return text, self._current_lang
 
+    def transcribe_audio_data(self, audio) -> tuple[str, str]:
+        """Transcribes sr.AudioData by writing it to a temporary wav file first."""
+        import wave
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                tmp_path = tmp.name
+                with wave.open(tmp_path, "wb") as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)  # 16-bit
+                    wf.setframerate(audio.sample_rate)
+                    wf.writeframes(audio.get_raw_data())
+
+            text, lang = self.transcribe_with_language(tmp_path)
+            
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+                
+            return text, lang
+        except Exception as e:
+            print(f"[Multilingual] transcribe_audio_data failed: {e}")
+            return "", "en"
+
     def translate_to_english(self, text: str, source_lang: str = "ur") -> str:
         if source_lang == "en":
             return text
