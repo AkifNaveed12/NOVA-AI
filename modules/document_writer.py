@@ -34,8 +34,25 @@ class DocumentWriter:
         else:
             return self._write_pdf(title, content, filename_base)
 
+    def _clean_latin1(self, text: str) -> str:
+        replacements = {
+            '\u2018': "'",
+            '\u2019': "'",
+            '\u201c': '"',
+            '\u201d': '"',
+            '\u2013': '-',
+            '\u2014': '-',
+            '\u2022': '*',
+            '\u2026': '...',
+        }
+        for orig, repl in replacements.items():
+            text = text.replace(orig, repl)
+        return text.encode('latin-1', 'replace').decode('latin-1')
+
     def _write_pdf(self, title: str, content: str, filename_base: str) -> dict:
         try:
+            title = self._clean_latin1(title)
+            content = self._clean_latin1(content)
             pdf = FPDF()
             pdf.set_margins(20, 20, 20)
             pdf.add_page()

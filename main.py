@@ -364,7 +364,8 @@ def main() -> None:
     assignment_manager = AssignmentManager(
         db_manager=db_manager,
         speak_func=speak,
-        listen_func=_listen_once
+        listen_func=_listen_once,
+        wake_word=wake_word
     )
     folder_watcher = FolderWatcher(
         inbox_path=config.get("assignment_pipeline", {}).get("inbox_folder", "nova_inbox"),
