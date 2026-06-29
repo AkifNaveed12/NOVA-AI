@@ -26,6 +26,7 @@ dependencies:
 
   # Icons
   cupertino_icons: ^1.0.6
+  file_picker: ^11.0.2
 
 dev_dependencies:
   flutter_test:

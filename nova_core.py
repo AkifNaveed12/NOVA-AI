@@ -91,6 +91,30 @@ def _split_multi_commands(original: str) -> list:
     return []
 
 
+def _is_factual_query(text: str) -> bool:
+    """Determine if a query is seeking factual/live web information."""
+    text_lower = text.lower().strip()
+    
+    # Common factual question starters
+    factual_starters = (
+        "what is", "who is", "where is", "when did", "how many", "why did", 
+        "latest news", "current status", "who was", "what are", "when is",
+        "tell me about", "definition of"
+    )
+    if any(text_lower.startswith(starter) for starter in factual_starters):
+        return True
+        
+    # Keywords that suggest factual research
+    factual_keywords = (
+        "news", "president", "price of", "weather in", "capital of",
+        "population", "release date", "born", "died", "won the", "champion"
+    )
+    if any(kw in text_lower for kw in factual_keywords):
+        return True
+        
+    return False
+
+
 def route(
     nlp_result:   dict,
     speak_func:   Optional[callable] = None,
@@ -165,6 +189,16 @@ def route(
         else:
             # Route to Groq Brain for conversation, jokes, etc.
             print(f"[Core] Routing to GroqBrain: '{original}'")
+            if _is_factual_query(original):
+                try:
+                    from modules.search_engine import search_engine
+                    print(f"[Core] Factual query detected. Fetching live search context for: '{original}'")
+                    res = search_engine.search(original)
+                    context = search_engine.format_for_groq(res, original)
+                    if context:
+                        groq_brain.inject_search_context(context)
+                except Exception as search_err:
+                    print(f"[Core] Search engine error (non-fatal): {search_err}")
             return groq_brain.chat(original)
 
 

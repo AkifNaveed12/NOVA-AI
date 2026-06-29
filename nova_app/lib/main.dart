@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/connect_screen.dart';
 import 'screens/setup/step1_screen.dart';
-import 'screens/home/main_screen.dart';
+import 'screens/face_login_screen.dart';
 
 import 'widgets/nova_logo.dart';
 
@@ -83,7 +83,7 @@ class _SplashState extends State<_Splash> {
         context, MaterialPageRoute(builder: (_) => const Step1Screen()));
     } else {
       Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (_) => const MainScreen()));
+        context, MaterialPageRoute(builder: (_) => const FaceLoginScreen()));
     }
   }
 

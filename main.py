@@ -276,7 +276,7 @@ def main() -> None:
                 push_status("listening")
                 audio = stt.listen()
 
-                 if audio:
+                if audio:
                     hud.update_status("processing")
                     push_status("processing")
                     

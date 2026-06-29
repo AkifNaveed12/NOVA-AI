@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../api/client.dart';
 
 class FilesTab extends StatefulWidget {
@@ -715,6 +718,103 @@ class _AssignmentsHubSheetState extends State<_AssignmentsHubSheet> {
     }
   }
 
+  Future<void> _pickAndUploadFile() async {
+    setState(() => _submitting = true);
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['txt', 'pdf', 'docx', 'doc'],
+      );
+      if (result == null || result.files.isEmpty) {
+        setState(() => _submitting = false);
+        return;
+      }
+      
+      final file = result.files.first;
+      final bytes = file.bytes;
+      final name = file.name;
+      
+      Uint8List uploadBytes;
+      if (bytes != null) {
+        uploadBytes = bytes;
+      } else if (file.path != null) {
+        uploadBytes = await File(file.path!).readAsBytes();
+      } else {
+        throw Exception('Cannot read file bytes');
+      }
+
+      final res = await uploadAssignment(uploadBytes, name);
+      if (!mounted) return;
+
+      if (res['status'] == 'received') {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Document uploaded! Processing: $name'),
+          backgroundColor: const Color(0xFF00AA55),
+        ));
+        _loadAssignments();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Upload failed: ${res['message']}'),
+          backgroundColor: const Color(0xFFFF4444),
+        ));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Error uploading file: $e'),
+        backgroundColor: const Color(0xFFFF4444),
+      ));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _downloadAndSave(int id, String title, String format) async {
+    setState(() => _loading = true);
+    try {
+      final bytes = await downloadAssignment(id);
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('Empty file downloaded from server.');
+      }
+      
+      final ext = format.toLowerCase() == 'pdf' ? 'pdf' : 'docx';
+      final defaultFileName = '${title.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}.$ext';
+      
+      if (kIsWeb) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Downloaded successfully (Browser handled the download)'),
+          backgroundColor: Color(0xFF00AA55),
+        ));
+        return;
+      }
+
+      String? path = await FilePicker.saveFile(
+        dialogTitle: 'Save Assignment File',
+        fileName: defaultFileName,
+        type: FileType.custom,
+        allowedExtensions: [ext],
+      );
+      
+      if (path != null) {
+        final localFile = File(path);
+        await localFile.writeAsBytes(bytes);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Saved to: $path'),
+          backgroundColor: const Color(0xFF00AA55),
+        ));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Download/save error: $e'),
+        backgroundColor: const Color(0xFFFF4444),
+      ));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -798,7 +898,31 @@ class _AssignmentsHubSheetState extends State<_AssignmentsHubSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-
+              Row(
+                children: [
+                  const Expanded(child: Divider(color: Color(0xFF3D35A8))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text('OR', style: TextStyle(color: const Color(0xFF7B6CF6).withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                  const Expanded(child: Divider(color: Color(0xFF3D35A8))),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _submitting ? null : _pickAndUploadFile,
+                  icon: const Icon(Icons.upload_file, color: Color(0xFF7B6CF6), size: 18),
+                  label: const Text('Upload Syllabus File (PDF, TXT, DOCX)', style: TextStyle(color: Colors.white, fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF3D35A8)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -891,10 +1015,9 @@ class _AssignmentsHubSheetState extends State<_AssignmentsHubSheet> {
                             IconButton(
                               icon: const Icon(Icons.download_for_offline, color: Color(0xFF00FF88), size: 26),
                               onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: Text('Saved! Compiled assignment file is ready on your PC in "nova_outbox/".'),
-                                  backgroundColor: const Color(0xFF00AA55),
-                                ));
+                                final id = item['id'] as int? ?? 0;
+                                final format = item['output_format'] as String? ?? 'pdf';
+                                _downloadAndSave(id, title, format);
                               },
                             ),
                         ],

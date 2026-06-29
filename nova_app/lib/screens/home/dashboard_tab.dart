@@ -39,9 +39,11 @@ class _DashboardTabState extends State<DashboardTab> {
   String _lastResponse = '';
 
   // Search (F8)
-  String _searchPlatform = 'YouTube';
+  String _searchPlatform = 'Web';
   final _searchCtrl = TextEditingController();
   bool _searchLoading = false;
+  Map<String, dynamic>? _webSearchResults;
+  String _webSearchQuery = '';
 
   // Clipboard (F6)
   String _pcClipboard = '';
@@ -178,18 +180,35 @@ class _DashboardTabState extends State<DashboardTab> {
   Future<void> _doSearch() async {
     final query = _searchCtrl.text.trim();
     if (query.isEmpty) return;
-    setState(() => _searchLoading = true);
+    setState(() {
+      _searchLoading = true;
+      _webSearchResults = null;
+      _webSearchQuery = '';
+    });
     try {
-      await sendCommand('search $query on ${_searchPlatform.toLowerCase()}');
-      if (!mounted) return;
-      setState(() {
-        _lastResponse = 'Searching "$query" on $_searchPlatform...';
-        _searchLoading = false;
-      });
+      if (_searchPlatform == 'Web') {
+        final results = await searchWeb(query);
+        if (!mounted) return;
+        setState(() {
+          _webSearchResults = results;
+          _webSearchQuery = query;
+          _searchLoading = false;
+        });
+      } else {
+        await sendCommand('search $query on ${_searchPlatform.toLowerCase()}');
+        if (!mounted) return;
+        setState(() {
+          _lastResponse = 'Searching "$query" on $_searchPlatform...';
+          _searchLoading = false;
+        });
+      }
       _searchCtrl.clear();
     } catch (e) {
       if (!mounted) return;
-      setState(() { _lastResponse = 'Error: $e'; _searchLoading = false; });
+      setState(() {
+        _lastResponse = 'Error: $e';
+        _searchLoading = false;
+      });
     }
   }
 
@@ -386,6 +405,7 @@ class _DashboardTabState extends State<DashboardTab> {
 
               // ── Search bar (F8) ────────────────────────────────
               _buildSearchBar(),
+              _buildWebSearchResults(),
               const SizedBox(height: 20),
 
               // ── Quick Actions ──────────────────────────────────
@@ -487,7 +507,7 @@ class _DashboardTabState extends State<DashboardTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Platform pills
-          Row(children: ['YouTube', 'Google', 'Wikipedia'].map((p) =>
+          Row(children: ['Web', 'YouTube', 'Google', 'Wikipedia'].map((p) =>
             GestureDetector(
               onTap: () => setState(() => _searchPlatform = p),
               child: Container(
@@ -542,6 +562,138 @@ class _DashboardTabState extends State<DashboardTab> {
               ),
             ),
           ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWebSearchResults() {
+    if (_webSearchResults == null) return const SizedBox.shrink();
+
+    final status = _webSearchResults!['status'];
+    if (status == 'error') {
+      return Container(
+        margin: const EdgeInsets.only(top: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF3A0000),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFF4444).withOpacity(0.5)),
+        ),
+        child: Text(
+          'Search Error: ${_webSearchResults!['detail'] ?? 'Unknown error'}',
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+        ),
+      );
+    }
+
+    final answer = _webSearchResults!['answer'] as String? ?? '';
+    final sources = _webSearchResults!['sources'] as List? ?? [];
+    final provider = _webSearchResults!['provider'] as String? ?? '';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B163B),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF7B6CF6).withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'RESULTS FOR "$_webSearchQuery"',
+                style: const TextStyle(
+                  color: Color(0xFF7B6CF6),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0x2200FF88),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0x4400FF88)),
+                ),
+                child: Text(
+                  provider.toUpperCase(),
+                  style: const TextStyle(color: Color(0xFF00FF88), fontSize: 9, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          if (answer.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              answer,
+              style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4),
+            ),
+          ],
+          if (sources.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Text(
+              'SOURCES',
+              style: TextStyle(
+                color: Color(0xFF666688),
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ...sources.take(3).map((s) {
+              final src = s as Map<String, dynamic>;
+              final title = src['title'] ?? 'Source';
+              final url = src['url'] ?? '';
+              final snippet = src['snippet'] ?? '';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (url.isNotEmpty) {
+                          Clipboard.setData(ClipboardData(text: url));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Link copied to clipboard!'),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          color: Color(0xFF7B6CF6),
+                          fontSize: 12,
+                          decoration: TextDecoration.underline,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (snippet.isNotEmpty)
+                      Text(
+                        snippet,
+                        style: const TextStyle(color: Color(0xFF888899), fontSize: 11),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
         ],
       ),
     );

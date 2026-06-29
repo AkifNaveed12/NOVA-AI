@@ -54,6 +54,7 @@ class GroqBrain:
         
         self.client = Groq(api_key=api_key)
         self.conversation_history = []
+        self._search_context = ""
         
         user_name = self.config.get("user", {}).get("name", "Akif")
 
@@ -70,6 +71,10 @@ class GroqBrain:
         
         self.system_prompt = self.base_system_prompt
         self._cached_facts = []  # Populated by inject_memory()
+
+    def inject_search_context(self, context: str):
+        """Inject live search results for the next chat completion call."""
+        self._search_context = context
 
     def inject_memory(self, facts: list):
         """Prepends long term memory facts into the system prompt."""
@@ -108,6 +113,11 @@ class GroqBrain:
         elif self._cached_facts:
             facts_text = "\n".join([f"  - {k}: {v}" for k, v in self._cached_facts])
             fresh_prompt += f"\n\nKnown facts about the user:\n{facts_text}"
+
+        # Inject Live Search Context if available
+        if self._search_context:
+            fresh_prompt += f"\n\nLive Search Context:\n{self._search_context}"
+            self._search_context = ""
 
         self.system_prompt = fresh_prompt
 

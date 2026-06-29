@@ -453,6 +453,24 @@ def update_multilingual_config(data: MultilingualConfigData, _auth: str = Depend
         return {"status": "error", "detail": str(e)}
 
 
+# ── Search Engine Endpoint (Module 4) ──────────────────────────────
+@app.get("/api/search")
+def search_web(query: str, max_results: int = 5, _auth: str = Depends(_require_auth)):
+    """Search the web using Tavily with a fallback to DuckDuckGo."""
+    try:
+        from modules.search_engine import search_engine
+        results = search_engine.search(query, max_results=max_results)
+        return {
+            "status": "success",
+            "query": query,
+            "answer": results.get("answer", ""),
+            "sources": results.get("sources", []),
+            "provider": results.get("provider", "")
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
 # ── Coding assistant endpoints (T7) ──────────────────────────────
 class ChatMessage(BaseModel):
     message: str

@@ -450,4 +450,17 @@ Future<void> updateMultilingualEnabled(bool enabled) async {
 }
 
 
+// ── Module 4: Search Engine ────────────────────────────────────────
+
+Future<Map<String, dynamic>> searchWeb(String query, {int maxResults = 5}) async {
+  final config = await getServerConfig();
+  final uri = Uri.parse('${_baseUrl(config['ip']!)}/api/search')
+      .replace(queryParameters: {
+        'query': query,
+        'max_results': maxResults.toString(),
+      });
+  final res = await http.get(uri, headers: {'X-API-Key': config['apiKey']!})
+      .timeout(const Duration(seconds: 15));
+  return jsonDecode(res.body) as Map<String, dynamic>;
+}
 
