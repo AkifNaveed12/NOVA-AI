@@ -51,6 +51,12 @@ INTENT_PATTERNS = {
         "register my face", "enable face login", "who am i", "verify my face",
         "register face", "login with face", "face login"
     ],
+    "generate_assignment": [
+        "generate assignment", "solve assignment", "compile assignment",
+        "process assignment", "do the assignment", "generate the pending assignment",
+        "solve the goal assignment", "solve the assignment", "compile the assignment",
+        "generate this assignment", "solve this assignment"
+    ],
     "activity_log": [
         "what did i ask you earlier", "what did i ask earlier", "show today's log",
         "show today's logs", "show my activity log", "show command history",

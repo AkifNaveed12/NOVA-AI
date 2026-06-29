@@ -40,8 +40,8 @@ class WakeWordDetector:
         self.recognizer = sr.Recognizer()
         self.recognizer.energy_threshold = self.energy_threshold
         self.recognizer.dynamic_energy_threshold = True
-        self.recognizer.dynamic_energy_adjustment_damping = 0.15
-        self.recognizer.pause_threshold = 0.5
+        self.recognizer.dynamic_energy_adjustment_damping = 0.10  # Faster adaptation
+        self.recognizer.pause_threshold = 0.4  # Faster triggers
 
         self.shared_mic = shared_mic
         self.thread = None
@@ -117,7 +117,8 @@ class WakeWordDetector:
                 text = self.recognizer.recognize_google(audio).lower()
                 text = text.replace(",", "").replace(".", "").replace("!", "").replace("?", "")
 
-                if self.wake_phrase in text or "nova" in text:
+                wake_keywords = ["nova", "innova", "nava", "novel", "no standard", "no double", "no one", "hey no", "hi no", "hello no", "okay no", "ok no", "nov", "nav"]
+                if self.wake_phrase in text or any(kw in text for kw in wake_keywords):
                     print(f"\n[WakeWord] Detected: '{text}'")
                     self._last_detected_at = time.time()
                     # Pause ourselves BEFORE setting wake_event so STT gets exclusive mic access

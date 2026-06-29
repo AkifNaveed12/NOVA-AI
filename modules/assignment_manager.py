@@ -56,7 +56,9 @@ class AssignmentManager:
         # Step 4: Listen for confirmation
         if self.listen:
             response = self.listen()
-            if response and any(w in response.lower() for w in ["yes", "sure", "go ahead", "do it", "yeah"]):
+            response_lower = response.lower() if response else ""
+            confirm_keywords = ["yes", "sure", "go ahead", "do it", "yeah", "generate", "solve", "haan", "jee", "kar do", "start", "please", "okay", "ok", "کر"]
+            if response and any(w in response_lower for w in confirm_keywords):
                 pass  # proceed
             else:
                 self.speak("Okay, I'll leave it for now. Say 'generate assignment' when you're ready.")

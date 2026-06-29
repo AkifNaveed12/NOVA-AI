@@ -41,7 +41,7 @@ LOCAL_INTENTS = {
     "reminder", "calendar", "task", "datetime", "math",
     "translate", "whatsapp", "email", "check_email",
     "task_queue", "introduce", "joke", "motivate", "roast",
-    "config_manager", "activity_log", "face_auth",
+    "config_manager", "activity_log", "face_auth", "generate_assignment",
 }
 
 GROQ_INTENTS = {
@@ -757,6 +757,33 @@ def dispatch_local(
                 return f"I couldn't recognize your face. Error: {result.get('error', 'Authentication failed.')}"
         
         return "I didn't understand the face command. Try saying: register my face, or, who am I."
+
+    if intent == "generate_assignment":
+        import glob
+        from modules.assignment_manager import AssignmentManager
+        from modules.memory_system import db_singleton
+        
+        inbox_dir = _config.get("assignment_pipeline", {}).get("inbox_folder", "nova_inbox")
+        if not os.path.exists(inbox_dir):
+            os.makedirs(inbox_dir, exist_ok=True)
+            
+        files = glob.glob(os.path.join(inbox_dir, "*"))
+        files = [f for f in files if os.path.isfile(f) and not os.path.basename(f).startswith(".")]
+        
+        if not files:
+            return "There are no assignments in your inbox. Please upload or drop a file in the nova_inbox folder first."
+            
+        target_file = files[0]
+        mgr = AssignmentManager(
+            db_manager=db_singleton,
+            speak_func=speak_func,
+            listen_func=listen_func
+        )
+        res = mgr.process_file(target_file)
+        if res.get("success"):
+            return f"Assignment compilation completed successfully."
+        else:
+            return f"Assignment compilation did not complete. Reason: {res.get('reason', res.get('error', 'Unknown'))}."
 
     return None
 

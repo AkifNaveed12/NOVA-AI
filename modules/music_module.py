@@ -101,17 +101,8 @@ class MusicModule:
             return
 
         try:
-            # Launch Spotify using environment variable
-            spotify_path = os.path.expandvars("%APPDATA%\\Spotify\\Spotify.exe")
-            if os.path.exists(spotify_path):
-                subprocess.Popen([spotify_path])
-            else:
-                # Try opening via Windows search if path not found
-                pyautogui.press("win")
-                time.sleep(0.5)
-                pyautogui.write("spotify", interval=0.05)
-                time.sleep(0.5)
-                pyautogui.press("enter")
+            # Launch Spotify using registered URI protocol (works for both standalone and Windows Store versions)
+            subprocess.Popen(["cmd", "/c", "start spotify:"], shell=True)
             
             # Wait for Spotify to load and come to foreground
             time.sleep(4.0)
