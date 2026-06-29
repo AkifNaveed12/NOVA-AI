@@ -114,6 +114,24 @@ def get_context(auth: str = Depends(_require_auth)):
     except Exception as e:
         return {"status": "error", "detail": str(e)}
 
+# ── Module 2: Semantic Memory search endpoint ─────────────────────
+@app.get("/api/memory/search")
+def search_memory(query: str, top_k: int = 5, auth: str = Depends(_require_auth)):
+    """Search user facts semantically and return top results with similarity scores."""
+    try:
+        from modules.semantic_memory import semantic_memory
+        results = semantic_memory.search(query, top_k=top_k)
+        return {
+            "status": "success",
+            "query": query,
+            "results": [
+                {"key": k, "value": v, "similarity": s}
+                for k, v, s in results
+            ]
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
 
 
 # ── WebSocket: real-time NOVA status ─────────────────────────────

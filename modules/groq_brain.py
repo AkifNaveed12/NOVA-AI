@@ -34,6 +34,14 @@ except ImportError:
     _ctx_scanner = None
     _CTX_SCANNER_AVAILABLE = False
 
+# Module 2: Semantic Memory — dynamic contextual user model
+try:
+    from modules.semantic_memory import semantic_memory as _semantic_memory
+    _SEMANTIC_MEMORY_AVAILABLE = True
+except ImportError:
+    _semantic_memory = None
+    _SEMANTIC_MEMORY_AVAILABLE = False
+
 class GroqBrain:
     def __init__(self, config: dict):
         self.config = config
@@ -86,10 +94,23 @@ class GroqBrain:
             f"Do not use markdown formatting like asterisks or bold text, just plain conversational English. "
             f"Current date and time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}."
         )
-        if self._cached_facts:
+
+        # Module 2: Semantic Memory dynamic search injection
+        semantic_facts_text = ""
+        if _SEMANTIC_MEMORY_AVAILABLE and _semantic_memory is not None:
+            try:
+                semantic_facts_text = _semantic_memory.inject_for_prompt(user_message)
+            except Exception as sm_err:
+                print(f"[GroqBrain] Semantic memory search error (non-fatal): {sm_err}")
+
+        if semantic_facts_text:
+            fresh_prompt += semantic_facts_text
+        elif self._cached_facts:
             facts_text = "\n".join([f"  - {k}: {v}" for k, v in self._cached_facts])
             fresh_prompt += f"\n\nKnown facts about the user:\n{facts_text}"
+
         self.system_prompt = fresh_prompt
+
 
         # Module 1: Inject PC context into user message if available
         # This is NOVA's flagship differentiator — proactive PC awareness

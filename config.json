@@ -48,6 +48,7 @@
     "clipboard": true,
     "translation": true,
     "memory": true,
+    "semantic_memory": true,
     "personality": true,
     "gesture_control": true,
     "hud": true,
@@ -76,6 +77,10 @@
     "db_path": "data/memory.db",
     "top_k_injection": 10,
     "log_retention_days": 30
+  },
+  "semantic_memory": {
+    "enabled": true,
+    "model": "all-MiniLM-L6-v2"
   },
   "groq": {
     "model": "llama-3.3-70b-versatile",

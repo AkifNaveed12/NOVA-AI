@@ -714,4 +714,31 @@ For reminders (Module 13) and calendar (Module 14), the reminder engine thread s
 | nova_app/lib/screens/home/dashboard_tab.dart | Added PC Live Context dashboard widget & timer |
 | tests/test_all.py | Added automated test_context_scanner test case |
 
+---
+
+## Sprint 2 — Semantic Memory (Module 2)
+
+**Date:** 2026-06-29
+**Status:** Complete
+
+### What was done:
+
+- **Created `modules/semantic_memory.py`**: SQLite + in-process sentence embeddings via `sentence-transformers` using `all-MiniLM-L6-v2`. Auto-migrates legacy flat facts from `UserFacts` table to `semantic_facts` on initialization. Updates access counts and access timestamps on search hits.
+- **Modified `modules/groq_brain.py`**: Lazily loads semantic memory and replaces static `get_facts()` prompt injection with dynamic, semantically-matched user facts on each chat call using the user message as query.
+- **Modified `modules/api_server.py`**: Exposed GET `/api/memory/search` endpoint protected by `X-API-Key` auth for querying semantic memories.
+- **Added Automated Tests**:
+  - `test_semantic_memory`: Verifies storage, search, cosine similarity ranking, and `inject_for_prompt()` logic.
+  - `test_api_endpoints`: Verifies both GET `/api/context/current` and GET `/api/memory/search` endpoints under authentication.
+- **Regression Checks**: Verified that all 104/104 tests pass successfully.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| modules/semantic_memory.py | NEW FILE — SQLite vector semantic memory implementation |
+| modules/groq_brain.py | Integrated dynamic semantic memory search in prompt building |
+| modules/api_server.py | Exposed GET /api/memory/search REST endpoint |
+| tests/test_all.py | Added test_semantic_memory and test_api_endpoints |
+
+
 

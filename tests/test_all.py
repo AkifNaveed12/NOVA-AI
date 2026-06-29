@@ -847,3 +847,68 @@ def test_context_scanner():
     assert isinstance(summary, str)
 
 
+# ── Module 2: Semantic Memory Test ──────────────────────────────────
+def test_semantic_memory():
+    """Verify semantic memory stores facts, retrieves them using similarity, and does not crash."""
+    from modules.semantic_memory import SemanticMemory
+    import tempfile
+    import os
+    
+    # Create temp DB path for testing
+    fd, temp_db_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    
+    try:
+        sm = SemanticMemory(db_path=temp_db_path)
+        sm.store("favorite_editor", "VS Code", "preferences")
+        sm.store("programming_language", "Python", "coding")
+        sm.store("hobby", "Playing chess", "interests")
+        
+        # Test exact query
+        results = sm.search("What editor does the user prefer?", top_k=2)
+        assert len(results) > 0
+        # Highest match should be the editor preference
+        assert results[0][0] == "favorite_editor"
+        assert results[0][1] == "VS Code"
+        # Similarity should be positive
+        assert results[0][2] > 0.4
+        
+        # Test inject_for_prompt
+        injected = sm.inject_for_prompt("what programming language does the user use", top_k=2)
+        assert "programming_language" in injected
+    finally:
+        if os.path.exists(temp_db_path):
+            try:
+                os.remove(temp_db_path)
+            except Exception:
+                pass
+
+
+# ── Module 2: API Endpoints Test ──────────────────────────────────
+def test_api_endpoints():
+    """Verify context and memory search endpoints return 200 with valid API key."""
+    from fastapi.testclient import TestClient
+    from modules.api_server import app
+    import os
+    
+    secret = os.getenv("NOVA_API_SECRET", "nova-secret-change-this")
+    client = TestClient(app)
+    
+    # Test unauthorized
+    resp = client.get("/api/context/current")
+    assert resp.status_code == 403
+    
+    # Test authorized context
+    resp = client.get("/api/context/current", headers={"X-API-Key": secret})
+    assert resp.status_code == 200
+    assert resp.json()["status"] in ("success", "error")
+    
+    # Test authorized memory search
+    resp = client.get("/api/memory/search?query=IDE&top_k=2", headers={"X-API-Key": secret})
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "success"
+    assert isinstance(resp.json()["results"], list)
+
+
+
+
