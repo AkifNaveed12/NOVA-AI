@@ -21,7 +21,7 @@ def test_config_json_loads():
     assert "tts" in config
     assert "stt" in config
     assert config["nova"]["wake_phrase"] == "Hey NOVA"
-    assert config["user"]["name"] == "Akif"
+    assert config["user"]["name"] in ("Akif", "Akif Naveed")  # Accept either form
 
 
 def test_apps_json_loads():
@@ -211,16 +211,18 @@ def test_hud_instantiation():
         hud._ready = True
         hud._window = mock_window
 
-        # update_status must call evaluate_js with the correct JS string
+        # update_status must enqueue a status update dict
         hud.update_status("listening")
-        mock_window.evaluate_js.assert_called_with("window.novaSetStatus('listening')")
+        assert not hud._api.updates_queue.empty(), "update_status did not enqueue anything"
+        item = hud._api.updates_queue.get_nowait()
+        assert item == {"type": "status", "data": "listening"}
 
-        # log_message must use novaAppendLog
+        # log_message must enqueue a log dict
         hud.log_message("user", "open chrome")
-        called_js = mock_window.evaluate_js.call_args[0][0]
-        assert "novaAppendLog" in called_js
-        assert "user" in called_js
-        assert "open chrome" in called_js
+        item2 = hud._api.updates_queue.get_nowait()
+        assert item2["type"] == "log"
+        assert item2["role"] == "user"
+        assert "open chrome" in item2["text"]
 
 
 

@@ -16,6 +16,15 @@ import os
 import datetime
 from groq import Groq
 
+# Sprint 0 / Module 5: Local LLM fallback (Ollama + llama3.2)
+# Import is lazy-safe — local_llm.is_available() returns False if Ollama isn't running
+try:
+    from modules.local_llm import local_llm as _local_llm
+    _LOCAL_LLM_AVAILABLE = True
+except ImportError:
+    _local_llm = None
+    _LOCAL_LLM_AVAILABLE = False
+
 class GroqBrain:
     def __init__(self, config: dict):
         self.config = config
@@ -107,8 +116,23 @@ class GroqBrain:
                     self.conversation_history.pop()
                     return "I'm having trouble connecting right now. Please try again in a moment."
 
-        # All retries exhausted
+        # All Groq retries exhausted — attempt local LLM fallback
         self.conversation_history.pop()
+        if _LOCAL_LLM_AVAILABLE and _local_llm is not None and _local_llm.is_available():
+            print("[GroqBrain] Falling back to local LLM (Ollama llama3.2)...")
+            try:
+                local_response = _local_llm.chat(
+                    user_message,
+                    system_prompt=self.base_system_prompt
+                )
+                if local_response and not local_response.startswith("[Local LLM"):
+                    self.conversation_history.append(
+                        {"role": "assistant", "content": local_response}
+                    )
+                    return local_response
+            except Exception as local_err:
+                print(f"[GroqBrain] Local LLM fallback also failed: {local_err}")
+
         return "I'm temporarily unavailable due to API rate limits. Please try again in a few seconds."
             
     def reset_conversation(self):

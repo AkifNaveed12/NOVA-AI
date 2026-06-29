@@ -131,16 +131,33 @@ class WebAutomation:
         return f"Searching Google for: {query}."
 
     def _get_driver(self):
-        """Lazily initializes a Selenium Chrome driver."""
+        """Lazily initializes a Selenium Chrome driver using webdriver-manager.
+
+        Sprint 0: webdriver-manager auto-downloads the correct ChromeDriver
+        version, eliminating version mismatch errors when Chrome updates.
+        """
         if self.driver is None:
             try:
                 from selenium import webdriver
                 from selenium.webdriver.chrome.options import Options
+                from selenium.webdriver.chrome.service import Service
 
-                opts = Options()
-                opts.add_argument("--start-maximized")
-                opts.add_experimental_option("detach", True)  # Keep browser open
-                self.driver = webdriver.Chrome(options=opts)
+                try:
+                    # Sprint 0: Use webdriver-manager for automatic ChromeDriver management
+                    from webdriver_manager.chrome import ChromeDriverManager
+                    service = Service(ChromeDriverManager().install())
+                    opts = Options()
+                    opts.add_argument("--start-maximized")
+                    opts.add_experimental_option("detach", True)  # Keep browser open
+                    self.driver = webdriver.Chrome(service=service, options=opts)
+                except ImportError:
+                    # Fallback: let Selenium find ChromeDriver on PATH
+                    print("[Web] webdriver-manager not available, using system ChromeDriver.")
+                    opts = Options()
+                    opts.add_argument("--start-maximized")
+                    opts.add_experimental_option("detach", True)
+                    self.driver = webdriver.Chrome(options=opts)
+
                 self.driver.implicitly_wait(5)
             except Exception as e:
                 print(f"[Web] Selenium driver init failed: {e}")
