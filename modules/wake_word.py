@@ -22,14 +22,17 @@ import speech_recognition as sr
 
 
 class WakeWordDetector:
-    def __init__(self, wake_event: threading.Event, config: dict, shared_mic=None):
+    def __init__(self, wake_event: threading.Event, config: dict, shared_mic=None, stt_instance=None):
         """
         Args:
             wake_event: Event set when wake word is detected. Main pipeline waits on this.
             config: Full config dictionary loaded from config.json.
             shared_mic: Pre-opened sr.Microphone instance (shared with STT).
+            stt_instance: SpeechToText instance to allow offline Whisper transcription fallbacks.
         """
         self.wake_event = wake_event
+        self.stt_instance = stt_instance
+        self.detected_text = ""
 
         # Read from the correct config section
         ww_cfg = config.get("wake_word", {})
@@ -114,12 +117,23 @@ class WakeWordDetector:
                 if not self._active.is_set():
                     continue
 
-                text = self.recognizer.recognize_google(audio).lower()
+                try:
+                    text = self.recognizer.recognize_google(audio).lower()
+                except (sr.UnknownValueError, sr.RequestError):
+                    text = ""
+                    if self.stt_instance:
+                        try:
+                            text = self.stt_instance._transcribe_whisper(audio)
+                            text = text.lower() if text else ""
+                        except Exception:
+                            pass
+
                 text = text.replace(",", "").replace(".", "").replace("!", "").replace("?", "")
 
                 wake_keywords = ["nova", "innova", "nava", "novel", "no standard", "no double", "no one", "hey no", "hi no", "hello no", "okay no", "ok no", "nov", "nav"]
                 if self.wake_phrase in text or any(kw in text for kw in wake_keywords):
                     print(f"\n[WakeWord] Detected: '{text}'")
+                    self.detected_text = text
                     self._last_detected_at = time.time()
                     # Pause ourselves BEFORE setting wake_event so STT gets exclusive mic access
                     self.pause()

@@ -101,29 +101,32 @@ class MusicModule:
             return
 
         try:
-            # Launch Spotify using registered URI protocol (works for both standalone and Windows Store versions)
-            subprocess.Popen(["cmd", "/c", "start spotify:"], shell=True)
-            
-            # Wait for Spotify to load and come to foreground
+            import urllib.parse
+            encoded_query = urllib.parse.quote(song_name)
+            # Try to launch directly with search URI first
+            subprocess.Popen(["cmd", "/c", f"start spotify:search:{encoded_query}"], shell=True)
             time.sleep(4.0)
             
-            # Ctrl+L to focus search bar
-            pyautogui.hotkey('ctrl', 'l')
-            time.sleep(0.5)
-            
-            # Type song name
-            pyautogui.write(song_name, interval=0.05)
-            time.sleep(2.0) # Wait for search results to fully load
-            
-            # Navigate to the top result and play
-            # Using down arrow focuses the 'Top Result' section reliably
+            # Play the top search result
             pyautogui.press('down')
             time.sleep(0.5)
             pyautogui.press('enter')
             
         except Exception as e:
-            print(f"[MusicModule] Automation failed: {e}")
-            self._play_song_api(song_name)
+            print(f"[MusicModule] Search URI automation failed: {e}. Trying standard launch...")
+            try:
+                subprocess.Popen(["cmd", "/c", "start spotify:"], shell=True)
+                time.sleep(4.0)
+                pyautogui.hotkey('ctrl', 'l')
+                time.sleep(0.5)
+                pyautogui.write(song_name, interval=0.05)
+                time.sleep(2.0)
+                pyautogui.press('down')
+                time.sleep(0.5)
+                pyautogui.press('enter')
+            except Exception as ex:
+                print(f"[MusicModule] Automation fallback failed: {ex}")
+                self._play_song_api(song_name)
 
     def _play_song_api(self, song_name: str):
         """Fallback: uses Spotify API to play the song."""

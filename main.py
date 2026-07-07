@@ -69,8 +69,8 @@ def main() -> None:
     shared_mic = sr.Microphone()
     shared_mic.__enter__() # Open the PyAudio stream permanently
 
-    wake_word = WakeWordDetector(wake_event, config, shared_mic=shared_mic)
     stt = SpeechToText(config, shared_mic=shared_mic)
+    wake_word = WakeWordDetector(wake_event, config, shared_mic=shared_mic, stt_instance=stt)
 
     import pyttsx3
     import tempfile
@@ -214,6 +214,19 @@ def main() -> None:
         import pythoncom
         pythoncom.CoInitialize()
 
+        def extract_command(text: str, wake_phrase: str) -> str:
+            text_lower = text.lower().strip()
+            wake_keywords = [wake_phrase, "hey nova", "innova", "nava", "novel", "no standard", "no double", "no one", "hey no", "hi no", "hello no", "okay no", "ok no", "nov", "nav"]
+            for kw in wake_keywords:
+                if kw in text_lower:
+                    parts = text_lower.split(kw, 1)
+                    if len(parts) > 1:
+                        cmd = parts[1].strip()
+                        cmd = cmd.lstrip(",.!? ")
+                        if cmd:
+                            return cmd
+            return ""
+
         from modules.api_server import push_status
 
         from modules.personality import PersonalityModule
@@ -272,20 +285,36 @@ def main() -> None:
                 # At this point, wake_word is already paused (called self.pause()
                 # before setting the event), so STT has exclusive mic access.
 
-                hud.update_status("listening")
-                push_status("listening")
-                audio = stt.listen()
+                wake_text = getattr(wake_word, "detected_text", "")
+                wake_word.detected_text = ""  # Clear immediately
+                
+                cmd_text = ""
+                if wake_text:
+                    cmd_text = extract_command(wake_text, wake_word.wake_phrase)
 
-                if audio:
+                if cmd_text:
+                    print(f"[VoicePipeline] Extracted command from single-breath wake utterance: '{cmd_text}'")
                     hud.update_status("processing")
                     push_status("processing")
-                    
-                    if config.get("multilingual", {}).get("enabled", True):
-                        from modules.multilingual import multilingual
-                        text, detected_lang = multilingual.transcribe_audio_data(audio)
+                    text = cmd_text
+                    detected_lang = "ur" if any(ord(c) > 127 for c in cmd_text) else "en"
+                else:
+                    hud.update_status("listening")
+                    push_status("listening")
+                    audio = stt.listen()
+
+                    if audio:
+                        hud.update_status("processing")
+                        push_status("processing")
+                        
+                        if config.get("multilingual", {}).get("enabled", True):
+                            from modules.multilingual import multilingual
+                            text, detected_lang = multilingual.transcribe_audio_data(audio)
+                        else:
+                            text = stt.transcribe(audio)
+                            detected_lang = "en"
                     else:
-                        text = stt.transcribe(audio)
-                        detected_lang = "en"
+                        text = None
 
                     if text:
                         if detected_lang != "en":
