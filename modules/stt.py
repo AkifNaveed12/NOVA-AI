@@ -60,12 +60,13 @@ class SpeechToText:
         print("[STT] Listening for your command...")
         for attempt in range(retries + 1):
             try:
-                audio = self.recognizer.listen(
-                    self.shared_mic,
-                    timeout=self.timeout,
-                    phrase_time_limit=self.phrase_time_limit
-                )
-                return audio
+                with self.shared_mic as source:
+                    audio = self.recognizer.listen(
+                        source,
+                        timeout=self.timeout,
+                        phrase_time_limit=self.phrase_time_limit
+                    )
+                    return audio
             except sr.WaitTimeoutError:
                 print("[STT] Timeout — no speech detected.")
                 return None
@@ -74,19 +75,17 @@ class SpeechToText:
                 err_str = str(e).lower()
                 if "unanticipated host error" in err_str or "-9999" in err_str or "overflow" in err_str:
                     if attempt < retries:
-                        print("[STT] Restarting microphone stream and retrying...")
+                        print("[STT] Rebuilding PyAudio instance and retrying...")
                         try:
-                            if getattr(self.shared_mic, 'stream', None) is not None:
-                                self.shared_mic.__exit__(None, None, None)
-                            
-                            # Fully rebuild PyAudio instance to clear Errno -9988 (Stream closed)
                             if getattr(self.shared_mic, 'audio', None) is not None:
-                                self.shared_mic.audio.terminate()
+                                try:
+                                    self.shared_mic.audio.terminate()
+                                except Exception:
+                                    pass
                             self.shared_mic.audio = self.shared_mic.pyaudio_module.PyAudio()
-                            
-                            self.shared_mic.__enter__()
+                            self.shared_mic.stream = None
                         except Exception as ex:
-                            print(f"[STT] Mic restart failed: {ex}")
+                            print(f"[STT] Mic rebuild failed: {ex}")
                         continue
                 return None
 

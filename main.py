@@ -123,7 +123,6 @@ def main() -> None:
         print("[STT] Using default microphone index.")
 
     shared_mic = sr.Microphone(device_index=mic_idx)
-    shared_mic.__enter__() # Open the PyAudio stream permanently
 
     stt = SpeechToText(config, shared_mic=shared_mic)
     wake_word = WakeWordDetector(wake_event, config, shared_mic=shared_mic, stt_instance=stt)
@@ -248,21 +247,8 @@ def main() -> None:
     reminder_engine = ReminderEngine(_reminders_module, announcement_queue, hud_ticker_queue)
     reminder_engine.start()
 
-    # ── Gesture Engine — Day 18-19 ─────────────────────────────────────
-    if config.get("modules", {}).get("gesture_control", False):
-        from modules.gesture_engine import GestureEngine
-        gesture_cfg = config.get("gesture", {})
-        # approximate pinch threshold normalization
-        pinch_thresh = gesture_cfg.get("pinch_threshold_px", 30) / 300.0 
-        gesture_engine = GestureEngine(
-            camera_index=gesture_cfg.get("camera_index", 0),
-            fps_target=gesture_cfg.get("fps_target", 20),
-            debounce_seconds=gesture_cfg.get("debounce_seconds", 0.4),
-            pinch_threshold=pinch_thresh
-        )
-        gesture_engine.start()
-    else:
-        gesture_engine = None
+    # ── Gesture Engine — Day 18-19 (Placeholder, started after FaceLogin) ──
+    gesture_engine = None
 
     # Define the voice pipeline thread
     def voice_pipeline():
@@ -476,6 +462,19 @@ def main() -> None:
     # ── Core start sequence ───────────────────────────────────────────
     # Start background threads
     wake_word.start()
+
+    # ── Start Gesture Engine after FaceLogin releases the webcam ─────
+    if config.get("modules", {}).get("gesture_control", False):
+        from modules.gesture_engine import GestureEngine
+        gesture_cfg = config.get("gesture", {})
+        pinch_thresh = gesture_cfg.get("pinch_threshold_px", 30) / 300.0 
+        gesture_engine = GestureEngine(
+            camera_index=gesture_cfg.get("camera_index", 0),
+            fps_target=gesture_cfg.get("fps_target", 20),
+            debounce_seconds=gesture_cfg.get("debounce_seconds", 0.4),
+            pinch_threshold=pinch_thresh
+        )
+        gesture_engine.start()
 
     # Module 1: Start context scanner daemon (10s polling, PC awareness)
     context_scanner.start()

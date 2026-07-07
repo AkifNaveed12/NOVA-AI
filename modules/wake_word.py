@@ -95,6 +95,12 @@ class WakeWordDetector:
         while self.running:
             # Block while the main pipeline is busy (STT or TTS active)
             if not self._active.wait(timeout=0.3):
+                # If we are paused, make sure the stream is closed
+                if getattr(self.shared_mic, 'stream', None) is not None:
+                    try:
+                        self.shared_mic.__exit__(None, None, None)
+                    except Exception:
+                        pass
                 continue
 
             if not self.running:
@@ -105,6 +111,15 @@ class WakeWordDetector:
             if (now - self._last_detected_at) < self._debounce_seconds:
                 time.sleep(0.1)
                 continue
+
+            # Ensure the stream is open!
+            if getattr(self.shared_mic, 'stream', None) is None:
+                try:
+                    self.shared_mic.__enter__()
+                except Exception as e:
+                    print(f"[WakeWord] Failed to open microphone: {e}. Retrying in 1s...")
+                    time.sleep(1.0)
+                    continue
 
             try:
                 audio = self.recognizer.listen(
@@ -149,19 +164,17 @@ class WakeWordDetector:
                 print(f"[WakeWord] Google API error: {e}. Retrying in 3s...")
                 time.sleep(3)
             except Exception as e:
+                print(f"[WakeWord] Unexpected exception in loop: {e}")
                 err_str = str(e).lower()
-                if "unanticipated host error" in err_str or "-9999" in err_str or "overflow" in err_str:
+                if "unanticipated host error" in err_str or "-9999" in err_str or "overflow" in err_str or "closed" in err_str:
                     print(f"[WakeWord] Mic error: {e}. Attempting restart...")
                     try:
-                        # Safely close the stream without crashing on -9988
                         if getattr(self.shared_mic, 'stream', None) is not None:
                             try:
-                                self.shared_mic.stream.close()
+                                self.shared_mic.__exit__(None, None, None)
                             except Exception:
                                 pass
-                            finally:
-                                self.shared_mic.stream = None
-                                
+                        
                         # Fully rebuild PyAudio instance to clear Errno -9988
                         if getattr(self.shared_mic, 'audio', None) is not None:
                             try:
@@ -170,6 +183,7 @@ class WakeWordDetector:
                                 pass
                                 
                         self.shared_mic.audio = self.shared_mic.pyaudio_module.PyAudio()
+                        self.shared_mic.stream = None
                         
                         self.shared_mic.__enter__()
                         print("[WakeWord] Mic restarted successfully.")
