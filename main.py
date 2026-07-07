@@ -23,7 +23,7 @@ import time
 from dotenv import load_dotenv
 
 # Load .env before anything else
-load_dotenv()
+load_dotenv(override=True)
 
 
 def main() -> None:
