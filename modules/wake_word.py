@@ -45,6 +45,7 @@ class WakeWordDetector:
         self.recognizer.dynamic_energy_threshold = True
         self.recognizer.dynamic_energy_adjustment_damping = 0.10  # Faster adaptation
         self.recognizer.pause_threshold = 0.4  # Faster triggers
+        self.recognizer.non_speaking_duration = 0.2  # Must be <= pause_threshold
 
         self.shared_mic = shared_mic
         self.thread = None
