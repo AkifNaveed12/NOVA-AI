@@ -91,13 +91,24 @@ def main() -> None:
     if mic_idx is not None:
         try:
             mic_idx = int(mic_idx)
-            print(f"[STT] Using configured microphone index: {mic_idx}")
+            # Validate that the chosen index is actually an input device
+            mic_names = sr.Microphone.list_microphone_names()
+            if mic_idx >= len(mic_names):
+                print(f"[STT] device_index {mic_idx} out of range — falling back to system default.")
+                mic_idx = None
+            else:
+                name_lower = mic_names[mic_idx].lower()
+                if "output" in name_lower or "speaker" in name_lower:
+                    print(f"[STT] device_index {mic_idx} is an output device — falling back to system default.")
+                    mic_idx = None
+                else:
+                    print(f"[STT] Using configured microphone index: {mic_idx}")
         except ValueError:
             mic_idx = None
             print("[STT] Invalid device_index in config.json, using default microphone.")
     else:
         print("[STT] Using default microphone index.")
-        
+
     shared_mic = sr.Microphone(device_index=mic_idx)
     shared_mic.__enter__() # Open the PyAudio stream permanently
 
@@ -264,14 +275,9 @@ def main() -> None:
         from modules.personality import PersonalityModule
         _personality_startup = PersonalityModule()
         
-        # Wait for PyWebView to finish COM initialization before using SAPI5.
-        # Timeout after 5s so voice pipeline works even if HUD crashes (headless mode).
-        _hud_wait_start = time.time()
-        while not getattr(hud, "_ready", False):
-            if time.time() - _hud_wait_start > 5.0:
-                print("[VoicePipeline] HUD not ready after 5s — proceeding in headless mode.")
-                break
-            time.sleep(0.1)
+        # Brief settle delay — speak() runs TTS in a subprocess so no COM
+        # conflict with pywebview; we just let threads finish initialising.
+        time.sleep(1.0)
 
         # ── Load today's calendar events into HUD ticker ───────────────
         try:
@@ -472,24 +478,21 @@ def main() -> None:
     pipeline_thread.start()
 
     # Launch HUD in main thread (pywebview.start() MUST run on main thread)
-    # This call blocks until the HUD window is closed by the user
-    _hud_t0 = time.time()
+    # This call blocks until the HUD window is closed by the user.
     try:
         hud.start()
     except Exception as e:
         print(f"[HUD] Error: {e}")
 
-    # If the HUD exited in under 5 seconds it crashed (GPU / renderer issue),
-    # NOT a deliberate user close.  Keep the process alive so the voice
-    # pipeline daemon thread keeps running in headless mode.
-    if time.time() - _hud_t0 < 5:
-        print("[NOVA] HUD closed unexpectedly — running in headless mode.")
-        print("[NOVA] Voice pipeline active. Press Ctrl+C to exit.")
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            pass
+    # After hud.start() returns (user closed window OR pywebview crashed),
+    # keep the process alive so voice pipeline daemon threads keep running.
+    # Press Ctrl+C to trigger a clean shutdown.
+    print("[NOVA] HUD closed — voice pipeline still active. Press Ctrl+C to exit.")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        pass
 
     print("\nNOVA AI — Shutting down gracefully...")
     try:

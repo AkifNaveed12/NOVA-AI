@@ -18,8 +18,7 @@
     "pause_threshold": 0.6,
     "phrase_threshold": 0.3,
     "timeout": 7,
-    "phrase_time_limit": 12,
-    "device_index": 2
+    "phrase_time_limit": 12
   },
   "tts": {
     "engine": "pyttsx3",
