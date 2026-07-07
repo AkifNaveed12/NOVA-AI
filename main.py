@@ -264,9 +264,13 @@ def main() -> None:
         from modules.personality import PersonalityModule
         _personality_startup = PersonalityModule()
         
-        # CRITICAL: Wait for PyWebView to finish COM initialization before using SAPI5
+        # Wait for PyWebView to finish COM initialization before using SAPI5.
+        # Timeout after 5s so voice pipeline works even if HUD crashes (headless mode).
+        _hud_wait_start = time.time()
         while not getattr(hud, "_ready", False):
-            import time
+            if time.time() - _hud_wait_start > 5.0:
+                print("[VoicePipeline] HUD not ready after 5s — proceeding in headless mode.")
+                break
             time.sleep(0.1)
 
         # ── Load today's calendar events into HUD ticker ───────────────
