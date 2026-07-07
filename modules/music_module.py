@@ -84,14 +84,25 @@ class MusicModule:
             if pyautogui:
                 for _ in range(5):
                     pyautogui.press("volumeup")
-            return "Volume increased."
+            ret_msg = "Volume increased."
         elif "no" in response or "down" in response or "decrease" in response:
             if pyautogui:
                 for _ in range(5):
                     pyautogui.press("volumedown")
-            return "Volume adjusted."
-            
-        return "Playing your music."
+            ret_msg = "Volume adjusted."
+        else:
+            ret_msg = "Playing your music."
+
+        # Bring the NOVA HUD back to focus
+        try:
+            import pygetwindow as gw
+            for w in gw.getWindowsWithTitle("NOVA AI"):
+                w.activate()
+                break
+        except Exception:
+            pass
+
+        return ret_msg
 
     def _play_song_automation(self, song_name: str):
         """Uses PyAutoGUI to open Spotify and search for the song."""
@@ -105,25 +116,67 @@ class MusicModule:
             encoded_query = urllib.parse.quote(song_name)
             # Try to launch directly with search URI first
             subprocess.Popen(["cmd", "/c", f"start spotify:search:{encoded_query}"], shell=True)
-            time.sleep(4.0)
             
-            # Play the top search result
-            pyautogui.press('down')
-            time.sleep(0.5)
-            pyautogui.press('enter')
+            # Poll for the Spotify window to be active
+            import pygetwindow as gw
+            deadline = time.time() + 15
+            spotify_win = None
+            while time.time() < deadline:
+                for w in gw.getAllWindows():
+                    if "spotify" in w.title.lower():
+                        spotify_win = w
+                        break
+                if spotify_win:
+                    break
+                time.sleep(0.5)
+
+            if spotify_win:
+                try:
+                    spotify_win.activate()
+                except Exception as act_err:
+                    print(f"[MusicModule] Failed to activate Spotify window: {act_err}")
+                # Wait for search results to render
+                time.sleep(3.5)
+                
+                # Play the top search result
+                pyautogui.press('down')
+                time.sleep(0.5)
+                pyautogui.press('enter')
+            else:
+                raise Exception("Spotify window not found in polling.")
             
         except Exception as e:
             print(f"[MusicModule] Search URI automation failed: {e}. Trying standard launch...")
             try:
                 subprocess.Popen(["cmd", "/c", "start spotify:"], shell=True)
-                time.sleep(4.0)
-                pyautogui.hotkey('ctrl', 'l')
-                time.sleep(0.5)
-                pyautogui.write(song_name, interval=0.05)
-                time.sleep(2.0)
-                pyautogui.press('down')
-                time.sleep(0.5)
-                pyautogui.press('enter')
+                
+                import pygetwindow as gw
+                deadline = time.time() + 15
+                spotify_win = None
+                while time.time() < deadline:
+                    for w in gw.getAllWindows():
+                        if "spotify" in w.title.lower():
+                            spotify_win = w
+                            break
+                    if spotify_win:
+                        break
+                    time.sleep(0.5)
+
+                if spotify_win:
+                    try:
+                        spotify_win.activate()
+                    except Exception as act_err:
+                        print(f"[MusicModule] Failed to activate Spotify window: {act_err}")
+                    time.sleep(3.5)
+                    pyautogui.hotkey('ctrl', 'l')
+                    time.sleep(0.5)
+                    pyautogui.write(song_name, interval=0.05)
+                    time.sleep(2.0)
+                    pyautogui.press('down')
+                    time.sleep(0.5)
+                    pyautogui.press('enter')
+                else:
+                    raise Exception("Spotify window not found in standard launch polling.")
             except Exception as ex:
                 print(f"[MusicModule] Automation fallback failed: {ex}")
                 self._play_song_api(song_name)
