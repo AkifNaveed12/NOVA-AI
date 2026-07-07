@@ -58,6 +58,12 @@ class SpeechToText:
         The wake word detector must be paused before calling this.
         """
         print("[STT] Listening for your command...")
+        # Wait up to 2.0s for the background thread to release the microphone stream safely
+        import time
+        deadline = time.time() + 2.0
+        while getattr(self.shared_mic, 'stream', None) is not None and time.time() < deadline:
+            time.sleep(0.1)
+
         for attempt in range(retries + 1):
             try:
                 with self.shared_mic as source:

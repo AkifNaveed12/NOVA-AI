@@ -78,11 +78,6 @@ class WakeWordDetector:
         Clears the active flag so the detector stops draining the mic buffer.
         """
         self._active.clear()
-        if getattr(self.shared_mic, 'stream', None) is not None:
-            try:
-                self.shared_mic.__exit__(None, None, None)
-            except Exception:
-                pass
 
     def resume(self):
         """
@@ -101,6 +96,11 @@ class WakeWordDetector:
         while self.running:
             # Block while the main pipeline is busy (STT or TTS active)
             if not self._active.wait(timeout=0.3):
+                if getattr(self.shared_mic, 'stream', None) is not None:
+                    try:
+                        self.shared_mic.__exit__(None, None, None)
+                    except Exception:
+                        pass
                 continue
 
             if not self.running:
@@ -192,3 +192,11 @@ class WakeWordDetector:
                     except Exception as ex:
                         print(f"[WakeWord] Mic restart failed: {ex}")
                 time.sleep(0.5)
+
+            # Close stream if we were paused during this iteration
+            if not self._active.is_set():
+                if getattr(self.shared_mic, 'stream', None) is not None:
+                    try:
+                        self.shared_mic.__exit__(None, None, None)
+                    except Exception:
+                        pass
