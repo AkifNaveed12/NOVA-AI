@@ -1,15 +1,22 @@
 # main.py — NOVA AI Entry Point
 # Neural Orchestrated Voice Assistant with Autonomous Intelligence
 # Python 3.11 | Windows 10/11 | All free tools
-#
-# Thread architecture:
-#   main thread         — pywebview event loop (webview.start())
-#   voice_pipeline_thread — Daemon: STT → NLP → route → TTS → HUD updates
-#   wake_word_thread    — Daemon: "Hey NOVA" detection (threading.Event)
-#   gesture_thread      — Daemon: Camera + MediaPipe (queue.Queue)
-#   reminder_thread     — Daemon: Reminder checker every 30s (queue.Queue)
 
 import os
+# Force CPU-only for TensorFlow/DeepFace to prevent GPU VRAM exhaustion and WebView2 crashes
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+import sys
+# Reconfigure console output to UTF-8 to prevent UnicodeEncodeError crashes on Windows
+try:
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8')
+except Exception:
+    pass
+
 import threading
 import queue
 import time
