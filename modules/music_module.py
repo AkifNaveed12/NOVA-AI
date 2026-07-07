@@ -46,8 +46,7 @@ class MusicModule:
 
     def handle_music_command(self, original: str, entities: dict, speak_func, listen_func) -> str:
         """
-        Extracts song name from the command, attempts to play it via keyboard automation,
-        and then asks the user if they want to adjust the volume.
+        Extracts song name from the command, attempts to play it via keyboard automation.
         """
         import re
         song_name = ""
@@ -75,34 +74,19 @@ class MusicModule:
         # Run playback in a background thread so it doesn't block the UI
         threading.Thread(target=self._play_song_automation, args=(song_name,), daemon=True).start()
         
-        time.sleep(4) # Give it time to start playing
-        
-        # Interactive volume prompt
-        speak_func("Should I increase the volume?")
-        response = listen_func().lower()
-        if "yes" in response or "yeah" in response:
-            if pyautogui:
-                for _ in range(5):
-                    pyautogui.press("volumeup")
-            ret_msg = "Volume increased."
-        elif "no" in response or "down" in response or "decrease" in response:
-            if pyautogui:
-                for _ in range(5):
-                    pyautogui.press("volumedown")
-            ret_msg = "Volume adjusted."
-        else:
-            ret_msg = "Playing your music."
+        # Bring the NOVA HUD back to focus (after a brief delay to let Spotify launch)
+        def bring_hud_focus():
+            time.sleep(5.0)
+            try:
+                import pygetwindow as gw
+                for w in gw.getWindowsWithTitle("NOVA AI"):
+                    w.activate()
+                    break
+            except Exception:
+                pass
+        threading.Thread(target=bring_hud_focus, daemon=True).start()
 
-        # Bring the NOVA HUD back to focus
-        try:
-            import pygetwindow as gw
-            for w in gw.getWindowsWithTitle("NOVA AI"):
-                w.activate()
-                break
-        except Exception:
-            pass
-
-        return ret_msg
+        return f"Playing {song_name} on Spotify."
 
     def _play_song_automation(self, song_name: str):
         """Uses PyAutoGUI to open Spotify and search for the song."""
@@ -122,10 +106,13 @@ class MusicModule:
             deadline = time.time() + 15
             spotify_win = None
             while time.time() < deadline:
-                for w in gw.getAllWindows():
-                    if "spotify" in w.title.lower():
-                        spotify_win = w
-                        break
+                try:
+                    for w in gw.getAllWindows():
+                        if w.title and "spotify" in w.title.lower():
+                            spotify_win = w
+                            break
+                except Exception:
+                    pass
                 if spotify_win:
                     break
                 time.sleep(0.5)
@@ -154,10 +141,13 @@ class MusicModule:
                 deadline = time.time() + 15
                 spotify_win = None
                 while time.time() < deadline:
-                    for w in gw.getAllWindows():
-                        if "spotify" in w.title.lower():
-                            spotify_win = w
-                            break
+                    try:
+                        for w in gw.getAllWindows():
+                            if w.title and "spotify" in w.title.lower():
+                                spotify_win = w
+                                break
+                    except Exception:
+                        pass
                     if spotify_win:
                         break
                     time.sleep(0.5)
