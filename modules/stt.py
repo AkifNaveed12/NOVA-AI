@@ -58,21 +58,23 @@ class SpeechToText:
         The wake word detector must be paused before calling this.
         """
         print("[STT] Listening for your command...")
-        # Wait up to 2.0s for the background thread to release the microphone stream safely
-        import time
-        deadline = time.time() + 2.0
-        while getattr(self.shared_mic, 'stream', None) is not None and time.time() < deadline:
-            time.sleep(0.1)
+        
+        # Ensure the shared mic is open
+        if getattr(self.shared_mic, 'stream', None) is None:
+            try:
+                self.shared_mic.__enter__()
+            except Exception as e:
+                print(f"[STT] Failed to open microphone: {e}")
+                return None
 
         for attempt in range(retries + 1):
             try:
-                with self.shared_mic as source:
-                    audio = self.recognizer.listen(
-                        source,
-                        timeout=self.timeout,
-                        phrase_time_limit=self.phrase_time_limit
-                    )
-                    return audio
+                audio = self.recognizer.listen(
+                    self.shared_mic,
+                    timeout=self.timeout,
+                    phrase_time_limit=self.phrase_time_limit
+                )
+                return audio
             except sr.WaitTimeoutError:
                 print("[STT] Timeout — no speech detected.")
                 return None
@@ -83,6 +85,11 @@ class SpeechToText:
                     if attempt < retries:
                         print("[STT] Rebuilding PyAudio instance and retrying...")
                         try:
+                            if getattr(self.shared_mic, 'stream', None) is not None:
+                                try:
+                                    self.shared_mic.__exit__(None, None, None)
+                                except Exception:
+                                    pass
                             if getattr(self.shared_mic, 'audio', None) is not None:
                                 try:
                                     self.shared_mic.audio.terminate()
@@ -90,6 +97,7 @@ class SpeechToText:
                                     pass
                             self.shared_mic.audio = self.shared_mic.pyaudio_module.PyAudio()
                             self.shared_mic.stream = None
+                            self.shared_mic.__enter__()
                         except Exception as ex:
                             print(f"[STT] Mic rebuild failed: {ex}")
                         continue
