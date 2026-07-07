@@ -11,7 +11,10 @@ print("=== NOVA MIC DIAGNOSTIC ===\n")
 # List microphones
 print("Available microphones:")
 for i, name in enumerate(sr.Microphone.list_microphone_names()):
-    print(f"  [{i}] {name}")
+    try:
+        print(f"  [{i}] {name}")
+    except Exception:
+        print(f"  [{i}] [Encoding Error]")
 print()
 
 r = sr.Recognizer()

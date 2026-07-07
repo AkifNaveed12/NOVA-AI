@@ -109,7 +109,7 @@ class WakeWordDetector:
             try:
                 audio = self.recognizer.listen(
                     self.shared_mic,
-                    timeout=0.5,
+                    timeout=1.5,
                     phrase_time_limit=self.phrase_time_limit
                 )
 

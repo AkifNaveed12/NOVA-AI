@@ -66,7 +66,32 @@ def main() -> None:
     # To achieve 0.0s latency between wake word and command listening,
     # we open the microphone exactly ONCE at startup and keep it open.
     import speech_recognition as sr
-    shared_mic = sr.Microphone()
+    
+    print("[STT] Available microphones:")
+    for i, name in enumerate(sr.Microphone.list_microphone_names()):
+        try:
+            print(f"  [{i}] {name}")
+        except Exception:
+            try:
+                # Handle potential Windows console encoding issues gracefully
+                clean_name = name.encode('ascii', errors='ignore').decode('ascii').strip()
+                print(f"  [{i}] {clean_name}")
+            except Exception:
+                print(f"  [{i}] [Encoding Error]")
+                
+    stt_cfg = config.get("stt", {})
+    mic_idx = stt_cfg.get("device_index", None)
+    if mic_idx is not None:
+        try:
+            mic_idx = int(mic_idx)
+            print(f"[STT] Using configured microphone index: {mic_idx}")
+        except ValueError:
+            mic_idx = None
+            print("[STT] Invalid device_index in config.json, using default microphone.")
+    else:
+        print("[STT] Using default microphone index.")
+        
+    shared_mic = sr.Microphone(device_index=mic_idx)
     shared_mic.__enter__() # Open the PyAudio stream permanently
 
     stt = SpeechToText(config, shared_mic=shared_mic)
