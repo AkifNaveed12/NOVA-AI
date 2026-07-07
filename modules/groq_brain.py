@@ -164,12 +164,12 @@ class GroqBrain:
                     time.sleep(wait)
                 else:
                     print(f"[GroqBrain] Error: {e}")
-                    # Remove the user message we just appended since we won't get a response
-                    self.conversation_history.pop()
-                    return "I'm having trouble connecting right now. Please try again in a moment."
+                    break
 
-        # All Groq retries exhausted — attempt local LLM fallback
-        self.conversation_history.pop()
+        # All Groq retries exhausted or non-retryable error occurred — attempt local LLM fallback
+        if self.conversation_history:
+            self.conversation_history.pop()
+
         if _LOCAL_LLM_AVAILABLE and _local_llm is not None and _local_llm.is_available():
             print("[GroqBrain] Falling back to local LLM (Ollama llama3.2)...")
             try:
@@ -178,6 +178,7 @@ class GroqBrain:
                     system_prompt=self.base_system_prompt
                 )
                 if local_response and not local_response.startswith("[Local LLM"):
+                    self.conversation_history.append({"role": "user", "content": user_message})
                     self.conversation_history.append(
                         {"role": "assistant", "content": local_response}
                     )
@@ -185,7 +186,7 @@ class GroqBrain:
             except Exception as local_err:
                 print(f"[GroqBrain] Local LLM fallback also failed: {local_err}")
 
-        return "I'm temporarily unavailable due to API rate limits. Please try again in a few seconds."
+        return "I'm having trouble connecting right now. Please try again in a moment."
             
     def reset_conversation(self):
         """Clears the short-term conversation history."""
