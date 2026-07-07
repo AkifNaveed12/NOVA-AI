@@ -28,6 +28,19 @@ load_dotenv()
 
 def main() -> None:
     """Entry point — initialises all threads and launches HUD."""
+
+    # ── Singleton guard — prevent two instances fighting over the mic ──
+    from pathlib import Path
+    _lockfile = Path("data/.nova.lock")
+    _lockfile.parent.mkdir(exist_ok=True)
+    try:
+        import msvcrt
+        _lock_fd = open(_lockfile, "w")
+        msvcrt.locking(_lock_fd.fileno(), msvcrt.LK_NBLCK, 1)
+    except (OSError, IOError):
+        print("NOVA AI is already running! Close the other instance first.")
+        return
+
     print("NOVA AI — Initializing...")
     
     # Initialize assignment pipeline folders
