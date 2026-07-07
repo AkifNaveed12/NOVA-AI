@@ -1,2 +1,0 @@
-Topic: Neural Networks
-Guidelines: Discuss backpropagation and gradient descent.

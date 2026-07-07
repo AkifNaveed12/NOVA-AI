@@ -65,4 +65,4 @@ class FolderWatcher:
     def stop(self):
         if self._observer:
             self._observer.stop()
-            self._observer.join()
+            self._observer.join(timeout=2.0)

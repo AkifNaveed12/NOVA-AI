@@ -164,7 +164,9 @@ class WakeWordDetector:
                 print(f"[WakeWord] Google API error: {e}. Retrying in 3s...")
                 time.sleep(3)
             except Exception as e:
-                print(f"[WakeWord] Unexpected exception in loop: {e}")
+                import traceback
+                print(f"[WakeWord] Unexpected exception in loop: {type(e).__name__}: {e}")
+                traceback.print_exc()
                 err_str = str(e).lower()
                 if "unanticipated host error" in err_str or "-9999" in err_str or "overflow" in err_str or "closed" in err_str:
                     print(f"[WakeWord] Mic error: {e}. Attempting restart...")

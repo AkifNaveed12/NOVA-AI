@@ -520,6 +520,8 @@ def main() -> None:
             shared_mic.__exit__(None, None, None) # Close the PyAudio stream
     except OSError:
         pass
+    import os
+    os._exit(0)
 
 
 if __name__ == "__main__":
