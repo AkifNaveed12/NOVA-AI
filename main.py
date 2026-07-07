@@ -469,8 +469,24 @@ def main() -> None:
 
     # Launch HUD in main thread (pywebview.start() MUST run on main thread)
     # This call blocks until the HUD window is closed by the user
-    hud.start()
-    
+    _hud_t0 = time.time()
+    try:
+        hud.start()
+    except Exception as e:
+        print(f"[HUD] Error: {e}")
+
+    # If the HUD exited in under 5 seconds it crashed (GPU / renderer issue),
+    # NOT a deliberate user close.  Keep the process alive so the voice
+    # pipeline daemon thread keeps running in headless mode.
+    if time.time() - _hud_t0 < 5:
+        print("[NOVA] HUD closed unexpectedly — running in headless mode.")
+        print("[NOVA] Voice pipeline active. Press Ctrl+C to exit.")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
+
     print("\nNOVA AI — Shutting down gracefully...")
     try:
         folder_watcher.stop()
