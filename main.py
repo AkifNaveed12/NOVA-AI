@@ -357,58 +357,58 @@ def main() -> None:
                     else:
                         text = None
 
-                    if text:
+                if text:
+                    if detected_lang != "en":
+                        english_text = multilingual.translate_to_english(text, detected_lang)
+                        print(f"\n[USER ({detected_lang})] {text} (EN: {english_text})")
+                    else:
+                        english_text = text
+                        print(f"\n[USER] {text}")
+                        
+                    hud.log_message("user", text)
+
+                    result = nlp_process(english_text)
+                    intent = result["intent"]
+                    entities = result["entities"]
+                    print(f"[NLP] Intent: {intent} | Entities: {entities}")
+
+                    import nova_core
+
+                    response = nova_core.route(
+                        result,
+                        speak_func  = speak,
+                        listen_func = _listen_once,
+                    )
+
+                    # Guard: personality intro manages its own TTS — skip speak()
+                    if response == "" and result.get("intent") == "introduce":
+                        wake_event.clear()
+                        wake_word.resume()
+                        hud.update_status("sleeping")
+                        push_status("sleeping")
+                        continue
+
+                    # Normalise: None means the module had nothing to say
+                    if response is None:
+                        response = ""
+
+                    activity_id = activity_logger.log(
+                        command_text=text,
+                        module_triggered=intent,
+                        response_summary=response,
+                        success=True
+                    )
+
+                    if intent == "conversation" or intent in nova_core.GROQ_INTENTS:
+                        db_manager.log_conversation("user", text, activity_id=activity_id)
+                        db_manager.log_conversation("assistant", response, activity_id=activity_id)
+
+                    if response:
                         if detected_lang != "en":
-                            english_text = multilingual.translate_to_english(text, detected_lang)
-                            print(f"\n[USER ({detected_lang})] {text} (EN: {english_text})")
+                            response_local = multilingual.translate_from_english(response, detected_lang)
+                            speak(response_local, lang=detected_lang, english_translation=response)
                         else:
-                            english_text = text
-                            print(f"\n[USER] {text}")
-                            
-                        hud.log_message("user", text)
-
-                        result = nlp_process(english_text)
-                        intent = result["intent"]
-                        entities = result["entities"]
-                        print(f"[NLP] Intent: {intent} | Entities: {entities}")
-
-                        import nova_core
-
-                        response = nova_core.route(
-                            result,
-                            speak_func  = speak,
-                            listen_func = _listen_once,
-                        )
-
-                        # Guard: personality intro manages its own TTS — skip speak()
-                        if response == "" and result.get("intent") == "introduce":
-                            wake_event.clear()
-                            wake_word.resume()
-                            hud.update_status("sleeping")
-                            push_status("sleeping")
-                            continue
-
-                        # Normalise: None means the module had nothing to say
-                        if response is None:
-                            response = ""
-
-                        activity_id = activity_logger.log(
-                            command_text=text,
-                            module_triggered=intent,
-                            response_summary=response,
-                            success=True
-                        )
-
-                        if intent == "conversation" or intent in nova_core.GROQ_INTENTS:
-                            db_manager.log_conversation("user", text, activity_id=activity_id)
-                            db_manager.log_conversation("assistant", response, activity_id=activity_id)
-
-                        if response:
-                            if detected_lang != "en":
-                                response_local = multilingual.translate_from_english(response, detected_lang)
-                                speak(response_local, lang=detected_lang, english_translation=response)
-                            else:
-                                speak(response)
+                            speak(response)
 
                 # --- Pipeline reset ---
                 # Reset the wake event first so the detector loop doesn't re-arm too soon
@@ -493,18 +493,10 @@ def main() -> None:
     # This call blocks until the HUD window is closed by the user.
     try:
         hud.start()
-    except Exception as e:
-        print(f"[HUD] Error: {e}")
-
-    # After hud.start() returns (user closed window OR pywebview crashed),
-    # keep the process alive so voice pipeline daemon threads keep running.
-    # Press Ctrl+C to trigger a clean shutdown.
-    print("[NOVA] HUD closed — voice pipeline still active. Press Ctrl+C to exit.")
-    try:
-        while True:
-            time.sleep(1)
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        print(f"[HUD] Error: {e}")
 
     print("\nNOVA AI — Shutting down gracefully...")
     try:
